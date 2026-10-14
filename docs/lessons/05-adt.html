@@ -1,0 +1,54 @@
+<p>الفصل الرابع نقطة تحوّل: مش بنفكّر في «مصفوفة ولا قائمة»، بنفكّر في <b>عقد</b>. الـ ADT بيقول: دي العمليات اللي أقدر أعملها، ومن برّه مش فارق التنفيذ إيه.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تفهم فكرة الـ ADT، تنفّذ stack و queue بطريقتين، وتشوف postfix evaluation كعميل كلاسيكي.</div>
+
+<h2>ليه ADT؟</h2>
+<p>تخيّل مكتبتك فيها <code>STACKpush</code> و <code>STACKpop</code>. النهارده تحتها مصفوفة. بكره حوّلتها لقائمة. برامج العملاء مااتلمستش. ده فصل الاهتمامات — وده أساس هندسة البرمجيات قبل ما الكلمة تنتشر.</p>
+
+<h2>الـ Stack: LIFO</h2>
+<p>آخر واحد يدخل هو أول واحد يخرج. زي كومة أطباق. عمليتين: push و pop.</p>
+<p>تنفيذ مصفوفة: بسيط وسريع، بس سقف ثابت. تنفيذ قائمة: ديناميكي، كل push فيه malloc.</p>
+<a data-src="src/04-adt/stack.c"></a>
+
+<h3>العميل الأشهر: تقييم postfix</h3>
+<p>تعبير زي <code>5 9 8 + 4 6 * * 7 + *</code>. تمشي من الشمال: رقم → ادفعه. عملية → اطلع اتنين، طبّق، ادفع النتيجة. في الآخر القمة هي الجواب: <b>2075</b>.</p>
+<pre><code>if (isdigit(s[i])) AStack_push(s[i] - '0');
+if (s[i] == '+') AStack_push(AStack_pop() + AStack_pop());
+if (s[i] == '*') AStack_push(AStack_pop() * AStack_pop());</code></pre>
+
+<div class="tip"><b>ليه postfix؟</b>مفيش أقواس ولا أولويات تتعالج أثناء التقييم — الترتيب نفسه شايل المعلومات. المترجمات بتحوّل infix لـ postfix (أو لشجرة) لنفس السبب.</div>
+
+<h2>الـ Queue: FIFO</h2>
+<p>طابور مخبز: أول واحد يدخل أول واحد يخرج. put في الآخر، get من الأول.</p>
+<p>قائمة: head و tail. مصفوفة: دائرة (circular) عشان مبتضيعش المساحة لما الـ head يتقدّم.</p>
+<a data-src="src/04-adt/queue.c"></a>
+
+<h2>First-class ADTs</h2>
+<p>سادجوك بيميّز: ADT «عادي» (نسخة واحدة عامة) ضد first-class (تقدر تعمل كائنات كتير — زي أكثر من queue في نفس البرنامج، أو polynomials). في C ده بيوصل لـ pointers لـ structs مخفية.</p>
+<a data-src="src/04-adt/polynomial.c"></a>
+
+<div class="oops"><b>غلطة شائعة في الـ stack</b>تنسى تفحص underflow (pop من فاضي) أو overflow (push على مصفوفة مليانة). في الأمثلة التعليمية بنختصر، في الإنتاج ده باب لـ crash عشوائي.</div>
+
+<div class="quiz"><p class="q">إيه الفرق الجوهري بين Stack و Queue؟</p>
+<button>Stack أسرع</button>
+<button data-ok>Stack = LIFO، Queue = FIFO</button>
+<button>Queue بتستخدم ريكيرشن بس</button>
+<p class="why">ترتيب الخروج هو العقد كله.</p></div>
+
+<div class="quiz"><p class="q">تقييم postfix بيستخدم أنهي هيكل؟</p>
+<button>Queue</button>
+<button data-ok>Stack</button>
+<button>BST</button>
+<p class="why">العملية بتحتاج آخر رقمين اتدفعوا — بالظبط سلوك LIFO.</p></div>
+
+<div class="quiz"><p class="q">ليه نفصل واجهة الـ ADT عن التنفيذ؟</p>
+<button>عشان الكود يبقى أطول</button>
+<button data-ok>عشان نقدر نغيّر التنفيذ من غير ما نكسر برامج العملاء</button>
+<button>عشان المترجم يشترط كده</button>
+<p class="why">ده تعريف الـ abstract في Abstract Data Type.</p></div>
+
+<div class="quiz"><p class="q">مصفوفة دائرية في الـ queue بتحل مشكلة إيه؟</p>
+<button>التعقيد الزمني</button>
+<button data-ok>ضياع الخانات اللي الـ head سيبها وراه في المصفوفة الخطية</button>
+<button>الـ overflow مستحيل يحصل</button>
+<p class="why">بالمودولو على الحجم، الـ tail بيرجع لأول المصفوفة ويستغل الفراغ.</p></div>

@@ -1,0 +1,62 @@
+<p>قبل ما نجري على Quicksort، لازم نحترم الثلاثة الكبار البسطاء. مش عشان هتستخدمهم على مليون عنصر، عشان: (1) سهلين تتأكد إنك فاهم الترتيب، (2) ممتازين على الملفات الصغيرة، (3) Insertion بالذات بيظهر جوه الخوارزميات الأسرع كـ finishing step.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تفهم Selection و Insertion و Bubble و Shellsort، ومتى كل واحد له معنى.</div>
+
+<div class="w" data-w="sortviz"></div>
+
+<h2>Selection Sort</h2>
+<p>كل دورة: دور على أصغر عنصر في الباقي، حطه في مكانه. عدد المقارنات ~ N²/2 دايمًا. عدد التبادلات N بس — لو التبادل غالي (سجلات ضخمة)، ده ميّزة.</p>
+<a data-src="src/06-sorting/selection_sort.c"></a>
+
+<h2>Insertion Sort</h2>
+<p>زي ترتيب كروت في إيدك: العنصر الجديد بيتزحلق لليسار لحد مكانه. على بيانات عشوائية ~ N²/4 مقارنة. على بيانات <b>شبه مرتّبة</b> يبقى خطي تقريبًا — وهنا قوته.</p>
+<pre><code>for (i = l + 2; i <= r; i++) {
+    int j = i; Item v = a[i];
+    while (less(v, a[j - 1])) { a[j] = a[j - 1]; j--; }
+    a[j] = v;
+}</code></pre>
+<a data-src="src/06-sorting/insertion_sort.c"></a>
+
+<h2>Bubble Sort</h2>
+<p>قارن جيران وبادل لو مقلوبين، من اليمين لليسار. بسيط للشرح، بطء عمليًا. سادجوك بيوريه للأمانة التعليمية أكتر ما بينصح بيه.</p>
+<a data-src="src/06-sorting/bubble_sort.c"></a>
+
+<h2>Shellsort — البطل المظلوم</h2>
+<p>Insertion بس بخطوات كبيرة: رتّب العناصر المتباعدة بـ h، صغّر h، كرّر. بتسلسل Knuth <code>h = 3h+1</code> الأداء عمليًا ممتاز، والكود قصير. مش أسهل تحليل، بس في الواقع بياكل ملفات متوسطة بسهولة.</p>
+<a data-src="src/06-sorting/shellsort.c"></a>
+
+<h2>Key-indexed counting</h2>
+<p>لو المفاتيح أعداد صحيحة صغيرة (0..R-1)، نقدر نرتّب في O(N+R) من غير مقارنات — عدّ، اجمع تراكمي، وزّع. دي بذرة الـ radix sort.</p>
+<a data-src="src/06-sorting/key_indexed_counting.c"></a>
+
+<table>
+<tr><th></th><th>مقارنات</th><th>ثابت؟</th><th>ملاحظة</th></tr>
+<tr><td>Selection</td><td>~N²/2</td><td>لأ</td><td>تبادلات قليلة</td></tr>
+<tr><td>Insertion</td><td>~N²/4</td><td>أيوه</td><td>ممتاز للشبه مرتّب</td></tr>
+<tr><td>Bubble</td><td>~N²/2</td><td>أيوه</td><td>تعليمي</td></tr>
+<tr><td>Shellsort</td><td>≪ N²</td><td>لأ</td><td>عملي جدًا</td></tr>
+</table>
+
+<div class="quiz"><p class="q">امتّى Insertion يفوز على الباقي؟</p>
+<button>على الملفات العشوائية الكبيرة</button>
+<button data-ok>لما البيانات شبه مرتّبة أو الملف صغير</button>
+<button>عمرها ما تفوز</button>
+<p class="why">كل عنصر بيتحرك مسافة قصيرة. الـ cutoff بعد Quicksort بيستغل بالظبط النقطة دي.</p></div>
+
+<div class="quiz"><p class="q">Shellsort بيعتمد على إيه؟</p>
+<button>Heap</button>
+<button data-ok>Insertion بخطوات h بتتصغّر (مثلًا تسلسل Knuth)</button>
+<button>Binary search</button>
+<p class="why">الفكرة: حرّك العناصر مسافات كبيرة بدري، وبعدين لمّع بـ h=1.</p></div>
+
+<div class="quiz"><p class="q">Key-indexed counting ينفع امتّى؟</p>
+<button>أي نوع مفاتيح</button>
+<button data-ok>لما المفاتيح أعداد صحيحة في نطاق صغير معروف</button>
+<button>بس على نصوص عربية</button>
+<p class="why">المساحة والزمن مرتبطين بـ R. لو R ضخم، مش مفيد لوحده.</p></div>
+
+<div class="quiz"><p class="q">أنهي خوارزمية هنا مستقرة (stable)؟</p>
+<button>Selection</button>
+<button data-ok>Insertion (و Bubble)</button>
+<button>Shellsort</button>
+<p class="why">الاستقرار = العناصر المتساوية تحافظ على ترتيبها النسبي. Insertion بياخد من الشمال وما بيعدّيش على مساوي، فبيحافظ.</p></div>

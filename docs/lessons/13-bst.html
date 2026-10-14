@@ -1,0 +1,51 @@
+<p>من هنا ندخل نصف الكتاب التاني: <b>البحث</b>. جدول الرموز (symbol table) = ضع مفتاح→قيمة، دور، احذف. أبسط تنفيذ مرتّب بالمقارنات: الشجرة الثنائية للبحث.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تبني BST، تفهم البحث والإدخال، وتشوف الدوران و root insertion.</div>
+
+<div class="w" data-w="bstviz"></div>
+
+<h2>العقد</h2>
+<p>كل عقدة: مفتاح، قيمة، شمال، يمين (وأحيانًا عدّاد N لحجم الشجرة الفرعية). الخاصية: كل اللي في الشمال أصغر، كل اللي في اليمين أكبر.</p>
+
+<pre><code>Item searchR(link h, Key v) {
+    if (h == z) return NULLitem;
+    if (eq(v, key(h->item))) return h->item;
+    if (less(v, key(h->item))) return searchR(h->l, v);
+    return searchR(h->r, v);
+}</code></pre>
+<a data-src="src/12-bst/bst.c"></a>
+
+<div class="tip"><b>inorder = ترتيب</b>لف شمال، اطبع، لف يمين — والمفاتيح تطلع متصاعدة. عشان كده سادجوك بيسمّيها كمان طريقة ترتيب (tree sort).</div>
+
+<h2>الإدخال</h2>
+<p>دور لحد ما توقع على رابط فاضي، وعلّق عقدة جديدة. النسخة الريكيرسية أنيقة؛ غير الريكيرسية محتاجة تمسك الأب.</p>
+
+<h2>الدوران و Root Insertion</h2>
+<p>rotR و rotL بيغيّروا شكل الشجرة من غير ما يكسروا خاصية الـ BST. Root insertion = أدخل وبعدين دور لحد ما العقدة الجديدة تبقى جذر. مفيد كلبنة للشجر المتوازنة والعشوائية.</p>
+<a data-src="src/12-bst/bst_rotations.c"></a>
+
+<div class="oops"><b>الكابوس</b>مدخلات مرتّبة (1,2,3,…). الشجرة بقت قائمة مرتبطة. البحث O(N). الحل في الدرس الجاي: توازن إجباري أو عشوائي.</div>
+
+<div class="quiz"><p class="q">بحث ناجح في BST متوازنة تقريبًا؟</p>
+<button>O(N)</button>
+<button data-ok>O(log N)</button>
+<button>O(1)</button>
+<p class="why">كل مقارنة بتشيل نص الشجرة تقريبًا لو متوازنة.</p></div>
+
+<div class="quiz"><p class="q">إيه اللي بيكسر أداء BST العادي؟</p>
+<button>المفاتيح النصّية</button>
+<button data-ok>تسلسل إدخال مرتّب أو شبه مرتّب بيخليها سلسلة</button>
+<button>استخدام C</button>
+<p class="why">الشكل معتمد على ترتيب الإدخال. مفيش ضمان وحدك.</p></div>
+
+<div class="quiz"><p class="q">الدوران (rotation) بيحافظ على إيه؟</p>
+<button>شكل الشجرة بالظبط</button>
+<button data-ok>خاصية الـ BST (الترتيب)</button>
+<button>عدد الألوان</button>
+<p class="why">الترتيب inorder ثابت؛ الارتفاع والاتجاه بيتغيّروا.</p></div>
+
+<div class="quiz"><p class="q">Root insertion بيعمل إيه للعقدة الجديدة؟</p>
+<button>بيحذفها</button>
+<button data-ok>بيرفعها للجذر بسلسلة دورانات</button>
+<button>بيحوّلها لـ leaf دايمًا</button>
+<p class="why">insertT في Program 12.12: أدخل في الفرع المناسب، بعدين rotR أو rotL.</p></div>

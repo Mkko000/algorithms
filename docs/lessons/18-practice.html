@@ -1,0 +1,55 @@
+<p>وصلت لهنا؟ يعني عدّيت على Union-Find، التحليل، الهياكل، كل عائلة الترتيب، وجداول الرموز من BST لحد B-tree. ده مش كورس يتتسلى بيه ويتنسي — ده خريطة تمرين.</p>
+
+<div class="goal"><b>هدف الدرس:</b> خطة عملية تخلّيك PRO، مش بس «قارئ كورس».</div>
+
+<h2>قاعدة التلات طبقات</h2>
+<ol>
+<li><b>افهم:</b> اقفل الشاشة واشرح الخوارزمية بصوت عالي بمثال 8 عناصر.</li>
+<li><b>نفّذ:</b> اكتبها من الصفر من غير ما تبص. بعدين قارن بـ <code>src/</code>.</li>
+<li><b>اكسر:</b> جرب أسوأ حالة. قيس الزمن. غيّر ثايتًا وشوف.</li>
+</ol>
+
+<h2>تمرينات مقترحة (من روح تمارين الكتاب)</h2>
+<ul>
+<li>ارسم id[] بعد كل union لسلسلة عمليات (فصل 1).</li>
+<li>عدّ المقارنات الفعلية في insertion ضد shellsort على N=1000.</li>
+<li>اكتب quicksort وخليه يقع O(N²) بمدخل مرتّب، بعدين صلّحه بـ median-of-three.</li>
+<li>ابنِ BST من حروف كلمة، وبعدين نفس الحروف في Red-Black — قارن الارتفاع.</li>
+<li>قيس عدد الـ probes في linear probing وأنت تملى الجدول من 10% لـ 90%.</li>
+</ul>
+
+<h2>خريطة «استخدم إيه امتى» السريعة</h2>
+<table>
+<tr><th>الموقف</th><th>الاختيار الأول</th></tr>
+<tr><td>ترتيب عام في RAM</td><td>Quicksort محسّن (أو library sort)</td></tr>
+<tr><td>محتاج ثبات / ضمان</td><td>Mergesort</td></tr>
+<tr><td>Priority queue</td><td>Binary heap</td></tr>
+<tr><td>مفاتيح نصّية قصيرة كتير</td><td>Radix / 3-way radix quick</td></tr>
+<tr><td>قاموس + ترتيب</td><td>Red-Black / AVL</td></tr>
+<tr><td>قاموس بس بأقصى سرعة</td><td>Hash (chaining أو probing)</td></tr>
+<tr><td>بادئات / autocomplete</td><td>TST</td></tr>
+<tr><td>فهرس على قرص</td><td>B-tree</td></tr>
+<tr><td>مكونات متصلة ديناميكيًا</td><td>Weighted UF + path compression</td></tr>
+</table>
+
+<div class="tip"><b>الكتاب مرجع</b>ارجع لـ Sedgewick مش كـ «أقرأ صفحة»، كـ «أحل تمرين». تمارين الـ Properties والـ [Experiments] أغلى من الفصل نفسه.</div>
+
+<div class="story"><b>كلمة أخيرة من محمد:</b>الـ PRO مش اللي حافظ أسماء. الـ PRO اللي لما يشوف مشكلة، عارف في راسه تكلفة الحلول المتاحة، وعارف يختار، وعارف ينفّذ من غير ما يفضح نفسه بـ off-by-one. الكود في <code>src/</code> مش للعرض — ده حديد تتمرّن عليه. شد حيلك.</div>
+
+<div class="quiz"><p class="q">بعد الكورس، أهم مهارة تاخدها؟</p>
+<button>حفظ تعقيد كل خوارزمية عن ظهر قلب من غير فهم</button>
+<button data-ok>تقدير التكلفة واختيار الأداة المناسبة وتنفيذها بثقة</button>
+<button>الاستغناء عن المكتبات الجاهزة دايمًا</button>
+<p class="why">المكتبات حلوة — بس من غير فهم هتسخدمها غلط أو تعيد اختراع العجلة في المكان الغلط.</p></div>
+
+<div class="quiz"><p class="q">أحسن طريقة تثبّت Quicksort؟</p>
+<button>تقرأ عنه تويتتين</button>
+<button data-ok>تنفّذه، تكسره بمدخل مرتّب، تصلّحه، وتقيس</button>
+<button>تحفظ صورة الشجرة</button>
+<p class="why">الطبقة التالتة (اكسر) هي اللي بتنقل المعرفة من الذاكرة القصيرة للمهارة.</p></div>
+
+<div class="quiz"><p class="q">محتاج فهرس على قرص لملايين السجلات. تختار؟</p>
+<button>BST عادي في RAM</button>
+<button data-ok>B-tree / B+ tree</button>
+<button>Bubble sort</button>
+<p class="why">ارجع للدرس 17 لو متردّد.</p></div>

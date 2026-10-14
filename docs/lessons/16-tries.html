@@ -1,0 +1,37 @@
+<p>البحث العادي بيقارن مفاتيح كاملة. Radix search بيقارن <b>خانة خانة</b> (بت أو حرف). الهيكل الطبيعي لكده: الـ Trie.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تفهم الـ binary trie، والـ TST كحل وسط عملي للنصوص.</div>
+
+<h2>Binary Trie</h2>
+<p>كل مستوى = بت من المفتاح. شمال = 0، يمين = 1. الأوراق فيها المفاتيح. البحث: امشي حسب البتات لحد ورقة، وقارن.</p>
+<a data-src="src/15-tries/trie.c"></a>
+<p>حلو لما المفاتيح قصيرة وعلى أبجدية صغيرة (بتات). لو كل حرف = 256 فرع، العقد الداخلية بتاكل ذاكرة بلا رحمة.</p>
+
+<h2>Ternary Search Trie (TST)</h2>
+<p>حل سادجوك الأنيق: كل عقدة تمسك حرف واحد وتلات روابط — أصغر / يكمل / أكبر. زي BST على الحرف الحالي، وزي trie لما تكمل للخانة التالية.</p>
+<pre><code>/* فكرة الإدخال */
+if (ch < h->c)      h->l = insertR(h->l, s, val, d);
+else if (ch > h->c) h->r = insertR(h->r, s, val, d);
+else if (d < len-1) h->m = insertR(h->m, s, val, d+1);
+else                h->val = val;</code></pre>
+<a data-src="src/15-tries/tst.c"></a>
+
+<div class="tip"><b>امتى TST؟</b>قاموس نصوص، إكمال تلقائي، بحث بادئة. أسرع عمليًا من BST على النصوص الطويلة (لأن المقارنات بتوقف عند أول اختلاف مبكرًا ومش بتتعاد من الأول كل مرة)، وأخف من R-way trie.</div>
+
+<div class="quiz"><p class="q">Trie بيفرّع على إيه؟</p>
+<button>مجموع قيم المفتاح</button>
+<button data-ok>خانات/بتات المفتاح واحدة واحدة</button>
+<button>عشوائي</button>
+<p class="why">من هنا اسم radix search.</p></div>
+
+<div class="quiz"><p class="q">مشكلة R-way trie مع الحروف؟</p>
+<button>بطء البحث</button>
+<button data-ok>كل عقدة محتاجة R مؤشر — ذاكرة ضخمة لو R=256</button>
+<button>مش بيشتغل في C</button>
+<p class="why">عشان كده TST (3 مؤشرات) حل وسط محبوب.</p></div>
+
+<div class="quiz"><p class="q">TST أنسب لـ…</p>
+<button>أعداد صحيحة عشوائية بس</button>
+<button data-ok>القواميس النصّية وعمليات البادئة</button>
+<button>الترتيب الخارجي على أقراص</button>
+<p class="why">البحث الخارجي له B-trees (الدرس الجاي).</p></div>
