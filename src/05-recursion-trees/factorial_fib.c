@@ -15,7 +15,9 @@
 int factorial(int N) { return (N == 0) ? 1 : N * factorial(N - 1); }
 
 /* Naive Fib: each call fans out into two. Exponential. Don't do this for N>40. */
+static long naive_calls, memo_calls;
 long fib_naive(int N) {
+    naive_calls++;
     if (N == 0) return 0;
     if (N == 1) return 1;
     return fib_naive(N - 1) + fib_naive(N - 2);
@@ -33,6 +35,7 @@ long fib_dp(int N) {
 #define MAXF 100
 static long memo[MAXF];
 long fib_memo(int N) {
+    memo_calls++;
     if (N < 2) return N;
     if (memo[N]) return memo[N];
     return memo[N] = fib_memo(N - 1) + fib_memo(N - 2);
@@ -43,5 +46,12 @@ int main(void) {
     printf("fib_dp(40)   = %ld\n", fib_dp(40));
     printf("fib_memo(40) = %ld\n", fib_memo(40));
     printf("fib_naive(30)= %ld  (slowish; try 40 and you'll wait)\n", fib_naive(30));
+    printf("\ncalls to compute F(N): naive vs top-down memo\n");
+    for (int n = 10; n <= 30; n += 5) {
+        naive_calls = memo_calls = 0;
+        for (int i = 0; i < MAXF; i++) memo[i] = 0;
+        fib_naive(n); fib_memo(n);
+        printf("  N=%2d  naive=%8ld  memo=%3ld\n", n, naive_calls, memo_calls);
+    }
     return 0;
 }

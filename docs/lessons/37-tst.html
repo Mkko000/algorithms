@@ -1,0 +1,131 @@
+<p class="meta">أقسام الكتاب: 15.4 Multiway Tries and TSTs (Definitions 15.2–15.3، Programs 15.7–15.10، Properties 15.6–15.8) · 15.5 Text-String-Index Algorithms</p>
+<p>لحد دلوقتي بنتفرّع على بت واحد في كل مرة (شمال/يمين). بس لو المفاتيح نصوص، الطبيعي إننا نتفرّع على <b>حرف</b> كامل: 26 اتجاه (أو 256). ده الـ <b>multiway trie</b> — هو الـ radix sort MSD لما يتحوّل لهيكل بحث. وبعدين هنشوف إزاي الـ TST بياخد سرعة الـ multiway trie من غير ما يبعزق الذاكرة.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تبني R-way trie وتحسب تكلفته في الوقت والذاكرة، تفهم الـ TST وإزاي بيوفّر الذاكرة، تعمل partial-match وprefix search، وتبني index لنص بالـ TST.</div>
+
+<h2>15.4 Multiway Tries</h2>
+<div class="story"><b>Definition 15.2:</b> الـ existence trie لمجموعة مفاتيح: لمجموعة فاضية = لينك فاضي؛ لمجموعة مش فاضية = عقدة داخلية فيها لينك لكل digit ممكن، كل لينك بيشاور على trie المفاتيح اللي بتبدأ بالـ digit ده (من غير الـ digit).</div>
+<div class="story"><b>Definition 15.3:</b> الـ multiway trie: زي فوق، بس المفاتيح ممكن تتخزّن في أوراق (مفتاح واحد = ورقة)، والعقد الداخلية فيها R لينك.</div>
+<p>البحث في existence trie: لكل حرف في المفتاح، امشي في اللينك بتاعه. لو لقيت NULL = مش موجود. لو المفتاح خلص ولقيت علامة النهاية = موجود. ومفيش مقارنة مفاتيح خالص!</p>
+<pre><code>typedef struct STnode* link;
+struct STnode { link next[R]; };
+static link head;
+int searchR(link h, char *v, int w)
+  { int i = digit(v, w);
+    if (h == NULL) return 0;
+    if (i == NULLdigit) return 1;
+    return searchR(h-&gt;next[i], v, w+1); }
+link insertR(link h, char *v, int w)
+  { int i = digit(v, w);
+    if (h == NULL) h = NEW();
+    if (i == NULLdigit) return h;
+    h-&gt;next[i] = insertR(h-&gt;next[i], v, w+1);
+    return h; }</code></pre>
+<p>(Program 15.7، والـ NULLdigit = نهاية النص، ولينك النهاية بيمثّل «المفتاح موجود».)</p>
+<pre><code>keys in order: aid all come for good is now of party people the their tim time to
+  time    hit  after 5 nodes
+  tim     hit  after 4 nodes
+  ti      miss after 3 nodes
+  theirs  miss after 6 nodes
+  party   hit  after 6 nodes
+15 distinct keys -&gt; 43 nodes x 27 links = 1161 links (mostly NULL!)</code></pre>
+<div class="story"><b>Property 15.6:</b> البحث أو الإضافة في R-ary trie عادي مبني من N bytestring عشوائي بيحتاج حوالي <b>log<sub>R</sub> N</b> مقارنة byte في المتوسط. وعدد اللينكات حوالي <b>RN/ln R</b>. وعدد المقارنات عمره ما يزيد عن عدد الـ bytes في مفتاح البحث.</div>
+<p>الوقت ممتاز: لـ R = 256 ومليون مفتاح، log<sub>256</sub> 10⁶ ≈ 2.5 حرف بس للـ miss العشوائي! بس الذاكرة: 256N/ln 256 ≈ 46N لينك. والمثال فوق: 15 كلمة → 1161 لينك، معظمهم NULL. ده تمن السرعة.</p>
+<a data-src="src/15-tries/multiway_trie.c"></a>
+
+<h2>Ternary Search Tries (TSTs)</h2>
+<p>الحل اللي Bentley وسادجوك نشروه سنة 1997: بدل R لينك في كل عقدة، خلّي كل عقدة فيها <b>حرف واحد وتلات لينكات</b>: أصغر، مساوي، أكبر. يعني كل عقدة trie اتحوّلت لـ BST صغيرة على الحروف. لو الحرف بتاعك أصغر من حرف العقدة روح شمال، أكبر روح يمين، ومساوي انزل في النص وانتقل للحرف اللي بعده.</p>
+<!--fig:tst--><figure class="fig"><svg class="fsvg" viewBox="0 0 200 260" width="200" height="260" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="100.0" y1="20.0" x2="175.0" y2="60.0" class="edge"/><line x1="100.0" y1="20.0" x2="100.0" y2="60.0" class="edge hi"/><line x1="100.0" y1="20.0" x2="25.0" y2="60.0" class="edge"/><line x1="175.0" y1="60.0" x2="175.0" y2="100.0" class="edge hi"/><line x1="175.0" y1="100.0" x2="175.0" y2="140.0" class="edge hi"/><line x1="100.0" y1="60.0" x2="130.0" y2="100.0" class="edge hi"/><line x1="100.0" y1="60.0" x2="70.0" y2="100.0" class="edge"/><line x1="130.0" y1="100.0" x2="145.0" y2="140.0" class="edge"/><line x1="130.0" y1="100.0" x2="115.0" y2="140.0" class="edge hi"/><line x1="145.0" y1="140.0" x2="145.0" y2="180.0" class="edge hi"/><line x1="145.0" y1="180.0" x2="145.0" y2="220.0" class="edge hi"/><line x1="115.0" y1="140.0" x2="115.0" y2="180.0" class="edge hi"/><line x1="115.0" y1="180.0" x2="115.0" y2="220.0" class="edge hi"/><line x1="70.0" y1="100.0" x2="70.0" y2="140.0" class="edge hi"/><line x1="70.0" y1="140.0" x2="85.0" y2="180.0" class="edge hi"/><line x1="70.0" y1="140.0" x2="55.0" y2="180.0" class="edge"/><line x1="85.0" y1="180.0" x2="85.0" y2="220.0" class="edge hi"/><line x1="25.0" y1="60.0" x2="25.0" y2="100.0" class="edge hi"/><circle cx="25.0" cy="100.0" r="12" class="node hi"/><text x="25.0" y="105.0" class="tn" text-anchor="middle" font-size="12">y</text><circle cx="25.0" cy="60.0" r="12" class="node"/><text x="25.0" y="65.0" class="tn" text-anchor="middle" font-size="12">b</text><circle cx="55.0" cy="180.0" r="12" class="node hi"/><text x="55.0" y="185.0" class="tn" text-anchor="middle" font-size="12">a</text><circle cx="85.0" cy="220.0" r="12" class="node hi"/><text x="85.0" y="225.0" class="tn" text-anchor="middle" font-size="12">s</text><circle cx="85.0" cy="180.0" r="12" class="node"/><text x="85.0" y="185.0" class="tn" text-anchor="middle" font-size="12">l</text><circle cx="70.0" cy="140.0" r="12" class="node"/><text x="70.0" y="145.0" class="tn" text-anchor="middle" font-size="12">l</text><circle cx="70.0" cy="100.0" r="12" class="node"/><text x="70.0" y="105.0" class="tn" text-anchor="middle" font-size="12">e</text><circle cx="115.0" cy="220.0" r="12" class="node hi"/><text x="115.0" y="225.0" class="tn" text-anchor="middle" font-size="12">s</text><circle cx="115.0" cy="180.0" r="12" class="node"/><text x="115.0" y="185.0" class="tn" text-anchor="middle" font-size="12">l</text><circle cx="115.0" cy="140.0" r="12" class="node"/><text x="115.0" y="145.0" class="tn" text-anchor="middle" font-size="12">l</text><circle cx="145.0" cy="220.0" r="12" class="node hi"/><text x="145.0" y="225.0" class="tn" text-anchor="middle" font-size="12">e</text><circle cx="145.0" cy="180.0" r="12" class="node"/><text x="145.0" y="185.0" class="tn" text-anchor="middle" font-size="12">r</text><circle cx="145.0" cy="140.0" r="12" class="node"/><text x="145.0" y="145.0" class="tn" text-anchor="middle" font-size="12">o</text><circle cx="130.0" cy="100.0" r="12" class="node hi"/><text x="130.0" y="105.0" class="tn" text-anchor="middle" font-size="12">e</text><circle cx="100.0" cy="60.0" r="12" class="node"/><text x="100.0" y="65.0" class="tn" text-anchor="middle" font-size="12">h</text><circle cx="175.0" cy="140.0" r="12" class="node hi"/><text x="175.0" y="145.0" class="tn" text-anchor="middle" font-size="12">e</text><circle cx="175.0" cy="100.0" r="12" class="node"/><text x="175.0" y="105.0" class="tn" text-anchor="middle" font-size="12">h</text><circle cx="175.0" cy="60.0" r="12" class="node"/><text x="175.0" y="65.0" class="tn" text-anchor="middle" font-size="12">t</text><circle cx="100.0" cy="20.0" r="12" class="node"/><text x="100.0" y="25.0" class="tn" text-anchor="middle" font-size="12">s</text></svg><figcaption>TST للكلمات she sells sea shells by the shore: كل عقدة حرف وتلات links — أصغر (شمال)، <b>مساوي</b> (الخط الملوّن: نتقدّم للحرف الجاي)، أكبر (يمين). العقد الزرقا آخر كلمة. البحث عن «shells»: s، h (مساوي)، e، l، l، s — بنقرا كل حرف مرة واحدة تقريبًا، ومفيش مصفوفات 27 link فاضية زي الـ multiway trie.</figcaption></figure><!--/fig:tst-->
+<pre><code>typedef struct STnode* link;
+struct STnode { int d; link l, m, r; };
+static link head;
+int searchR(link h, char *v)
+  { int i = *v;
+    if (h == z) return 0;
+    if (i == '\0' &amp;&amp; h-&gt;d == '\0') return 1;
+    if (i &lt; h-&gt;d) return searchR(h-&gt;l, v);
+    if (i &gt; h-&gt;d) return searchR(h-&gt;r, v);
+    return searchR(h-&gt;m, v+1); }
+link insertR(link h, char *v)
+  { int i = *v;
+    if (h == z) { h = NEW(i); }
+    if ((i == '\0') &amp;&amp; (h-&gt;d == '\0')) return h;
+    if (i &lt; h-&gt;d) h-&gt;l = insertR(h-&gt;l, v);
+    if (i == h-&gt;d) h-&gt;m = insertR(h-&gt;m, v+1);
+    if (i &gt; h-&gt;d) h-&gt;r = insertR(h-&gt;r, v);
+    return h; }</code></pre>
+<p>(Program 15.8: existence TST.) لاحظ الشبه بالـ 3-way radix quicksort في الدرس 24: نفس التقسيم لتلاتة على حرف واحد. الـ TST هو الـ 3-way radix quicksort «متجمّد» كهيكل بحث، بالظبط زي ما الـ BST هو quicksort متجمّد.</p>
+<div class="story"><b>Property 15.7:</b> البحث أو الإضافة في TST كامل بياخد وقت متناسب مع طول المفتاح. وعدد اللينكات على الأكتر <b>3 أضعاف</b> عدد الحروف في كل المفاتيح.</div>
+<pre><code>she      -&gt; 0
+sells    -&gt; 1
+...
+shell    -&gt; -1 (miss expected -1)
+TST nodes: 27 (3 links each) for 12 keys</code></pre>
+<p>27 عقدة × 3 = 81 لينك، مقابل مئات في الـ multiway trie. والبحث؟ كل حرف بيعدّي على BST صغيرة من الحروف اللي موجودة فعلًا في المستوى ده — بدل log<sub>R</sub> N بقى حوالي ln N مقارنة حرف، بس كل مقارنة رخيصة جدًا (حرف واحد).</p>
+<h3>تحسينات (Property 15.8)</h3>
+<ul>
+<li><b>الأوراق</b>: لما فرع مايبقاش فيه غير مفتاح واحد، خزّن المفتاح نفسه في ورقة بدل سلسلة عقد (Program 15.10 بيعمل كده للـ symbol table الكامل).</li>
+<li><b>جذر R<sup>t</sup>-way</b>: خلّي أول t حروف multiway حقيقي (مثلًا 256 أو 256² لينك في الجذر)، والباقي TST. الجذر بيقطع معظم الشغل والذاكرة بتفضل معقولة.</li>
+</ul>
+<div class="story"><b>Property 15.8:</b> البحث أو الإضافة في TST بالأوراق وجذر R<sup>t</sup>-way بيحتاج حوالي <b>ln N − t ln R</b> وصول byte لـ N مفتاح عشوائي. واللينكات = R<sup>t</sup> (للجذر) + ثابت صغير × N.</div>
+
+<h3>Partial match وprefix (Program 15.9)</h3>
+<p>هنا الـ TST بيلمع: عايز كل الكلمات اللي شكلها «s.a» (النقطة = أي حرف)؟ في الـ hash مستحيل، في الـ BST صعب. في الـ TST: لو الحرف نقطة، استكشف التلات اتجاهات؛ لو حرف عادي، امشي عادي.</p>
+<pre><code>void matchR(link h, char *v, int i)
+  {
+    if (h == z) return;
+    if ((*v == '\0') &amp;&amp; (h-&gt;d == '\0'))
+      { word[i] = h-&gt;d; visit(word); }
+    if ((*v == '.') || (*v &lt; h-&gt;d))
+      matchR(h-&gt;l, v, i);
+    if ((*v == '.') || (*v == h-&gt;d))
+      { word[i] = h-&gt;d; matchR(h-&gt;m, v+1, i+1); }
+    if ((*v == '.') || (*v &gt; h-&gt;d))
+      matchR(h-&gt;r, v, i);
+  }</code></pre>
+<pre><code>partial match "s.a": sea
+partial match "s..l.": sells shell
+partial match "...": sat sea she sun the
+prefix "shel": shell shells shelter</code></pre>
+<p>والـ prefix search (كل الكلمات اللي بتبدأ بـ «shel») هو بالظبط الـ autocomplete اللي في الموبايل: امشي لآخر الـ prefix، واجمع كل الشجرة اللي تحت.</p>
+<a data-src="src/15-tries/tst.c"></a>
+<a data-src="src/15-tries/tst_advanced.c"></a>
+<div class="tip"><b>TST ولا hash للنصوص؟</b>الـ TST بيكسب في: الـ miss (بيقف بعد كام حرف، الـ hash لازم يقرا المفتاح كله)، الترتيب (sort وrange)، والـ partial/prefix matching. الـ hash بيكسب في الـ hit البسيط لمفاتيح قصيرة. وسادجوك في Table 15.2 بيقيس ده: الـ TSTs بتنافس الـ hashing بقوة على النصوص.</div>
+
+<h2>15.5 Text-String-Index Algorithms</h2>
+<p>رجعنا لمسألة الدرس 28: عندك نص ضخم، وعايز تعرف «هل الكلمة X موجودة فيه؟ وفين؟» بسرعة. الفكرة: كل مكان في النص بداية مفتاح طويل جدًا (لحد آخر النص)، ونبني symbol table من الـ pointers دي. الشجرة اللي بتتبني كده اسمها <b>suffix tree</b>.</p>
+<p>البحث = هل X <b>prefix</b> لأي مفتاح؟ يعني لازم نعرّف «المساواة» إنها «واحد prefix للتاني». ولأن المفاتيح طويلة جدًا ومش عشوائية (كلها حتت من نفس النص)، الطرق المعتمدة على الـ digits (patricia وTSTs) مناسبة جدًا: وقتها بيعتمد على عدد الحروف اللي <b>بتميّز</b> المفاتيح، مش على طولها. والـ hashing مش بيشتغل هنا أصلًا لأن وقته متناسب مع طول المفتاح.</p>
+<ul>
+<li><b>BST</b> (Program 12.10): بسيط وكويس لمعظم النصوص.</li>
+<li><b>Patricia</b>: اتصممت أصلًا للتطبيق ده. محتاج بس دالة bit(pointer, i) بترجّع البت رقم i من النص اللي بيبدأ عند الـ pointer.</li>
+<li><b>TST</b>: نشيل كود نهاية المفتاح (مفيش مفتاح prefix لتاني)، وكل عقدة تخزّن pointer للنص.</li>
+</ul>
+<pre><code>index "times": @19 @45
+index "worst": @36
+index "was": @3 @28 @54
+index "love": not found</code></pre>
+<p>(البرنامج بيبني TST من كل بدايات الكلمات في «It was the best of times, it was the worst of times…» ويرجّع كل الأماكن.) الـ index ده بيتبني من بدايات الكلمات بس؛ لو عملته من كل حرف هيبقى أكمل (أي substring) بس ذاكرته أكبر بكتير.</p>
+
+<div class="quiz"><p class="q">multiway trie بـ R = 26، والكلمة «algorithm». كام عقدة بيزور البحث؟</p>
+<button>lg N</button>
+<button data-ok>على الأكتر 10 (حرف لكل عقدة + النهاية)</button>
+<button>26</button>
+<p class="why">كل حرف عقدة واحدة، مهما كان عدد الكلمات في الـ trie. وده بالظبط Property 15.6: مش أكتر من طول المفتاح.</p></div>
+
+<div class="quiz"><p class="q">ليه الـ TST بيوفّر ذاكرة جامد مقارنة بالـ multiway trie؟</p>
+<button>لأنه بيضغط الحروف</button>
+<button data-ok>كل عقدة فيها 3 لينكات بس، والحروف اللي مش موجودة مالهاش لينكات أصلًا</button>
+<button>لأنه مابيخزّنش المفاتيح</button>
+<p class="why">الـ multiway trie بيحجز R لينك في كل عقدة حتى لو حرفين بس موجودين. الـ TST بيحط BST صغيرة من الحروف الموجودة بس (Property 15.7: ≤ 3 لينكات لكل حرف مخزّن).</p></div>
+
+<div class="quiz"><p class="q">عايز تعمل autocomplete لقاموس 500 ألف كلمة. أنسب هيكل؟</p>
+<button>hash table</button>
+<button data-ok>TST</button>
+<button>مصفوفة مش مترتبة</button>
+<p class="why">الـ prefix search طبيعي جدًا في الـ TST: امشي لآخر الـ prefix واجمع الشجرة. الـ hash مالوش أي فكرة عن الـ prefixes.</p></div>
+
+<div class="quiz"><p class="q">ليه الـ hashing مش مناسب لـ text-string index (suffix tree)؟</p>
+<button>لأنه بطيء في الـ hit</button>
+<button data-ok>المفاتيح طويلة جدًا (لحد آخر النص)، والـ hash لازم يقرا المفتاح كله، والبحث المطلوب prefix مش مساواة</button>
+<button>لأنه مابيدعمش الحروف العربي</button>
+<p class="why">الطرق الـ digit-based بتقرا بس الحروف اللي بتميّز المفاتيح، وده كام حرف. والـ hash مابيعرفش يجاوب «هل X prefix لحاجة موجودة؟».</p></div>

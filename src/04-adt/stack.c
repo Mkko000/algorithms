@@ -5,7 +5,7 @@
  *
  *  Author:  Mohammed El Sisi
  *  Adapted from: R. Sedgewick, "Algorithms in C" (3rd ed.),
- *                Programs 4.1, 4.2, 4.4, 4.5
+ *                Programs 4.1, 4.2, 4.3, 4.4, 4.5
  *  Build:   gcc -std=c99 -Wall -O2 stack.c -o stack
  * ============================================================ */
 #include <stdio.h>

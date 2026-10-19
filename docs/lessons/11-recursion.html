@@ -1,0 +1,111 @@
+<p class="meta">أقسام الكتاب: 5.1 Recursive Algorithms (Programs 5.1–5.5) · 5.2 Divide and Conquer (Programs 5.6–5.9, Properties 5.1–5.2)</p>
+<p>ناس كتير بتتعامل مع الريكيرشن كأنه سحر: «الدالة بتنادي نفسها؟ طب هتعرف إمتى تقف؟». الحقيقة أبسط: الريكيرشن هو <b>ترجمة مباشرة لتعريف رياضي</b>، والكمبيوتر بيشيل الشغل الإداري بـ stack داخلي. المشاكل بتيجي لما تنسى شرط الوقوف، أو لما الريكيرشن يتفرّع ويعيد نفس الشغل.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تكتب دوال ريكيرسف صحيحة وتعرف تثبت إنها بتقف، تفهم عمق الريكيرشن وتكلفته، وتتقن divide-and-conquer من خلال: أقصى عنصر، أبراج هانوي، ورسم المسطرة — وتشوف العلاقة السرّية بين هانوي والمسطرة.</div>
+
+<h2>5.1 الخوارزميات الريكيرسف</h2>
+<p><b>تعريف سادجوك:</b> خوارزمية ريكيرسف = بتحل المشكلة بحل نسخ أصغر من نفس المشكلة. في C: دالة بتنادي نفسها. لازم حاجتين: <b>حالة قاعدة</b> بترجّع من غير نداء، وكل نداء ريكيرسف يكون على <b>قيمة أصغر</b> بتقرّب من القاعدة.</p>
+<pre><code>/* Program 5.1 */
+int factorial(int N)
+  { if (N == 0) return 1;
+    return N*factorial(N-1); }</code></pre>
+<p>وتقدر تثبت إنها صح بالاستقراء الرياضي: صح لـ 0، ولو صح لـ N−1 يبقى صح لـ N. البرنامج الريكيرسف <b>هو</b> البرهان بالاستقراء مكتوب كود.</p>
+
+<h3>برنامج مشكوك فيه (Program 5.2)</h3>
+<pre><code>int puzzle(int N)
+  { if (N == 1) return 1;
+    if (N % 2 == 0) return puzzle(N/2);
+    else return puzzle(3*N+1); }</code></pre>
+<p>هل الدالة دي بتقف لكل N؟ ماحدش في العالم يعرف! (دي مسألة Collatz.) النداء على <code>3N+1</code> مش «أصغر»، فمفيش ضمان. ده درس: لو مش قادر تثبت إن المعامل بيصغر، مش قادر تثبت إن البرنامج بيقف.</p>
+<pre><code>puzzle(3)  reached 1 after 8 calls
+puzzle(27) reached 1 after 112 calls     ← 27 بتطلع لحد 9232 قبل ما تنزل</code></pre>
+
+<h3>Euclid (Program 5.3) وتقييم prefix (Program 5.4)</h3>
+<p><code>gcd(m, n) = gcd(n, m % n)</code> — المعامل التاني بيصغر بسرعة (لوغاريتمي)، فالعمق صغير. أما تقييم تعبير prefix زي <code>* + 7 * * 4 6 + 8 9 5</code> فهو ريكيرشن طبيعي: «التعبير إما رقم، أو عملية وبعدها تعبيرين». الدالة بتمشي في النص بمؤشر عام وبتنادي نفسها مرتين للمعاملين:</p>
+<pre><code>int eval()
+  { int x = 0;
+    while (a[i] == ' ') i++;
+    if (a[i] == '+') { i++; return eval() + eval(); }
+    if (a[i] == '*') { i++; return eval() * eval(); }
+    while (a[i] >= '0' &amp;&amp; a[i] <= '9') x = 10*x + (a[i++]-'0');
+    return x; }</code></pre>
+<p>النتيجة 2075 — نفس تعبير الـ postfix في الدرس 08. هناك احتجنا stack صريح، هنا الـ stack هو stack النداءات نفسه.</p>
+<a data-src="src/01-fundamentals/euclid.c"></a>
+
+<h3>الريكيرشن على القوائم (Program 5.5)</h3>
+<p>القايمة تعريفها ريكيرسف (الدرس 06)، فالدوال عليها طبيعية: <code>count(x) = 0</code> لو فاضية، وإلا <code>1 + count(x->next)</code>. والطباعة بالعكس؟ بدّل ترتيب سطرين: نادي على الباقي الأول، بعدين اطبع.</p>
+<pre><code>count=6  forward: 5 1 5 2 5 3  reverse: 3 5 2 5 1 5
+after delete 5: 1 2 3  (count=3)</code></pre>
+<a data-src="src/05-recursion-trees/recursive_examples.c"></a>
+
+<div class="oops"><b>عمق الريكيرشن = ذاكرة</b>كل نداء بياخد مكان في الـ stack. <code>count</code> على قايمة مليون عنصر = مليون frame، وغالبًا هيعمل stack overflow. سادجوك بينبّه إن الدوال البسيطة دي على القوائم الأحسن تتكتب loop في الممارسة، وإن الريكيرشن هنا للفهم. القاعدة: لو العمق ممكن يبقى N، فكّر في نسخة غير ريكيرسف. لو العمق log N (زي gcd)، مفيش قلق.</div>
+
+<h2>5.2 فرّق تسد (Divide and Conquer)</h2>
+<p>قسّم المشكلة لجزئين (غالبًا نصين)، حل كل جزء ريكيرسف، اجمع النتيجتين.</p>
+<h3>أقصى عنصر (Program 5.6)</h3>
+<pre><code>Item max(Item a[], int l, int r)
+  { Item u, v; int m = (l+r)/2;
+    if (l == r) return a[l];
+    u = max(a, l, m);
+    v = max(a, m+1, r);
+    if (u > v) return u; else return v; }</code></pre>
+<p>مش أسرع من loop عادي، بس هو نموذج للشكل. <b>Property 5.1:</b> دالة بتقسّم مشكلة حجمها N لجزئين مستقلين غير فاضيين وبتحلّهم ريكيرسف، بتنادي نفسها <b>أقل من N مرة</b> (لو عدّينا النداء الأصلي مع الأوراق: 2N−1). على 11 عنصر قسناها: <b>21 نداء</b> بالظبط.</p>
+
+<h3>أبراج هانوي (Program 5.7)</h3>
+<p>عشان تنقل N قرص: انقل N−1 للعمود المساعد، انقل الأكبر، انقل الـ N−1 فوقه. <b>Property 5.2:</b> عدد النقلات <code>T(N) = 2T(N−1) + 1</code> = <b>2^N − 1</b>. لـ 64 قرص بنقلة في الثانية؟ أكتر من 5 مليار قرن.</p>
+<pre><code>void hanoi(int N, int d)
+  { if (N == 0) return;
+    hanoi(N-1, -d);
+    shift(N, d);
+    hanoi(N-1, -d); }</code></pre>
+<a data-src="src/05-recursion-trees/hanoi.c"></a>
+
+<h3>المسطرة (Programs 5.8–5.9) والسر</h3>
+<p>عايز ترسم علامات مسطرة: علامة طويلة في النص، أقصر عند الأرباع، أقصر عند الأثمان… ده نفس شكل هانوي بالظبط:</p>
+<pre><code>void rule(int l, int r, int h)
+  { int m = (l+r)/2;
+    if (h > 0)
+      { rule(l, m, h-1);
+        mark(m, h);
+        rule(m, r, h-1); } }</code></pre>
+<p>والملاحظة الحلوة: <b>القرص اللي بيتنقل في الخطوة رقم k في هانوي = طول علامة المسطرة رقم k</b> = 1 + عدد الأصفار في آخر k بالثنائي. يعني تقدر تحل هانوي من غير ريكيرشن خالص: القرص الصغير بيتحرك كل نقلة فردية، والنقلات الزوجية ليها حركة واحدة ممكنة.</p>
+<pre><code>height(i) = 1 + trailing zeros of i: 1 2 1 3 1 2 1 4 1 2 1 3 1 2 1</code></pre>
+<p>وProgram 5.9 بيرسم المسطرة <b>من تحت لفوق</b> من غير ريكيرشن: ارسم كل العلامات بطول 1، بعدين بطول 2، وهكذا. نفس الناتج، ترتيب مختلف. ده نفس الفرق بين mergesort من فوق لتحت ومن تحت لفوق (الدرس 19).</p>
+<pre><code>recursive, inorder (Program 5.8): order 1 2 3 4 5 6 7 8 ...
+recursive, preorder:              order 8 4 2 1 3 6 5 7 ...
+nonrecursive, bottom-up (5.9):    order 1 3 5 7 9 11 13 15 2 6 10 14 4 12 8</code></pre>
+<a data-src="src/05-recursion-trees/ruler.c"></a>
+
+<div class="story"><b>Fractals</b>الكتاب بيوري رسومات «star fractal» بنفس الفكرة: مربع في النص، وأربع نسخ أصغر على الأركان، ريكيرسف. وبيختم بإن خوارزميات كتير جاية هي divide-and-conquer: binary search (جزء واحد بس)، mergesort وquicksort (جزئين)، والـ FFT. الشكل واحد، والفرق في: القسمة بتكلّف كام، والدمج بيكلّف كام.</div>
+
+<div class="tip"><b>إزاي تفكّر ريكيرسف من غير ما تتوه؟</b>ماتتتبّعش كل النداءات في دماغك. افترض إن النداء الأصغر شغال صح (زي الاستقراء)، واسأل نفسك بس: هل بستخدم نتيجته صح؟ وهل حالة القاعدة صح؟</div>
+
+<div class="quiz"><p class="q">ليه مش قادرين نثبت إن <code>puzzle</code> (Program 5.2) بتقف؟</p>
+<button>لأنها مفيهاش حالة قاعدة</button>
+<button data-ok>لأن النداء على 3N+1 مش أصغر، فمفيش قيمة بتصغر بشكل مضمون</button>
+<button>لأنها بتستخدم %</button>
+<p class="why">فيها قاعدة (N==1)، بس مفيش ضمان إننا هنوصلها. دي مسألة Collatz المفتوحة.</p></div>
+
+<div class="quiz"><p class="q">max بالـ divide-and-conquer على 16 عنصر، كام نداء للدالة إجمالًا؟</p>
+<button>16</button>
+<button data-ok>31</button>
+<button>64</button>
+<p class="why">2N − 1: كل نداء غير ورقة بيقسم، و16 ورقة + 15 عقدة داخلية.</p></div>
+
+<div class="quiz"><p class="q">في هانوي، القرص رقم كام بيتنقل في النقلة رقم 12؟</p>
+<button>1</button>
+<button data-ok>3</button>
+<button>4</button>
+<p class="why">12 = 1100 بالثنائي، فيها صفرين في الآخر → 1 + 2 = 3، زي علامة المسطرة.</p></div>
+
+<div class="quiz"><p class="q">أنهي دالة ريكيرشنها الأخطر على الـ stack لو N = مليون؟</p>
+<button>gcd(N, M)</button>
+<button>max بالـ divide-and-conquer</button>
+<button data-ok>count على قايمة طولها N</button>
+<p class="why">count عمقها N. gcd عمقها لوغاريتمي، وmax عمقها log N برضه.</p></div>
+
+<div class="quiz"><p class="q">ليه تقييم prefix ريكيرسف ماحتاجش stack صريح؟</p>
+<button>لأن prefix مفيهوش عمليات</button>
+<button data-ok>لأن stack النداءات نفسه شايل المعاملات المستنية</button>
+<button>لأنه بيقرا من اليمين</button>
+<p class="why">كل نداء <code>eval()</code> مستني نتيجة النداءات اللي جواه — ده بالظبط LIFO.</p></div>

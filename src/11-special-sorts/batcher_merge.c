@@ -3,7 +3,8 @@
  *  Chapter 11: Special-Purpose Sorting Methods
  *
  *  Author:  Mohammed El Sisi
- *  Adapted from: R. Sedgewick, "Algorithms in C" (3rd ed.), Program 11.3
+ *  Adapted from: R. Sedgewick, "Algorithms in C" (3rd ed.), Program 11.4
+ *                (nonrecursive Batcher sort; the inner merge is Program 11.3)
  *  Build:   gcc -std=c99 -Wall -O2 batcher_merge.c -o batcher_merge
  * ============================================================ */
 #include <stdio.h>

@@ -1,0 +1,124 @@
+<p class="meta">أقسام الكتاب: 7.4 Small Subfiles · 7.5 Median-of-Three Partitioning (Program 7.4) · 7.6 Duplicate Keys (Program 7.5) · 7.7 Strings and Vectors · 7.8 Selection (Programs 7.6–7.7, Property 7.4)</p>
+<p>الـ quicksort الأساسي كويس. بس الفرق بين «كويس» و«المكتبة القياسية» هو أربع تحسينات صغيرة، كل واحدة بتعالج نقطة ضعف محددة. وفي الآخر هنستخدم نفس الـ partition عشان نحل مسألة مختلفة: لاقي الوسيط من غير ما ترتّب.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تعرف تعمل cutoff للملفات الصغيرة، تختار الـ pivot بـ median-of-three، تتعامل مع المفاتيح المكررة بـ 3-way partitioning، تفهم تكلفة ترتيب النصوص، وتلاقي العنصر رقم k في زمن خطي.</div>
+
+<h2>7.4 الملفات الصغيرة</h2>
+<p>شجرة الريكيرشن بتاعة quicksort فيها <b>عدد ضخم</b> من النداءات على ملفات صغيرة جدًا (2، 3، 5 عناصر). لكل واحد منهم overhead نداء دالة وpartition كامل. وعلى الملفات الصغيرة، insertion sort أسرع. فـ:</p>
+<pre><code>if (r-l <= M) { insertion(a, l, r); return; }</code></pre>
+<p>وفيه طريقة أبسط وأسرع شوية بيقترحها الكتاب: <b>سيب الملفات الصغيرة من غير ترتيب خالص</b> (<code>if (r-l &lt;= M) return;</code>)، وفي الآخر اعمل insertion sort <b>واحد</b> على المصفوفة كلها. ليه ده شغال؟ لأن كل عنصر بعيد عن مكانه بأقل من M خانة، فالـ insertion sort خطي تقريبًا (Property 6.4، الدرس 15).</p>
+<pre><code>cutoff M (random N=100000): M=0:2148169 M=5:2149097 M=10:2136412 M=15:2154814 M=20:2189483 ...</code></pre>
+<p>عدد المقارنات تقريبًا ثابت من M = 5 لـ 20 (الكتاب: «اختيار القيمة بالظبط مش حرج»)، والكسب الحقيقي في <b>الوقت</b> لأن مقارنات insertion أرخص ومفيش نداءات. الكتاب بيقول حوالي 10%، وقسنا عندنا:</p>
+<pre><code>  Program 7.1 (no cutoff)    0.179s  (+0%)
+  cutoff M=10                0.161s  (-10%)</code></pre>
+
+<h2>7.5 Median-of-Three (Program 7.4)</h2>
+<p>بدل ما تاخد <code>a[r]</code> كـ pivot على العمياني، خد <b>وسيط تلات عناصر</b>: الأول والنص والآخر. تلات مكاسب:</p>
+<ol>
+<li><b>الأسوأ بقى نادر جدًا:</b> عشان يحصل N²، لازم اتنين من التلاتة يبقوا من الأكبر أو الأصغر — في كل partition تقريبًا. وأهم حاجة: الملف المترتب بقى <b>أحسن حالة</b> بدل أسوأ.</li>
+<li><b>Sentinels مجانية:</b> بعد ما ترتّب التلاتة، <code>a[l] ≤ pivot ≤ a[r]</code> — فالـ loops مش محتاجة شروط حدود.</li>
+<li><b>المتوسط بيقل حوالي 5%</b> لأن القسمة بقت أقرب للنص.</li>
+</ol>
+<pre><code>void quicksort(Item a[], int l, int r)
+  { int i;
+    if (r-l <= M) return;
+    exch(a[(l+r)/2], a[r-1]);
+    compexch(a[l], a[r-1]);
+    compexch(a[l], a[r]);
+    compexch(a[r-1], a[r]);
+    i = partition(a, l+1, r-1);
+    quicksort(a, l, i-1);
+    quicksort(a, i+1, r); }
+void sort(Item a[], int l, int r)
+  { quicksort(a, l, r); insertion(a, l, r); }</code></pre>
+<pre><code>sorted  N=4000 (naive pivot): 8005998 compares
+sorted  N=4000 (median-of-3):   51820 compares       ← 150 مرة أقل
+median-of-3 + M=10 (Program 7.4): 1879313 compares   ← vs 2148169</code></pre>
+<p>الكتاب بيقول median-of-3 مع cutoff بيوفّروا 20–25% من الوقت. على جهاز حديث بـ <code>-O2</code> قسنا أقل من كده (~7–10%) — والكتاب نفسه بينبّه إن المترجمات والمعالجات الحديثة بتقلّل قيمة التحسينات الصغيرة. الدرس: <b>قيس على جهازك</b> قبل ما تصدّق أي رقم.</p>
+<a data-src="src/07-quicksort/quicksort_improved.c"></a>
+<a data-src="src/07-quicksort/quicksort_experiments.c"></a>
+
+<h2>7.6 المفاتيح المكررة (Program 7.5)</h2>
+<p>ملفات حقيقية كتير فيها تكرار ضخم: ترتيب موظفين بسنة الميلاد، أو طلبات بالحالة («مدفوع»، «مستني»، «ملغي»). quicksort العادي بيتعامل معاها كويس (عشان بيوقف عند المساوي)، بس لسه بيكرر شغل: ملف كله مفاتيح متساوية بيتقسم ويتقسم بلا فايدة.</p>
+<p>الأسوأ: لو كتبت الـ partition بحيث <b>يعدّي</b> المساويين بدل ما يقف عندهم:</p>
+<pre><code>all 20000 keys equal, stop on equal  :    262058 compares
+all 20000 keys equal, scan over equal: 399960001 compares (quadratic)</code></pre>
+<p>الحل: <b>3-way partitioning</b> — قسّم لتلات أجزاء: أصغر، <b>مساوي</b>، أكبر، والجزء المساوي يتشال من الريكيرشن خالص. فكرة Bentley وMcIlroy اللي في الكتاب ذكية: أثناء المسح العادي، أي عنصر مساوي للـ pivot اتنقل في التبديل، ابعته لأطراف المصفوفة (الشمال لحد <code>p</code>، واليمين من <code>q</code>). لما المؤشرين يتقابلوا، رجّع الأطراف دي للنص.</p>
+<pre><code>exch(a[i], a[j]);
+if (eq(a[i], v)) { p++; exch(a[p], a[i]); }
+if (eq(v, a[j])) { q--; exch(a[q], a[j]); }
+...
+exch(a[i], a[r]); j = i-1; i = i+1;
+for (k = l;   k <= p; k++, j--) exch(a[k], a[j]);
+for (k = r-1; k >= q; k--, i++) exch(a[k], a[i]);
+quicksort(a, l, j);
+quicksort(a, i, r);</code></pre>
+<!--fig:three-way--><figure class="fig"><svg class="fsvg" viewBox="0 0 476 70" width="476" height="70" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="28.0" y="21.3" class="lab" text-anchor="end" font-size="12">in</text><rect x="35.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="46.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="59.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="70.0" y="21.3" class="tc" text-anchor="middle" font-size="13">B</text><rect x="83.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="94.0" y="21.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="107.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="118.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="131.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="142.0" y="21.3" class="tc" text-anchor="middle" font-size="13">C</text><rect x="155.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="166.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="179.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="190.0" y="21.3" class="tc" text-anchor="middle" font-size="13">D</text><rect x="203.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="214.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="227.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="238.0" y="21.3" class="tc" text-anchor="middle" font-size="13">B</text><rect x="251.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="262.0" y="21.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="275.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="286.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="299.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="310.0" y="21.3" class="tc" text-anchor="middle" font-size="13">C</text><rect x="323.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="334.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="347.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="358.0" y="21.3" class="tc" text-anchor="middle" font-size="13">D</text><rect x="371.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="382.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="395.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="406.0" y="21.3" class="tc" text-anchor="middle" font-size="13">B</text><rect x="419.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="430.0" y="21.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="443.0" y="5.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="454.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><text x="28.0" y="51.3" class="lab" text-anchor="end" font-size="12">out</text><rect x="35.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="46.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="59.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="70.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="83.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="94.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="107.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="118.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="131.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="142.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="155.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="166.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="179.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="190.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="203.0" y="35.0" width="22.0" height="24.0" rx="4" class="piv"/><text x="214.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="227.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="238.0" y="51.3" class="tc" text-anchor="middle" font-size="13">B</text><rect x="251.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="262.0" y="51.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="275.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="286.0" y="51.3" class="tc" text-anchor="middle" font-size="13">C</text><rect x="299.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="310.0" y="51.3" class="tc" text-anchor="middle" font-size="13">D</text><rect x="323.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="334.0" y="51.3" class="tc" text-anchor="middle" font-size="13">B</text><rect x="347.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="358.0" y="51.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="371.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="382.0" y="51.3" class="tc" text-anchor="middle" font-size="13">C</text><rect x="395.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="406.0" y="51.3" class="tc" text-anchor="middle" font-size="13">D</text><rect x="419.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="430.0" y="51.3" class="tc" text-anchor="middle" font-size="13">B</text><rect x="443.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi2"/><text x="454.0" y="51.3" class="tc" text-anchor="middle" font-size="13">R</text></svg><figcaption>3-way partitioning بالـ pivot <b>A</b>: أصغر (أزرق) | <b>مساوي</b> (برتقالي) | أكبر (بنفسجي). كل الـ 8 نسخ من A استقروا مرة واحدة وماحدش منهم هيدخل ريكيرشن تاني. ملف فيه مفاتيح متكررة كتير بيخلص بسرعة جدًا.</figcaption></figure><!--/fig:three-way-->
+<pre><code>10 distinct keys, standard : 1719494 compares
+10 distinct keys, 3-way    :  409686 compares      ← 4 مرات أقل</code></pre>
+<p>والجميل: لو مفيش تكرار، التكلفة الزيادة تقريبًا صفر (اختبار <code>eq</code> بعد كل تبديل بس). وعلى عدد ثابت من المفاتيح المختلفة، الوقت بيبقى خطي.</p>
+<a data-src="src/07-quicksort/quicksort_3way.c"></a>
+<div class="oops"><b>ملاحظة على نص الكتاب</b>الطبعة المطبوعة من Program 7.5 مكتوب فيها <code>k &lt; p</code> و<code>k &gt; q</code>، فعنصر مساوي واحد من كل طرف مابيرجعش للنص. الترتيب بيفضل صح (العنصر بيتعالج في الريكيرشن)، بس بيضيّع شوية من الفايدة. الكتاب نفسه بيستخدم <code>&lt;=</code> و<code>&gt;=</code> لما بيكرر نفس الكود في Program 10.3، وده اللي في ملفنا.</div>
+
+<h2>7.7 النصوص والـ vectors</h2>
+<p>لو المفاتيح نصوص، كل <code>less</code> بقت <code>strcmp</code> — ودي تكلفتها على قد <b>البادئة المشتركة</b>. ولما quicksort بيقرّب للآخر، العناصر في كل جزء بتتشابه أكتر وأكتر (كلها بتبدأ بنفس الحروف)، فالمقارنات بتغلى.</p>
+<pre><code>random 5-letter words:   key compares=74029  char compares=137130   (1.9 chars/compare)
+long common prefix:      key compares=76252  char compares=2159310  (28.3 chars/compare)</code></pre>
+<p>نفس عدد المقارنات تقريبًا، بس <b>15 مرة</b> حروف أكتر لما النصوص بتبدأ بـ <code>https://example.com/users/</code>. الكتاب بيقترح الحل: لو عارف إن كل النصوص في الجزء ده بتتفق في أول d حرف، ابدأ المقارنة من الحرف d. ولو عملت 3-way partitioning على <b>حرف واحد</b> بدل المفتاح كله، والجزء المساوي تكمّله على الحرف اللي بعده — يطلعلك 3-way radix quicksort (الدرس 23). ونفس الفكرة للـ vectors (مفاتيح متعددة المكوّنات): رتّب بالمكوّن الأول، والمساوي فيه رتّبه بالتاني.</p>
+<p>وفيه نقطة مهمة من جدول الكتاب على ملف كلمات حقيقي: 3-way partitioning كان أسرع من <code>qsort</code> بتاع النظام بـ 30–35%، والنسخة اللي بتعدّي المساويين بقت تربيعية بسبب الكلمات المتكررة.</p>
+<a data-src="src/07-quicksort/quicksort_strings.c"></a>
+
+<h2>7.8 الاختيار (Selection)</h2>
+<p>عايز الوسيط، أو أكبر 100 درجة، أو العنصر رقم k؟ مش محتاج ترتّب كله. اعمل partition: لو الـ pivot وقع في مكان k، خلصت. لو k أصغر، كمّل في الشمال بس. لو أكبر، في اليمين بس. ده Hoare برضه.</p>
+<pre><code>/* Program 7.6 */
+void select(Item a[], int l, int r, int k)
+  { int i;
+    if (r <= l) return;
+    i = partition(a, l, r);
+    if (i > k) select(a, l, i-1, k);
+    if (i < k) select(a, i+1, r, k); }
+
+/* Program 7.7: the recursion is tail recursion, so make it a loop */
+void select(Item a[], int l, int r, int k)
+  { while (r > l)
+      { int i = partition(a, l, r);
+        if (i >= k) r = i-1;
+        if (i <= k) l = i+1; } }</code></pre>
+<p><b>Property 7.4:</b> الاختيار بالـ quicksort <b>خطي في المتوسط</b>. الفكرة: كل partition بيقسم تقريبًا في النص، فالشغل N + N/2 + N/4 + … ≈ 2N. والتحليل الدقيق (أصعب بكتير من بتاع quicksort) بيدّي متوسط <code>2N + 2k ln(N/k) + 2(N−k) ln(N/(N−k))</code> — خطي لأي k. ولـ k = N/2: حوالي <code>(2 + 2 ln 2) N</code> ≈ 3.39N مقارنة لإيجاد الوسيط.</p>
+<pre><code>median of 200000 random ints = 1071180366
+compares = 715327   (2+2ln2)N = 677259   vs sorting ~2N lnN = 4882429</code></pre>
+<p>7 مرات أقل من الترتيب. وبعد ما يخلص، المصفوفة متقسمة: كل اللي قبل k أصغر وكل اللي بعده أكبر — فـ «أكبر 100» بقوا في آخر 100 خانة.</p>
+<a data-src="src/07-quicksort/select.c"></a>
+<a data-src="src/07-quicksort/select_nonrecursive.c"></a>
+
+<div class="tip"><b>أسوأ حالة الـ selection</b>زي quicksort: N² لو الـ pivot وحش دايمًا. نفس العلاج (عشوائي أو median-of-3). ومن برّه الكتاب للمعلومة: فيه خوارزمية خطية <b>في الأسوأ</b> (median of medians، 1973)، بس ثابتها كبير فعمليًا الكل بيستخدم النسخة دي بـ pivot كويس.</div>
+
+<div class="quiz"><p class="q">ليه بنسيب الملفات الصغيرة من غير ترتيب ونعمل insertion sort واحد في الآخر؟</p>
+<button>عشان insertion sort مستقر</button>
+<button data-ok>لأن كل عنصر قريب من مكانه، فالـ insertion sort النهائي خطي تقريبًا، وبنوفّر overhead النداءات</button>
+<button>عشان نقلل الذاكرة</button>
+<p class="why">كل عنصر جوه «جزء صغير» حجمه ≤ M، فبعده عن مكانه أقل من M.</p></div>
+
+<div class="quiz"><p class="q">median-of-three على ملف مترتب أصلًا. إيه اللي بيحصل؟</p>
+<button>بيبقى N² زي الأول</button>
+<button data-ok>بيبقى أحسن حالة: الوسيط بيقسم في النص بالظبط</button>
+<button>بيفشل</button>
+<p class="why">العنصر اللي في النص في ملف مترتب هو الوسيط الحقيقي.</p></div>
+
+<div class="quiz"><p class="q">ملف مليون طلب، حالة كل طلب واحدة من 3 قيم. أنسب ترتيب؟</p>
+<button>quicksort عادي</button>
+<button data-ok>3-way quicksort</button>
+<button>insertion sort</button>
+<p class="why">3-way بيشيل كل المساويين من الريكيرشن، والوقت بيبقى خطي تقريبًا لعدد ثابت من القيم.</p></div>
+
+<div class="quiz"><p class="q">ليه ترتيب URLs طويلة بادئتها واحدة أبطأ بكتير من كلمات عشوائية رغم إن عدد المقارنات واحد؟</p>
+<button>لأن الـ URLs أكتر</button>
+<button data-ok>لأن كل strcmp بتمشي على البادئة المشتركة كلها قبل ما تلاقي فرق</button>
+<button>لأن quicksort مش بيشتغل على النصوص</button>
+<p class="why">تكلفة المقارنة مش ثابتة. ده دافع radix sort وTST.</p></div>
+
+<div class="quiz"><p class="q">عايز أكبر 10 عناصر من 10 مليون. أحسن من الترتيب الكامل؟</p>
+<button>لأ، لازم ترتّب</button>
+<button data-ok>اعمل select على k = N−10، فآخر 10 خانات فيهم الأكبر</button>
+<button>binary search</button>
+<p class="why">خطي في المتوسط بدل N log N. (أو priority queue بحجم 10 — الدرس 21.)</p></div>

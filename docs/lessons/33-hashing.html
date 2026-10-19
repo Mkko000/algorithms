@@ -1,0 +1,107 @@
+<p class="meta">أقسام الكتاب: مقدمة الفصل 14 · 14.1 Hash Functions (Programs 14.1–14.2) · 14.2 Separate Chaining (Program 14.3، Properties 14.1–14.2)</p>
+<p>فاكر الـ key-indexed search؟ لو المفاتيح أرقام صغيرة، المفتاح نفسه هو مكانه في المصفوفة، والبحث عملية واحدة. الـ hashing بيعمّم الفكرة دي لأي مفتاح: <b>حوّل المفتاح لرقم صغير</b> (بين 0 وM−1)، واستخدمه index. المشكلة الوحيدة: مفتاحين مختلفين ممكن يتحوّلوا لنفس الرقم — ودي اسمها <b>collision</b>. والفصل كله عن حاجتين: إزاي نعمل دالة تحويل كويسة، وإزاي نتعامل مع الـ collisions.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تكتب hash functions صح لأرقام صحيحة وكسور ونصوص، تفهم ليه M لازم يبقى prime في الـ modular hashing، تعرف إيه الـ universal hashing، وتكتب separate chaining وتفهم تكلفته بالأرقام.</div>
+
+<h2>الـ trade-off الأساسي</h2>
+<p>الـ hashing مثال كلاسيكي على trade-off بين الوقت والمساحة. لو معاك ذاكرة لانهائية، اعمل مصفوفة بحجم كل المفاتيح الممكنة (key-indexed). لو معاكش وقت خالص، sequential search بأقل ذاكرة. الـ hashing في النص: بذاكرة معقولة ووقت معقول، بيدّي search وinsert في <b>وقت ثابت في المتوسط</b>. والتمن: مفيش ترتيب. يعني select وsort وrange search مش متاحين بكفاءة.</p>
+
+<h2>14.1 Hash Functions</h2>
+<p>الدالة المثالية: سريعة الحساب، وبتوزّع المفاتيح «كأنها عشوائية» على M خانة. وكل نوع مفتاح ليه طريقته:</p>
+<h3>كسور بين 0 و1</h3>
+<p>اضرب في M وخد الجزء الصحيح: <code>h = (int)(k * M)</code>. لو المفاتيح منتظمة التوزيع، النتيجة منتظمة. ولو المفاتيح بين s وt: حوّلها الأول لـ (k−s)/(t−s).</p>
+<h3>أرقام صحيحة: الـ modular hashing</h3>
+<p><code>h = k % M</code>. أبسط حاجة. بس اختيار M مهم جدًا: لو M قوة 2 (زي 1024)، الـ mod بيرجّع آخر 10 بتات بس — وأي مفاتيح بتشترك في آخر البتات (كلها زوجي، أو كلها مضاعفات 64) هتتكوّم في نفس الخانات.</p>
+<pre><code>integer keys that are multiples of 64 (N=10000):
+  k mod 1024 (power of 2)                longest bucket  625, empty 1008, chi2/M 615.23 (~1 is ideal)
+  k mod 1021 (prime)                     longest bucket   10, empty    0, chi2/M 0.02 (~1 is ideal)</code></pre>
+<p>نفس المفاتيح بالظبط. M = 1024: 1008 خانة فاضية وواحدة فيها 625! M = 1021 (prime قريب): توزيع ممتاز. القاعدة: <b>خلّي M عدد أولي</b>، ويفضّل مايبقاش قريب من قوة 2.</p>
+<div class="tip"><b>الـ multiplicative hashing</b>بديل تاني: اضرب المفتاح في ثابت كسري (زي 0.618… = النسبة الذهبية) وخد الجزء الكسري واضربه في M. ده بيشتغل كويس حتى لو M قوة 2، وكان شائع على الأجهزة اللي الـ mod فيها غالي.</div>
+
+<h3>نصوص: طريقة Horner (Program 14.1)</h3>
+<p>نص زي «averylongkey» = رقم كبير جدًا مكتوب بأساس 128 (كل حرف رقم). مش هينفع نحسبه كله (overflow). بس طريقة Horner بتسمح نعمل mod في كل خطوة:</p>
+<pre><code>int hash(char *v, int M)
+  { int h = 0, a = 127;
+    for (; *v != '\0'; v++)
+      h = (a*h + *v) % M;
+    return h; }</code></pre>
+<p>لأن (a·x + c) mod M = (a·(x mod M) + c) mod M، النتيجة هي هي كأننا حسبنا الرقم كله. والـ a = 127 بدل 128 عشان لو M قوة 2 أو فيه علاقة بـ 128، مانبوّظش التوزيع.</p>
+<pre><code>string keys "key0".."key9999":
+  Horner a=127, M=1024 (power of 2!)     longest bucket   79, empty  576, chi2/M 41.97 (~1 is ideal)
+  Horner a=127, M=1021 (prime)           longest bucket   18, empty    0, chi2/M 0.88 (~1 is ideal)
+  BAD: sum of characters mod 1021        longest bucket  615, empty  930, chi2/M 394.62 (~1 is ideal)</code></pre>
+<p>شوف «مجموع الحروف»: فكرة بتيجي في بال ناس كتير، وهي كارثة. «key12» و«key21» و«key30» ليهم نفس المجموع، وأي مجموع صغير مايتعدّاش بضع مئات أصلًا.</p>
+
+<h3>Universal hashing (Program 14.2)</h3>
+<p>أي دالة ثابتة، فيه مجموعة مفاتيح «وحشة» ليها (ممكن حد يختارها قصد عشان يعمل attack). الحل: <b>عشوائية</b>. بدل a ثابت، غيّره في كل حرف بطريقة شبه عشوائية:</p>
+<pre><code>int hashU(char *v, int M)
+  { int h, a = 31415, b = 27183;
+    for (h = 0; *v != '\0'; v++, a = a*b % (M-1))
+      h = (a*h + *v) % M;
+    return (h &lt; 0) ? (h + M) : h; }</code></pre>
+<p>الفكرة النظرية: لو اخترنا الدالة عشوائيًا من «عيلة» مناسبة، احتمال إن مفتاحين بعينهم يصطدموا ≈ 1/M، <b>لأي</b> مفتاحين. يعني مفيش input وحش في المتوسط على الاختيارات.</p>
+<pre><code>  universal hashU, M=1021                longest bucket   29, empty  156, chi2/M 5.62 (~1 is ideal)</code></pre>
+<p>بصراحة: على المفاتيح المنتظمة دي بالذات Horner العادي مع prime كان أحسن. الـ universal مش هدفه يكسب على input واحد، هدفه إنه <b>مايخسرش جامد على أي input</b>.</p>
+<a data-src="src/14-hashing/hash_functions.c"></a>
+<a data-src="src/14-hashing/hash_universal.c"></a>
+<div class="oops"><b>أخطاء شائعة</b>(1) M قوة 2 مع k % M. (2) دالة بتبص على جزء من المفتاح بس (مثلًا أول 3 حروف من URLs كلها بتبدأ بـ «htt»). (3) دالة بطيئة جدًا (hash كريبتوجرافي لكل lookup). (4) نسيان إن % في C ممكن يرجّع سالب لو h سالب — عشان كده السطر الأخير في hashU.</div>
+
+<h2>14.2 Separate Chaining</h2>
+<p>أبسط حل للـ collisions: كل خانة في الجدول <b>قايمة متصلة</b> بكل المفاتيح اللي اتحوّلت لها. الـ insert: احسب h وحط في أول القايمة. الـ search: احسب h ودوّر sequential في القايمة دي بس.</p>
+<!--fig:chaining--><figure class="fig"><svg class="fsvg" viewBox="0 0 290 204" width="290" height="204" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="10.0" width="30.0" height="28.0" rx="3" class="cell hi2"/><text x="25.0" y="29.0" class="tc" text-anchor="middle" font-size="12">0</text><line x1="40.0" y1="24.0" x2="58.0" y2="24.0" class="arr" marker-end="url(#ah)"/><rect x="60.0" y="10.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="75.0" y="29.0" class="tc" text-anchor="middle" font-size="12">E</text><text x="104.0" y="29.0" class="lab" text-anchor="middle" font-size="11">∅</text><rect x="10.0" y="48.0" width="30.0" height="28.0" rx="3" class="cell hi2"/><text x="25.0" y="67.0" class="tc" text-anchor="middle" font-size="12">1</text><line x1="40.0" y1="62.0" x2="58.0" y2="62.0" class="arr" marker-end="url(#ah)"/><rect x="60.0" y="48.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="75.0" y="67.0" class="tc" text-anchor="middle" font-size="12">P</text><line x1="90.0" y1="62.0" x2="108.0" y2="62.0" class="arr" marker-end="url(#ah)"/><rect x="110.0" y="48.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="125.0" y="67.0" class="tc" text-anchor="middle" font-size="12">A</text><text x="154.0" y="67.0" class="lab" text-anchor="middle" font-size="11">∅</text><rect x="10.0" y="86.0" width="30.0" height="28.0" rx="3" class="cell hi2"/><text x="25.0" y="105.0" class="tc" text-anchor="middle" font-size="12">2</text><line x1="40.0" y1="100.0" x2="58.0" y2="100.0" class="arr" marker-end="url(#ah)"/><rect x="60.0" y="86.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="75.0" y="105.0" class="tc" text-anchor="middle" font-size="12">L</text><line x1="90.0" y1="100.0" x2="108.0" y2="100.0" class="arr" marker-end="url(#ah)"/><rect x="110.0" y="86.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="125.0" y="105.0" class="tc" text-anchor="middle" font-size="12">G</text><text x="154.0" y="105.0" class="lab" text-anchor="middle" font-size="11">∅</text><rect x="10.0" y="124.0" width="30.0" height="28.0" rx="3" class="cell hi2"/><text x="25.0" y="143.0" class="tc" text-anchor="middle" font-size="12">3</text><line x1="40.0" y1="138.0" x2="58.0" y2="138.0" class="arr" marker-end="url(#ah)"/><rect x="60.0" y="124.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="75.0" y="143.0" class="tc" text-anchor="middle" font-size="12">M</text><line x1="90.0" y1="138.0" x2="108.0" y2="138.0" class="arr" marker-end="url(#ah)"/><rect x="110.0" y="124.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="125.0" y="143.0" class="tc" text-anchor="middle" font-size="12">H</text><line x1="140.0" y1="138.0" x2="158.0" y2="138.0" class="arr" marker-end="url(#ah)"/><rect x="160.0" y="124.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="175.0" y="143.0" class="tc" text-anchor="middle" font-size="12">C</text><line x1="190.0" y1="138.0" x2="208.0" y2="138.0" class="arr" marker-end="url(#ah)"/><rect x="210.0" y="124.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="225.0" y="143.0" class="tc" text-anchor="middle" font-size="12">R</text><text x="254.0" y="143.0" class="lab" text-anchor="middle" font-size="11">∅</text><rect x="10.0" y="162.0" width="30.0" height="28.0" rx="3" class="cell hi2"/><text x="25.0" y="181.0" class="tc" text-anchor="middle" font-size="12">4</text><line x1="40.0" y1="176.0" x2="58.0" y2="176.0" class="arr" marker-end="url(#ah)"/><rect x="60.0" y="162.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="75.0" y="181.0" class="tc" text-anchor="middle" font-size="12">X</text><line x1="90.0" y1="176.0" x2="108.0" y2="176.0" class="arr" marker-end="url(#ah)"/><rect x="110.0" y="162.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="125.0" y="181.0" class="tc" text-anchor="middle" font-size="12">N</text><line x1="140.0" y1="176.0" x2="158.0" y2="176.0" class="arr" marker-end="url(#ah)"/><rect x="160.0" y="162.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="175.0" y="181.0" class="tc" text-anchor="middle" font-size="12">I</text><line x1="190.0" y1="176.0" x2="208.0" y2="176.0" class="arr" marker-end="url(#ah)"/><rect x="210.0" y="162.0" width="30.0" height="28.0" rx="3" class="cell"/><text x="225.0" y="181.0" class="tc" text-anchor="middle" font-size="12">S</text><text x="254.0" y="181.0" class="lab" text-anchor="middle" font-size="11">∅</text></svg><figcaption>Separate chaining بـ M = 5 قوايم و13 مفتاح (h = 11k mod 5، وk رقم الحرف). كل مفتاح جديد بيتحط في <b>أول</b> قايمته (Program 14.3). البحث = حساب h + sequential search في قايمة واحدة طولها في المتوسط N/M ≈ 2.6.</figcaption></figure><!--/fig:chaining-->
+<pre><code>static link *heads, z;
+static int N, M;
+void STinit(int max)
+  { int i;
+    N = 0; M = max/5;
+    heads = malloc(M*sizeof(link));
+    z = NEW(NULLitem, NULL);
+    for (i = 0; i &lt; M; i++) heads[i] = z; }
+Item STsearch(Key v)
+  { return searchR(heads[hash(v, M)], v); }
+void STinsert(Item item)
+  { int i = hash(key(item), M);
+    heads[i] = NEW(item, heads[i]); N++; }
+void STdelete(Item item)
+  { int i = hash(key(item), M);
+    heads[i] = deleteR(heads[i], item); }</code></pre>
+<p>(Program 14.3. الـ M = max/5 يعني متوسط طول القايمة حوالي 5.)</p>
+<div class="story"><b>Property 14.1:</b> الـ separate chaining بيقلّل عدد مقارنات الـ sequential search بمعامل <b>M</b> (في المتوسط)، باستخدام ذاكرة زيادة لـ M لينك.</div>
+<p>يعني متوسط طول القايمة N/M، والبحث الناجح حوالي (N/M)/2، والفاشل N/M (أو النص لو القوايم مترتبة).</p>
+<div class="story"><b>Property 14.2:</b> في جدول separate chaining فيه M قايمة وN مفتاح، احتمال إن طول كل قايمة يبقى في حدود معامل ثابت صغير من N/M قريب جدًا من 1.</div>
+<p>يعني مش بس المتوسط كويس — مستحيل عمليًا إن قايمة واحدة تبقى طويلة جدًا (لو الـ hash function كويسة). ده من الـ binomial distribution: احتمال قايمة فيها أكتر من t·α عنصر بيقل بشكل أُسّي مع t. (مثال الكتاب: لو متوسط طول القوايم 20، احتمال إننا نقع على قايمة فيها أكتر من 40 عنصر أقل من (e/2)<sup>20</sup>e<sup>−20</sup> ≈ 0.0000016.) ومن نفس التحليل (مسألة «الكور والصناديق» الكلاسيكية): نسبة القوايم الفاضية حوالي e<sup>−α</sup>، وأول collision بيحصل بعد حوالي √(πM/2) مفتاح بس — يعني الـ collisions مش استثناء، دي حاجة أكيدة حتى في جدول شبه فاضي (مفارقة عيد الميلاد: لـ M = 365، حوالي 24 شخص). والعكس، عشان كل القوايم يبقى فيها عنصر واحد على الأقل، محتاج حوالي M·H<sub>M</sub> ≈ M ln M مفتاح (مسألة جامع الكوبونات).</p>
+<pre><code>search   -&gt; bucket 0, value 0
+hash     -&gt; bucket 4, value 10
+table    -&gt; bucket 6, value 20
+...
+N=7 M=10 avg list length ~ 0.7</code></pre>
+<a data-src="src/14-hashing/hash_chaining.c"></a>
+<div class="w" data-w="hashviz"></div>
+<h3>اختيار M</h3>
+<p>بما إن القوايم بتكبر بالراحة (مفيش «امتلاء»)، الـ separate chaining مابيقعش لو N زاد عن المتوقع، بس بيبطأ تدريجيًا. القاعدة العملية: خلّي M حوالي N/5 لـ N/10 — قوايم قصيرة وذاكرة معقولة. ولو مش عارف N من الأول، استخدم جدول بيكبر (الدرس الجاي).</p>
+<div class="tip"><b>قوايم مترتبة؟</b>لو خلّيت كل قايمة مترتبة، الـ search miss بيقف بدري (نص التكلفة). بس الـ insert بقى أغلى. مع قوايم طولها 5، مش فارقة كتير. الأهم: hash function كويسة.</div>
+
+<div class="quiz"><p class="q">بتعمل hash لأرقام كلها مضاعفات 8، وM = 512. إيه اللي هيحصل؟</p>
+<button>توزيع ممتاز</button>
+<button data-ok>كل المفاتيح هتروح لـ 64 خانة بس من الـ 512</button>
+<button>كل المفاتيح في خانة واحدة</button>
+<p class="why">512 = 2⁹، فالـ mod بيرجّع آخر 9 بتات، وآخر 3 بتات دايمًا صفر. يبقى 2⁶ = 64 خانة ممكنة بس. استخدم M prime زي 509.</p></div>
+
+<div class="quiz"><p class="q">ليه Horner بيعمل % M في كل خطوة مش في الآخر بس؟</p>
+<button>عشان يبقى أبطأ</button>
+<button data-ok>عشان مايحصلش overflow، والنتيجة رياضيًا هي هي</button>
+<button>عشان يغيّر التوزيع</button>
+<p class="why">(a·x + c) mod M = (a·(x mod M) + c) mod M. فنقدر نخلّي الرقم صغير طول الوقت من غير ما نغيّر الإجابة.</p></div>
+
+<div class="quiz"><p class="q">separate chaining بـ M = 1000 وN = 50000 مفتاح. search miss بيبص على كام عنصر تقريبًا؟</p>
+<button>50000</button>
+<button data-ok>50</button>
+<button>1</button>
+<button>16</button>
+<p class="why">متوسط طول القايمة N/M = 50، والـ miss لازم يلف على القايمة كلها (لو مش مترتبة). أحسن من sequential search بمعامل 1000 (Property 14.1).</p></div>
+
+<div class="quiz"><p class="q">إيه الحاجة اللي الـ hash table <b>مابيعرفش</b> يعملها بكفاءة، والـ BST بيعرف؟</p>
+<button>search</button>
+<button>insert</button>
+<button data-ok>select وsort وrange search (أي حاجة محتاجة ترتيب)</button>
+<p class="why">الـ hash بيبعزق الترتيب عن قصد. لو محتاج «كل المفاتيح بين X وY» أو «العنصر رقم k»، استخدم شجرة متوازنة.</p></div>

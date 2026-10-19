@@ -1,0 +1,126 @@
+<p class="meta">أقسام الكتاب: 6.6 Shellsort (Program 6.5, Properties 6.7–6.11) · 6.7 Sorting Other Types of Data (Programs 6.6–6.11) · 6.8 Index and Pointer Sorting (Programs 6.12–6.14) · 6.9 Sorting of Linked Lists (Programs 6.15–6.16) · 6.10 Key-Indexed Counting (Program 6.17, Property 6.12)</p>
+<p>insertion sort عنده عيب واحد قاتل: العنصر بيتحرك <b>خطوة واحدة</b> كل مرة. لو أصغر عنصر في آخر المصفوفة، هيمشي N خطوة. Donald Shell سنة 1959 قال: طب ما نخلّيه يقفز؟ والنتيجة خوارزمية بسيطة جدًا، سريعة جدًا، ولسه — بعد 60 سنة — تحليلها الكامل لغز.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تفهم shellsort ودور متتابعة الزيادات، ترتّب أي نوع بيانات بنفس الكود، ترتّب سجلات ضخمة من غير ما تحرّكها (فهارس ومؤشرات)، ترتّب قوائم مترابطة، وترتّب في زمن خطي لما المفاتيح صغيرة.</div>
+
+<h2>6.6 Shellsort (Program 6.5)</h2>
+<p><b>h-sorted</b> = كل عنصر مترتب بالنسبة للعنصر اللي بعده بـ h خانة. يعني المصفوفة h متتابعة متداخلة، كل واحدة مترتبة. Shellsort: اعمل h-sort بـ h كبير (العناصر بتقفز مسافات كبيرة)، بعدين h أصغر، لحد h = 1 (insertion sort عادي — بس على مصفوفة شبه مترتبة، فسريع).</p>
+<pre><code>void shellsort(Item a[], int l, int r)
+  { int i, j, h;
+    for (h = 1; h <= (r-l)/9; h = 3*h+1) ;
+    for ( ; h > 0; h /= 3)
+      for (i = l+h; i <= r; i++)
+        { int j = i; Item v = a[i];
+          while (j >= l+h &amp;&amp; less(v, a[j-h]))
+            { a[j] = a[j-h]; j -= h; }
+          a[j] = v; } }</code></pre>
+<p>ده insertion sort بالظبط بس <code>1</code> بقت <code>h</code>. والمتتابعة 1، 4، 13، 40، 121، … (h = 3h+1) من Knuth.</p>
+<a data-src="src/06-sorting/shellsort.c"></a>
+
+<!--fig:shell-trace--><figure class="fig"><svg class="fsvg" viewBox="0 0 414 130" width="414" height="130" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="45.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="56.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="69.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="80.0" y="21.3" class="tc" text-anchor="middle" font-size="13">S</text><rect x="93.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="104.0" y="21.3" class="tc" text-anchor="middle" font-size="13">O</text><rect x="117.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="128.0" y="21.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="141.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="152.0" y="21.3" class="tc" text-anchor="middle" font-size="13">T</text><rect x="165.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="176.0" y="21.3" class="tc" text-anchor="middle" font-size="13">I</text><rect x="189.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="200.0" y="21.3" class="tc" text-anchor="middle" font-size="13">N</text><rect x="213.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="224.0" y="21.3" class="tc" text-anchor="middle" font-size="13">G</text><rect x="237.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="248.0" y="21.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="261.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="272.0" y="21.3" class="tc" text-anchor="middle" font-size="13">X</text><rect x="285.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="296.0" y="21.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="309.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="320.0" y="21.3" class="tc" text-anchor="middle" font-size="13">M</text><rect x="333.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="344.0" y="21.3" class="tc" text-anchor="middle" font-size="13">P</text><rect x="357.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="368.0" y="21.3" class="tc" text-anchor="middle" font-size="13">L</text><rect x="381.0" y="5.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="392.0" y="21.3" class="tc" text-anchor="middle" font-size="13">E</text><text x="38.0" y="51.3" class="lab" text-anchor="end" font-size="12">h=13</text><rect x="45.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi"/><text x="56.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="69.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="80.0" y="51.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="93.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="104.0" y="51.3" class="tc" text-anchor="middle" font-size="13">O</text><rect x="117.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="128.0" y="51.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="141.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="152.0" y="51.3" class="tc" text-anchor="middle" font-size="13">T</text><rect x="165.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="176.0" y="51.3" class="tc" text-anchor="middle" font-size="13">I</text><rect x="189.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="200.0" y="51.3" class="tc" text-anchor="middle" font-size="13">N</text><rect x="213.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="224.0" y="51.3" class="tc" text-anchor="middle" font-size="13">G</text><rect x="237.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="248.0" y="51.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="261.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="272.0" y="51.3" class="tc" text-anchor="middle" font-size="13">X</text><rect x="285.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="296.0" y="51.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="309.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="320.0" y="51.3" class="tc" text-anchor="middle" font-size="13">M</text><rect x="333.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="344.0" y="51.3" class="tc" text-anchor="middle" font-size="13">P</text><rect x="357.0" y="35.0" width="22.0" height="24.0" rx="4" class="hi"/><text x="368.0" y="51.3" class="tc" text-anchor="middle" font-size="13">L</text><rect x="381.0" y="35.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="392.0" y="51.3" class="tc" text-anchor="middle" font-size="13">S</text><text x="38.0" y="81.3" class="lab" text-anchor="end" font-size="12">h=4</text><rect x="45.0" y="65.0" width="22.0" height="24.0" rx="4" class="hi"/><text x="56.0" y="81.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="69.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="80.0" y="81.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="93.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="104.0" y="81.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="117.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="128.0" y="81.3" class="tc" text-anchor="middle" font-size="13">G</text><rect x="141.0" y="65.0" width="22.0" height="24.0" rx="4" class="hi"/><text x="152.0" y="81.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="165.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="176.0" y="81.3" class="tc" text-anchor="middle" font-size="13">I</text><rect x="189.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="200.0" y="81.3" class="tc" text-anchor="middle" font-size="13">N</text><rect x="213.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="224.0" y="81.3" class="tc" text-anchor="middle" font-size="13">M</text><rect x="237.0" y="65.0" width="22.0" height="24.0" rx="4" class="hi"/><text x="248.0" y="81.3" class="tc" text-anchor="middle" font-size="13">P</text><rect x="261.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="272.0" y="81.3" class="tc" text-anchor="middle" font-size="13">L</text><rect x="285.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="296.0" y="81.3" class="tc" text-anchor="middle" font-size="13">O</text><rect x="309.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="320.0" y="81.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="333.0" y="65.0" width="22.0" height="24.0" rx="4" class="hi"/><text x="344.0" y="81.3" class="tc" text-anchor="middle" font-size="13">T</text><rect x="357.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="368.0" y="81.3" class="tc" text-anchor="middle" font-size="13">X</text><rect x="381.0" y="65.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="392.0" y="81.3" class="tc" text-anchor="middle" font-size="13">S</text><text x="38.0" y="111.3" class="lab" text-anchor="end" font-size="12">h=1</text><rect x="45.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="56.0" y="111.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="69.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="80.0" y="111.3" class="tc" text-anchor="middle" font-size="13">A</text><rect x="93.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="104.0" y="111.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="117.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="128.0" y="111.3" class="tc" text-anchor="middle" font-size="13">E</text><rect x="141.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="152.0" y="111.3" class="tc" text-anchor="middle" font-size="13">G</text><rect x="165.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="176.0" y="111.3" class="tc" text-anchor="middle" font-size="13">I</text><rect x="189.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="200.0" y="111.3" class="tc" text-anchor="middle" font-size="13">L</text><rect x="213.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="224.0" y="111.3" class="tc" text-anchor="middle" font-size="13">M</text><rect x="237.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="248.0" y="111.3" class="tc" text-anchor="middle" font-size="13">N</text><rect x="261.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="272.0" y="111.3" class="tc" text-anchor="middle" font-size="13">O</text><rect x="285.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="296.0" y="111.3" class="tc" text-anchor="middle" font-size="13">P</text><rect x="309.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="320.0" y="111.3" class="tc" text-anchor="middle" font-size="13">R</text><rect x="333.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="344.0" y="111.3" class="tc" text-anchor="middle" font-size="13">S</text><rect x="357.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="368.0" y="111.3" class="tc" text-anchor="middle" font-size="13">T</text><rect x="381.0" y="95.0" width="22.0" height="24.0" rx="4" class="cell"/><text x="392.0" y="111.3" class="tc" text-anchor="middle" font-size="13">X</text></svg><figcaption>Shellsort بالزيادات 13، 4، 1: بعد 13-sort، بعد 4-sort (الأزرق متتابعة واحدة من الأربعة: الخانات 0، 4، 8، 12 — مترتبة جواها)، وبعد 1-sort. شوف قد إيه الملف «شبه مترتب» قبل اللفّة الأخيرة، فالـ insertion sort الأخير بيخلص بسرعة.</figcaption></figure><!--/fig:shell-trace-->
+<h3>المتتابعة هي كل حاجة</h3>
+<p>قسنا عدد المقارنات على N = 32768:</p>
+<pre><code>sequence                         random     evens/odds
+Shell N/2^k                     4003225      134668289   (15 passes)
+Knuth 3h+1                      1060519         458813   (10 passes)
+Sedgewick 4^i+3*2^i+1            894201         416815   (8 passes)
+Pratt 2^p*3^q                   2510072        2393542   (83 passes)</code></pre>
+<p>المتتابعة الأصلية بتاعة Shell (أنصاف) <b>كارثية</b> على المدخل اللي العناصر الصغيرة فيه في الأماكن الزوجية والكبيرة في الفردية: كل الزيادات زوجية ما عدا 1، فالنصين مابيتقابلوش لحد الآخر، والـ 1-sort الأخير بقى insertion sort على مصفوفة مش مترتبة خالص. 134 مليون مقارنة!</p>
+<table class="comp-table">
+<tr><th>Property</th><th>النتيجة</th></tr>
+<tr><td>6.7</td><td>لو عملت h-sort لمصفوفة k-ordered، النتيجة بتفضل k-ordered كمان. (واضحة بس برهانها صعب.) يعني الشغل اللي اتعمل مابيضيعش.</td></tr>
+<tr><td>6.8</td><td>لو المصفوفة h- و k-ordered (و h، k أوليين نسبيًا)، الـ g-sort بيعمل أقل من N(h−1)(k−1)/g مقارنة.</td></tr>
+<tr><td>6.9</td><td>متتابعة 1 4 13 40 121 …: أقل من <b>O(N^3/2)</b> مقارنة.</td></tr>
+<tr><td>6.10</td><td>متتابعة 1 8 23 77 281 … (سادجوك 1986): أقل من <b>O(N^4/3)</b>. البرهان محتاج نظرية أعداد «خارج نطاق الكتاب».</td></tr>
+<tr><td>6.11</td><td>متتابعة Pratt 1 2 3 4 6 8 9 12 … (كل 2^p·3^q): أقل من <b>O(N (log N)²)</b>.</td></tr>
+</table>
+<p>بس شوف Pratt في الجدول: نظريًا الأحسن، وعمليًا أبطأ عند N ده — 83 لفّة! الكتاب نفسه بيقول كده: عدد الزيادات كبير، فالثابت بيغلب لحد أحجام ضخمة. والسؤال المفتوح لحد النهارده: هل فيه متتابعة تدّي N log N في المتوسط؟ ماحدش يعرف.</p>
+<a data-src="src/06-sorting/shellsort_increments.c"></a>
+
+<div class="tip"><b>نصيحة الكتاب العملية</b>shellsort هو الاختيار المعقول لملفات متوسطة الحجم (آلاف لعشرات الآلاف): كود قليل، مفيش مساحة زيادة، مفيش ريكيرشن، ومفيش أسوأ حالة مرعبة زي quicksort. لو مش متأكد، ابدأ بيه.</div>
+
+<h2>6.7 ترتيب أنواع بيانات تانية</h2>
+<p>الكتاب بيبني «طبقات» عشان كود الترتيب نفسه مايتغيّرش:</p>
+<ul>
+<li><b>Program 6.6:</b> sort driver — عميل بيقرا مصفوفة، يرتّبها، يطبعها. ومايعرفش نوع العناصر.</li>
+<li><b>Programs 6.7–6.8:</b> واجهة وتنفيذ لـ «مصفوفة» (<code>randinit</code>، <code>scaninit</code>، <code>show</code>).</li>
+<li><b>Programs 6.9–6.10:</b> واجهة الـ Item: <code>key</code>، <code>less</code>، <code>exch</code>، <code>ITEMrand</code>، <code>ITEMscan</code>، <code>ITEMshow</code>. غيّر الملف ده بس، ونفس الـ sort يشتغل على double أو نصوص.</li>
+<li><b>Program 6.11:</b> العناصر <b>نصوص</b>: الـ Item هو <code>char *</code> و<code>less</code> بتنادي <code>strcmp</code>، والنصوص نفسها في بافر واحد (فكرة Program 3.17 في الدرس 07).</li>
+</ul>
+
+<h2>6.8 ترتيب بالفهارس والمؤشرات</h2>
+<p>لو كل سجل 1KB، تبديل اتنين = نسخ 3KB. ليه نحرّكهم أصلًا؟</p>
+<ul>
+<li><b>Index sort:</b> مصفوفة <code>a[]</code> فيها 0..N−1، ورتّبها بمقارنة <code>data[a[i]]</code>. النتيجة: <code>data[a[0]]</code> هو الأصغر. السجلات ماتحرّكتش.</li>
+<li><b>Pointer sort (Programs 6.12–6.13):</b> الـ Item مؤشر لسجل <code>{name, num}</code>، و<code>less</code> بقت <b>دالة</b> مش ماكرو. اكتب <code>less</code> تقارن <code>a->num</code> تبقى بترتّب بالرقم؛ اكتبها بـ <code>strcmp(a->name, b->name)</code> تبقى بالاسم — ونفس كود الـ sort.</li>
+<li><b>أكتر من «ترتيب» في نفس الوقت:</b> فهرس بالاسم وفهرس بالدرجة، على نفس البيانات.</li>
+</ul>
+<pre><code>i   data        grade  | by name (index) | by grade (index)
+0   Wilson      63     | Johnson         | Wilson
+1   Johnson     86     | Jones           | Thompson
+2   Jones       87     | Smith           | Washington
+3   Smith       90     | Thompson        | Johnson
+...</code></pre>
+<h3>إعادة الترتيب في المكان (Program 6.14)</h3>
+<p>طب لو لازم في الآخر السجلات نفسها تترتب؟ التبديلات هتحرك السجل أكتر من مرة. الحل: الـ permutation عبارة عن <b>دورات</b>. امشي في كل دورة: احفظ أول سجل، انقل اللي مكانه، وهكذا لحد ما ترجع. كل سجل بيتنقل <b>مرة واحدة</b> بالظبط (زائد نقلة لكل دورة).</p>
+<pre><code>void insitu(dataType data[], int a[], int N)
+  { int i, j, k;
+    for (i = 0; i < N; i++)
+      { dataType v = data[i];
+        for (k = i; a[k] != i; k = a[j], a[j] = j)
+          { j = k; data[k] = data[a[k]]; }
+        data[k] = v; a[k] = k; } }</code></pre>
+<a data-src="src/06-sorting/index_pointer_sort.c"></a>
+
+<h2>6.9 ترتيب القوائم المترابطة</h2>
+<p>في القايمة مفيش <code>a[i]</code>، فمفيش exch عادي ولا قفز بـ h. Program 6.16 selection sort على قايمة: شيل <b>أكبر</b> عقدة من المدخل وحطها في <b>أول</b> قايمة الناتج. الناتج بيكبر من الآخر للأول مترتب، والعقد مابتتنسخش — مؤشرات بس. وكمان insertion sort على قايمة (Program 3.11، الدرس 06). والطريقة الأحسن هي mergesort (الدرس 20).</p>
+<pre><code>input : 79 42 27 45 77 64 98 61 75 88 19 90
+sorted: 19 27 42 45 61 64 75 77 79 88 90 98</code></pre>
+<a data-src="src/06-sorting/list_sort.c"></a>
+
+<h2>6.10 Key-Indexed Counting (Program 6.17)</h2>
+<p>لو المفاتيح أرقام صغيرة من 0 لـ R−1، مش محتاج تقارن خالص! أربع خطوات:</p>
+<ol>
+<li>عدّ كل مفتاح: <code>cnt[a[i]+1]++</code>.</li>
+<li>حوّل العدّ لمواقع بداية: <code>cnt[j] += cnt[j-1]</code>.</li>
+<li>وزّع: <code>b[cnt[a[i]]++] = a[i]</code>.</li>
+<li>انسخ <code>b</code> لـ <code>a</code>.</li>
+</ol>
+<!--fig:kic-trace--><figure class="fig"><svg class="fsvg" viewBox="0 0 390 154" width="390" height="154" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="25.4" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="65.0" y="25.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="81.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="95.0" y="25.4" class="tc" text-anchor="middle" font-size="13">1</text><rect x="111.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="125.0" y="25.4" class="tc" text-anchor="middle" font-size="13">2</text><rect x="141.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="155.0" y="25.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="171.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="185.0" y="25.4" class="tc" text-anchor="middle" font-size="13">2</text><rect x="201.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="215.0" y="25.4" class="tc" text-anchor="middle" font-size="13">1</text><rect x="231.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="245.0" y="25.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="261.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="275.0" y="25.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="291.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="305.0" y="25.4" class="tc" text-anchor="middle" font-size="13">1</text><rect x="321.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="335.0" y="25.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="351.0" y="5.0" width="28.0" height="30.0" rx="4" class="cell"/><text x="365.0" y="25.4" class="tc" text-anchor="middle" font-size="13">2</text><text x="44.0" y="61.4" class="lab" text-anchor="end" font-size="12">cnt</text><rect x="51.0" y="41.0" width="28.0" height="30.0" rx="4" class="hi2"/><text x="65.0" y="61.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="81.0" y="41.0" width="28.0" height="30.0" rx="4" class="hi2"/><text x="95.0" y="61.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="111.0" y="41.0" width="28.0" height="30.0" rx="4" class="hi2"/><text x="125.0" y="61.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="141.0" y="41.0" width="28.0" height="30.0" rx="4" class="hi2"/><text x="155.0" y="61.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="171.0" y="41.0" width="28.0" height="30.0" rx="4" class="hi2"/><text x="185.0" y="61.4" class="tc" text-anchor="middle" font-size="13">2</text><text x="44.0" y="97.4" class="lab" text-anchor="end" font-size="12">start</text><rect x="51.0" y="77.0" width="28.0" height="30.0" rx="4" class="hi"/><text x="65.0" y="97.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="81.0" y="77.0" width="28.0" height="30.0" rx="4" class="hi"/><text x="95.0" y="97.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="111.0" y="77.0" width="28.0" height="30.0" rx="4" class="hi"/><text x="125.0" y="97.4" class="tc" text-anchor="middle" font-size="13">6</text><rect x="141.0" y="77.0" width="28.0" height="30.0" rx="4" class="hi"/><text x="155.0" y="97.4" class="tc" text-anchor="middle" font-size="13">9</text><rect x="171.0" y="77.0" width="28.0" height="30.0" rx="4" class="hi"/><text x="185.0" y="97.4" class="tc" text-anchor="middle" font-size="13">11</text><text x="44.0" y="133.4" class="lab" text-anchor="end" font-size="12">b</text><rect x="51.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="65.0" y="133.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="81.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="95.0" y="133.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="111.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="125.0" y="133.4" class="tc" text-anchor="middle" font-size="13">0</text><rect x="141.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="155.0" y="133.4" class="tc" text-anchor="middle" font-size="13">1</text><rect x="171.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="185.0" y="133.4" class="tc" text-anchor="middle" font-size="13">1</text><rect x="201.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="215.0" y="133.4" class="tc" text-anchor="middle" font-size="13">1</text><rect x="231.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="245.0" y="133.4" class="tc" text-anchor="middle" font-size="13">2</text><rect x="261.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="275.0" y="133.4" class="tc" text-anchor="middle" font-size="13">2</text><rect x="291.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="305.0" y="133.4" class="tc" text-anchor="middle" font-size="13">2</text><rect x="321.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="335.0" y="133.4" class="tc" text-anchor="middle" font-size="13">3</text><rect x="351.0" y="113.0" width="28.0" height="30.0" rx="4" class="ok"/><text x="365.0" y="133.4" class="tc" text-anchor="middle" font-size="13">3</text></svg><figcaption>Key-indexed counting على مفاتيح من 0 لـ 3: (1) <code>cnt[k+1]</code> = عدد المفتاح k. (2) الجمع التراكمي يدّي <b>مكان بداية</b> كل مفتاح: الأصفار تبدأ من 0، الواحدات من 3، الاتنينات من 7… (3) التوزيع بالترتيب يدّي b مترتب ومستقر.</figcaption></figure><!--/fig:kic-trace-->
+<p><b>Property 6.12:</b> زمن خطي لو عدد المفاتيح المختلفة R في حدود ثابت × N. كل عنصر بيتنقل مرتين، وكل مفتاح بيتقرا مرتين.</p>
+<p>والأهم: <b>مستقر</b>. في الخطوة 3 بنمشي المدخل بالترتيب، فالمتساويين بيدخلوا بنفس ترتيبهم:</p>
+<pre><code>by section (stable): 0:Harris 0:Martin 1:Garcia 1:Jones 2:Anderson 2:Johnson 2:Martinez 3:Brown ...</code></pre>
+<p>الخاصية دي هي اللي هيقوم عليها LSD radix sort بالكامل (الدرس 24).</p>
+<a data-src="src/06-sorting/key_indexed_counting.c"></a>
+
+<div class="oops"><b>مش «أسرع من N log N» بالسحر</b>key-indexed counting بيكسر حد N log N لأنه <b>مش بيقارن</b> — بيستخدم المفتاح كفهرس. لو R = 2³² مثلًا، مصفوفة العدّ مستحيلة. الحد الأدنى N log N بيخص خوارزميات المقارنة بس.</div>
+
+<div class="quiz"><p class="q">ليه متتابعة Shell الأصلية (N/2، N/4، …) سيئة؟</p>
+<button>لأنها قصيرة</button>
+<button data-ok>لأن كل الزيادات زوجية فالأماكن الزوجية والفردية مابتتقارنش غير في اللفة الأخيرة</button>
+<button>لأنها بتبدأ من N/2</button>
+<p class="why">على المدخل المناسب، اللفة الأخيرة بتبقى insertion sort على مصفوفة مش مترتبة → N².</p></div>
+
+<div class="quiz"><p class="q">Property 6.7 بتقول إيه بالبلدي؟</p>
+<button>shellsort مستقر</button>
+<button data-ok>الـ h-sort الجديد مابيبوّظش الترتيب اللي عملته الـ k-sort اللي قبله</button>
+<button>كل لفة بتاخد نفس الوقت</button>
+<p class="why">عشان كده كل لفة بتبني على اللي قبلها.</p></div>
+
+<div class="quiz"><p class="q">عندك 10000 سجل كل واحد 2KB، وعايز ترتّبهم بالاسم وبالدرجة الاتنين. أحسن حاجة؟</p>
+<button>رتّب السجلات مرتين</button>
+<button data-ok>اعمل مصفوفتين فهارس، واحدة لكل ترتيب</button>
+<button>انسخ البيانات مرتين</button>
+<p class="why">السجلات ثابتة، وكل فهرس «منظور» مترتب عليها.</p></div>
+
+<div class="quiz"><p class="q">في Program 6.14، كل سجل بيتنقل كام مرة تقريبًا؟</p>
+<button>log N</button>
+<button data-ok>مرة واحدة (زائد نقلة لكل دورة)</button>
+<button>N مرة</button>
+<p class="why">بنمشي على دورات الـ permutation ونحط كل سجل في مكانه النهائي مباشرة.</p></div>
+
+<div class="quiz"><p class="q">key-indexed counting مستقر ليه؟</p>
+<button>لأنه بيقارن المتساويين</button>
+<button data-ok>لأن التوزيع بيمشي على المدخل بالترتيب، فالمتساويين بياخدوا خانات متتالية بنفس ترتيبهم</button>
+<button>مش مستقر</button>
+<p class="why">لو وزّعت من الآخر للأول لازم تخلّي العدّاد ينقص، وإلا هتكسر الثبات.</p></div>

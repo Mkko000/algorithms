@@ -1,0 +1,110 @@
+<p class="meta">أقسام الكتاب: 13.5 Skip Lists (Definition 13.5، Programs 13.7–13.10، Properties 13.10–13.11) · 13.6 Performance Characteristics (Table 13.1)</p>
+<p>كل اللي فات في الفصل ده كان شجر. الـ skip list بتبدأ من حتة تانية خالص: <b>قايمة متصلة مترتبة</b>. المشكلة في القايمة إنك لازم تمشي واحد واحد. طب لو ضفنا «طرق سريعة» فوقها؟ لينكات بتنط عناصر كتير مرة واحدة، وفوقها لينكات بتنط أكتر… ده بالظبط زي نظام القطارات: قطر بيقف في كل محطة، وإكسبريس بيقف كل 4، وسوبر إكسبريس كل 16.</p>
+
+<div class="goal"><b>هدف الدرس:</b> تكتب skip list (search وinsert وdelete)، تفهم ليه الـ levels العشوائية بتدّي lg N في المتوسط وإيه دور البارامتر t، وتقارن كل طرق الفصل 13 بأرقام حقيقية وتعرف تختار.</div>
+
+<h2>13.5 Skip Lists</h2>
+<div class="story"><b>Definition 13.5:</b> الـ skip list هي قايمة متصلة مترتبة كل عقدة فيها عدد متغيّر من اللينكات، واللينكات رقم i في العقد بتعمل قوايم متصلة بتنط فوق العقد اللي عندها أقل من i لينك.</div>
+<!--fig:skiplist--><figure class="fig"><svg class="fsvg" viewBox="0 0 756 172" width="756" height="172" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="136.0" width="26.0" height="24.0" rx="3" class="cell hi2"/><rect x="10.0" y="102.0" width="26.0" height="24.0" rx="3" class="cell hi2"/><rect x="10.0" y="68.0" width="26.0" height="24.0" rx="3" class="cell hi2"/><rect x="10.0" y="34.0" width="26.0" height="24.0" rx="3" class="cell hi2"/><text x="23.0" y="162.0" class="lab" text-anchor="middle" font-size="10">head</text><rect x="50.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="70.0" y="153.0" class="tc" text-anchor="middle" font-size="12">12</text><rect x="106.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="126.0" y="153.0" class="tc" text-anchor="middle" font-size="12">18</text><rect x="162.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><rect x="162.0" y="102.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="182.0" y="153.0" class="tc" text-anchor="middle" font-size="12">21</text><rect x="218.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><rect x="218.0" y="102.0" width="40.0" height="24.0" rx="3" class="cell"/><rect x="218.0" y="68.0" width="40.0" height="24.0" rx="3" class="cell"/><rect x="218.0" y="34.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="238.0" y="153.0" class="tc" text-anchor="middle" font-size="12">23</text><rect x="274.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="294.0" y="153.0" class="tc" text-anchor="middle" font-size="12">29</text><rect x="330.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="350.0" y="153.0" class="tc" text-anchor="middle" font-size="12">40</text><rect x="386.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="406.0" y="153.0" class="tc" text-anchor="middle" font-size="12">47</text><rect x="442.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell hi"/><text x="462.0" y="153.0" class="tc" text-anchor="middle" font-size="12">48</text><rect x="498.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><rect x="498.0" y="102.0" width="40.0" height="24.0" rx="3" class="cell"/><rect x="498.0" y="68.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="518.0" y="153.0" class="tc" text-anchor="middle" font-size="12">60</text><rect x="554.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="574.0" y="153.0" class="tc" text-anchor="middle" font-size="12">61</text><rect x="610.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="630.0" y="153.0" class="tc" text-anchor="middle" font-size="12">71</text><rect x="666.0" y="136.0" width="40.0" height="24.0" rx="3" class="cell"/><text x="686.0" y="153.0" class="tc" text-anchor="middle" font-size="12">80</text><line x1="36.0" y1="148.0" x2="48.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="90.0" y1="148.0" x2="104.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="146.0" y1="148.0" x2="160.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="202.0" y1="148.0" x2="216.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="258.0" y1="148.0" x2="272.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="314.0" y1="148.0" x2="328.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="370.0" y1="148.0" x2="384.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="426.0" y1="148.0" x2="440.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="482.0" y1="148.0" x2="496.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="538.0" y1="148.0" x2="552.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="594.0" y1="148.0" x2="608.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="650.0" y1="148.0" x2="664.0" y2="148.0" class="arr" marker-end="url(#ah)"/><line x1="706.0" y1="148.0" x2="726.0" y2="148.0" class="arr" marker-end="url(#ah)"/><text x="734.0" y="152.0" class="lab" text-anchor="middle" font-size="11">∅</text><line x1="36.0" y1="114.0" x2="160.0" y2="114.0" class="arr" marker-end="url(#ah)"/><line x1="202.0" y1="114.0" x2="216.0" y2="114.0" class="arr" marker-end="url(#ah)"/><line x1="258.0" y1="114.0" x2="496.0" y2="114.0" class="arr" marker-end="url(#ah)"/><line x1="538.0" y1="114.0" x2="558.0" y2="114.0" class="arr" marker-end="url(#ah)"/><text x="566.0" y="118.0" class="lab" text-anchor="middle" font-size="11">∅</text><line x1="36.0" y1="80.0" x2="216.0" y2="80.0" class="arr" marker-end="url(#ah)"/><line x1="258.0" y1="80.0" x2="496.0" y2="80.0" class="arr" marker-end="url(#ah)"/><line x1="538.0" y1="80.0" x2="558.0" y2="80.0" class="arr" marker-end="url(#ah)"/><text x="566.0" y="84.0" class="lab" text-anchor="middle" font-size="11">∅</text><line x1="36.0" y1="46.0" x2="216.0" y2="46.0" class="arr" marker-end="url(#ah)"/><line x1="258.0" y1="46.0" x2="278.0" y2="46.0" class="arr" marker-end="url(#ah)"/><text x="286.0" y="50.0" class="lab" text-anchor="middle" font-size="11">∅</text></svg><figcaption>Skip list فيها 12 مفتاح. كل عقدة عدد links بتاعها عشوائي (احتمال ½ إنها تطلع مستوى كمان)، فحوالي نصهم مستوى 1، ربعهم مستوى 2… البحث عن 48 (الأزرق): ابدأ من أعلى مستوى في head، امشي يمين لحد ما الجاي يبقى أكبر، انزل مستوى، كرّر. كأنها binary search على قايمة.</figcaption></figure><!--/fig:skiplist-->
+<p>لو العقد اللي ليها 2 لينك كل تاني عقدة بالظبط، و3 لينكات كل رابع عقدة، وهكذا — البحث يبقى binary search بالظبط. بس الشكل المثالي ده صعب نحافظ عليه مع الـ inserts (زي المصفوفة المترتبة). الحل: <b>العشوائية</b>. كل عقدة جديدة بنختار لها عدد لينكات عشوائي: احتمال ½ يبقى 1، ¼ يبقى 2، ⅛ يبقى 3… وفي المتوسط الشكل هيبقى قريب من المثالي.</p>
+
+<h3>البحث (Program 13.7)</h3>
+<pre><code>Item searchR(link t, Key v, int k)
+  { if (t == z) return NULLitem;
+    if (eq(v, key(t-&gt;item))) return t-&gt;item;
+    if (less(v, key(t-&gt;next[k]-&gt;item)))
+      {
+        if (k == 0) return NULLitem;
+        return searchR(t, v, k-1);
+      }
+    return searchR(t-&gt;next[k], v, k); }
+Item STsearch(Key v)
+  { return searchR(head, v, lgN); }</code></pre>
+<p>ابدأ من أعلى level في الـ head. لو اللي جاي أكبر من المفتاح، انزل level. لو أصغر، امشي قدام. كرّر لحد level 0.</p>
+
+<h3>الـ init والـ insert (Programs 13.8–13.9)</h3>
+<pre><code>int randX()
+  { int i, j, t = rand();
+    for (i = 1, j = 2; i &lt; lgNmax; i++, j += j)
+      if (t &gt; RAND_MAX/j) break;
+    if (i &gt; lgN) lgN = i;
+    return i; }
+void insertR(link t, link x, int k)
+  { Key v = key(x-&gt;item);
+    if (less(v, key(t-&gt;next[k]-&gt;item)))
+      {
+        if (k &lt; x-&gt;sz)
+          { x-&gt;next[k] = t-&gt;next[k];
+            t-&gt;next[k] = x; }
+        if (k == 0) return;
+        insertR(t, x, k-1); return;
+      }
+    insertR(t-&gt;next[k], x, k); }
+void STinsert(Item item)
+  { insertR(head, NEW(item, randX()), lgN); N++; }</code></pre>
+<p>الـ randX بيدّي j باحتمال 1/2<sup>j</sup>، بحيلة واحدة: رقم عشوائي واحد، ونشوف هو أكبر من RAND_MAX/2، /4، /8… والـ insert نفس البحث، بس في كل level العقدة الجديدة ليها لينك فيه، نربطها هناك.</p>
+<h3>الـ delete (Program 13.10)</h3>
+<p>نفس السكة: في كل level العقدة موجودة فيه، فكّ اللينك بتاعها. وبعد ما تفكّها من level 0 امسحها من الذاكرة.</p>
+<pre><code>N=32768, levels used lgN=20; nodes with j links: 1:16390 2:8296 3:4022 4:2052 5:996 6:505 7:250 8:124 ...
+search hits 32768/32768, avg 32.5 links examined incl. level drops (lg N = 15)
+total links 65343 = 1.99 N  (Property 13.11: t/(t-1) = 2)
+after deleting half: 16384 keys remain
+bottom level still sorted: yes</code></pre>
+<p>شوف التوزيع: 16390 عقدة بلينك واحد (نص)، 8296 بلينكين (ربع)، 4022 بتلاتة (تُمن)… تقريبًا بالظبط اللي اتصمّم.</p>
+<a data-src="src/13-balanced-trees/skip_list.c"></a>
+
+<h3>الأداء والبارامتر t</h3>
+<p>بدل احتمال ½، ممكن نستخدم 1/t: كل عقدة احتمال 1/t إنها تطلع level كمان.</p>
+<div class="story"><b>Property 13.10:</b> البحث والـ insert في randomized skip list بالبارامتر t بيحتاجوا حوالي <b>(t log<sub>t</sub> N)/2 = (t/(2 lg t)) lg N</b> مقارنة في المتوسط.</div>
+<div class="story"><b>Property 13.11:</b> الـ skip lists فيها حوالي <b>(t/(t−1)) N</b> لينك في المتوسط.</div>
+<p>يعني t = 2: حوالي lg N مقارنة و2N لينك. t = 4: نفس عدد المقارنات تقريبًا (4/(2×2) = 1) بس 1.33N لينك بس. t = e ≈ 2.72 بيدّي أقل مقارنات نظريًا. والبرنامج بيقيس 32.5 «لينك متفحّص» شاملًا النزول بين الـ levels، يعني حوالي 2 lg N خطوة — قريب من التوقع.</p>
+<p>ومعلومة سادجوك بيلفت النظر ليها: الـ skip list في الحقيقة <b>تمثيل تاني لشجرة متوازنة</b>. لو جمّعت العقد اللي بين كل لينكين في level أعلى، هيطلع لك multiway tree. وskip list كل لينك فيها بينط 1 أو 2 أو 3 من اللي تحته = 2-3-4 tree بالظبط. هنرجع للفكرة دي في الـ B-trees.</p>
+<div class="tip"><b>ليه الناس بتحب الـ skip lists؟</b>الكود أبسط من red-black بكتير (خصوصًا الـ delete)، والـ select وjoin سهلين يتضافوا (Exercises 13.77–13.78)، ولما يبقى فيه threads كتير بتكتب في نفس الوقت، الـ locking على قايمة أسهل من شجرة بتعمل rotations. عشان كده بتلاقيها في Redis (الـ sorted sets) وفي ConcurrentSkipListMap بتاع Java.</div>
+
+<h2>13.6 Performance Characteristics</h2>
+<p>طب نختار إيه؟ الكتاب عمل Table 13.1: بنى جداول من N رقم عشوائي بكل طريقة وقاس. إحنا عملنا نفس التجربة على جهازنا:</p>
+<pre><code>         | construction time (s)              | N search misses: time (s) / avg compares
+       N |      B      R      S      C      L | B R S C L
+   50000 |  0.011  0.019  0.012  0.011  0.018 | 0.006 0.007 0.013 0.003 0.014  /  21.0 21.2 21.3 15.9 31.7
+  200000 |  0.071  0.132  0.106  0.089  0.123 | 0.046 0.065 0.126 0.025 0.106  /  22.4 24.8 24.3 18.1 34.8
+  800000 |  0.595  1.080  0.959  0.781  1.125 | 0.449 0.557 1.067 0.181 0.824  /  26.3 25.5 27.2 20.0 39.5</code></pre>
+<p>(B = BST عادي، R = randomized، S = splay، C = red-black، L = skip list.)</p>
+<ul>
+<li><b>Red-black بيكسب البحث بفرق كبير</b>: مسارات أقصر بحوالي 25–35% (20 مقارنة مقابل 26 لـ 800 ألف)، ومفيش شغل زيادة في البحث. الكتاب لاقى نفس النتيجة بالظبط: «مسارات red-black أقصر بـ 35% من randomized أو splay».</li>
+<li><b>BST عادي على مفاتيح عشوائية</b> سريع في البناء — بس ده لأن المفاتيح عشوائية فعلًا. جرّبه على مفاتيح مترتبة وهيموت.</li>
+<li><b>Randomized وskip list</b> بيدفعوا تمن رقم عشوائي في كل insert.</li>
+<li><b>Splay</b> بيعمل rotations في كل search كمان، فبحثه أبطأ على مفاتيح منتظمة الطلب — بس لو فيه مفاتيح بتتطلب أكتر بكتير، ممكن يكسب.</li>
+</ul>
+<a data-src="src/13-balanced-trees/balanced_compare.c"></a>
+<table class="comp-table">
+<tr><th>الطريقة</th><th>الضمان</th><th>ذاكرة زيادة لكل عقدة</th><th>تكسب إمتى</th></tr>
+<tr><td>Randomized BST</td><td>احتمالي (Property 13.2)</td><td>عدد N</td><td>محتاج select/join وضمان قوي من غير تعقيد</td></tr>
+<tr><td>Splay BST</td><td>amortized</td><td>ولا حاجة</td><td>طلبات مش منتظمة (cache-like)، ذاكرة ضيقة</td></tr>
+<tr><td>Red-black BST</td><td>worst case 2 lg N</td><td>بت واحد</td><td>الاختيار العام: أسرع بحث، ضمان كامل</td></tr>
+<tr><td>Skip list</td><td>احتمالي</td><td>t/(t−1) لينك</td><td>كود بسيط، concurrency</td></tr>
+</table>
+<p>والخلاصة اللي سادجوك بيوصل لها: كلهم كويسين حتى للجداول الضخمة، ومفيش سبب تستخدم BST عادي في تطبيق مش ضامن فيه ترتيب الإدخال. وأي واحد فيهم أحسن بمراحل من «أمل إن البيانات عشوائية».</p>
+
+<div class="quiz"><p class="q">في skip list بـ t = 2 فيها 1024 عقدة، كام عقدة متوقع يكون عندها 3 لينكات أو أكتر؟</p>
+<button>512</button>
+<button data-ok>حوالي 256</button>
+<button>10</button>
+<p class="why">احتمال ≥ 3 لينكات = ½ × ½ = ¼. يعني ربع العقد ≈ 256.</p></div>
+
+<div class="quiz"><p class="q">ليه randX بيستخدم رقم عشوائي واحد بس مش رقم لكل level؟</p>
+<button>عشان الكود يبقى أقصر</button>
+<button data-ok>عشان الأرقام العشوائية غالية، والمقارنة بـ RAND_MAX/2، /4، /8 بتدّي نفس التوزيع</button>
+<button>عشان الـ levels تبقى ثابتة</button>
+<p class="why">احتمال إن t &gt; RAND_MAX/2 = ½، و&gt; RAND_MAX/4 بس مش /2… وهكذا. رقم واحد بيكفي لتوزيع هندسي كامل.</p></div>
+
+<div class="quiz"><p class="q">عايز أقل ذاكرة لينكات مع نفس سرعة البحث تقريبًا. تغيّر t من 2 لإيه؟</p>
+<button>1</button>
+<button data-ok>4</button>
+<button>100</button>
+<p class="why">t = 4: اللينكات (4/3)N بدل 2N، والمقارنات (4/(2×2)) lg N = lg N زي t = 2. t = 100 هتقلّل اللينكات بس المقارنات هتبقى 100/(2×6.6) ≈ 7.5 lg N.</p></div>
+
+<div class="quiz"><p class="q">تطبيق بيعمل 99% بحث و1% inserts، والمفاتيح ممكن تيجي مترتبة. أنسب اختيار؟</p>
+<button>BST عادي</button>
+<button>Splay</button>
+<button data-ok>Red-black</button>
+<p class="why">البحث هو الغالب، والـ red-black أسرع بحث (مسارات ~lg N ومفيش overhead)، وضمان worst case ضد المفاتيح المترتبة. الـ splay هيعمل rotations في كل بحث.</p></div>

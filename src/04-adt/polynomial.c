@@ -4,7 +4,7 @@
  *
  *  Author:  Mohammed El Sisi
  *  Adapted from: R. Sedgewick, "Algorithms in C" (3rd ed.),
- *                Programs 4.22-4.23
+ *                Programs 4.21-4.23
  *  Build:   gcc -std=c99 -Wall -O2 polynomial.c -o polynomial
  * ============================================================ */
 #include <stdio.h>
@@ -54,5 +54,15 @@ int main(void) {
     Poly c = POLYmult(a, b);
     printf("product: "); POLYshow(c);
     printf("eval at 2: %.1f\n", POLYeval(c, 2.0));
+
+    /* Program 4.21: binomial coefficients as the coefficients of (x+1)^N */
+    int N = 10;
+    Poly x = POLYadd(POLYterm(1, 1), POLYterm(1, 0));   /* x + 1 */
+    Poly y = x;
+    for (int i = 1; i < N; i++) y = POLYmult(x, y);
+    printf("(x+1)^%d coefficients:", N);
+    for (int i = 0; i < y->N; i++) printf(" %.0f", y->a[i]);
+    putchar('\n');
+    printf("(x+1)^%d at x=1: %.0f (= 2^%d)\n", N, POLYeval(y, 1.0), N);
     return 0;
 }

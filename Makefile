@@ -9,7 +9,7 @@ SRCDIRS = src/01-fundamentals src/02-analysis src/03-data-structures \
           src/12-bst src/13-balanced-trees src/14-hashing src/15-tries \
           src/16-external-search
 
-SOURCES = $(foreach d,$(SRCDIRS),$(wildcard $(d)/*.c))
+SOURCES = $(foreach d,$(SRCDIRS),$(wildcard $(d)/*.c) $(wildcard $(d)/exercises/*.c))
 BINDIR  = bin
 TARGETS = $(patsubst src/%.c,$(BINDIR)/%,$(SOURCES))
 

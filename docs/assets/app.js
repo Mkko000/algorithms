@@ -17,7 +17,7 @@
       <h1>خوارزميات من الآخر: نفهمها، نكتبها بـ C، ونحسّها بإيدينا</h1>
       <p>الكورس ده ماشي جنب كتاب Robert Sedgewick <b>Algorithms in C (الطبعة التالتة، أجزاء 1–4)</b> فصل بفصل. مش بنلخّص الكتاب وخلاص — بنشرح الفكرة زي ما بتتحكي على قهوة، وبعدين نشوف الكود الحقيقي اللي في الريبو، وبعدين نجرّب بإيدنا.</p>
       <p>ستّ أجزاء: الأساس والتحليل، هياكل البيانات والـ ADTs، الريكيرشن والشجر، الترتيب من الابتدائي لحد الـ radix، جداول الرموز من الـ BST لحد الـ B-tree، وفي الآخر إزاي تتمرّن وتبقى PRO.</p>
-      <div class="tip"><b>إزاي تستفيد</b>كل درس فيه شرح + مثال بأرقام + كود C من الريبو + كويز + أحيانًا أداة تفاعلية. خلّص الدرس، دوس «خلصت»، والتقدّم بيتحفظ لوحده في المتصفح.</div>
+      <div class="tip"><b>إزاي تستفيد</b>كل درس فيه شرح + رسومات وتتبّع خطوة بخطوة + مثال بأرقام حقيقية من تشغيل الكود + كود C من الريبو + كويزات + أدوات تفاعلية. وبعد كل فصل في درس «تمارين محلولة» من تمارين الكتاب: المسألة، وإزاي تفكّر فيها، والحل كامل بالكود. خلّص الدرس، دوس «خلصت»، والتقدّم بيتحفظ لوحده في المتصفح.</div>
       <a class="btn main" href="#/${next.id}">${d.length?'كمّل من':'يلا نبدأ بـ'}: ${next.title}</a>
       <div class="cards">${all.map((l,i)=>`<a href="#/${l.id}" class="${d.includes(l.id)?'done':''}"><small>درس ${i+1} · ${l.min} دقيقة${d.includes(l.id)?' · خلصته ✓':''}</small><br><b>${l.title}</b></a>`).join('')}</div>
       <footer>المؤلف: محمد السيسي (Mohammed El Sisi) · ${new Date().getFullYear()}<br>
@@ -43,6 +43,12 @@
       const b=document.createElement('button');b.className='cp';b.textContent='نسخ';b.onclick=()=>{navigator.clipboard.writeText(p.dataset.raw||p.textContent).then(()=>{b.textContent='اتنسخ ✓';setTimeout(()=>b.textContent='نسخ',1400)})};p.appendChild(b);});
     root.querySelectorAll('a[data-src]').forEach(a=>{a.href=C.repo+a.dataset.src;a.target='_blank';a.rel='noopener';a.classList.add('src');if(!a.textContent)a.textContent='↗ '+a.dataset.src;});
     root.querySelectorAll('.quiz').forEach(q=>q.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');b.classList.add('ok' in b.dataset?'right':'wrong');const ok=q.querySelector('[data-ok]');if(ok)ok.classList.add('right');}));
+    root.querySelectorAll('.steps').forEach(st=>{const fr=[...st.querySelectorAll('.frame')]; if(!fr.length||st.dataset.ready)return; st.dataset.ready=1; let i=0,tm=null;
+      const bar=document.createElement('div'); bar.className='stepbar';
+      bar.innerHTML='<button class="btn" data-a="p">→ اللي قبلها</button><span class="cnt"></span><button class="btn main" data-a="n">الخطوة الجاية ←</button><button class="btn" data-a="play">▶ شغّل</button><button class="btn" data-a="r">من الأول</button>';
+      const show=()=>{fr.forEach((f,k)=>f.classList.toggle('on',k===i)); bar.querySelector('.cnt').textContent=(i+1)+' / '+fr.length;};
+      bar.onclick=e=>{const a=e.target.dataset.a; if(!a)return; if(a==='n')i=Math.min(i+1,fr.length-1); if(a==='p')i=Math.max(i-1,0); if(a==='r'){i=0;} if(a==='play'){ if(tm){clearInterval(tm);tm=null;e.target.textContent='▶ شغّل';return;} e.target.textContent='❚❚ وقّف'; tm=setInterval(()=>{if(i>=fr.length-1){clearInterval(tm);tm=null;e.target.textContent='▶ شغّل';return;} i++;show();},1300);} show();};
+      st.appendChild(bar); show();});
     root.querySelectorAll('.w[data-w]').forEach(w=>window.WIDGETS&&window.WIDGETS[w.dataset.w]&&window.WIDGETS[w.dataset.w](w));
   }
   document.getElementById('themeBtn').onclick=()=>{const d=document.documentElement;const t=d.dataset.theme==='dark'?'':'dark';d.dataset.theme=t;localStorage.setItem('algo-theme',t||'light')};
