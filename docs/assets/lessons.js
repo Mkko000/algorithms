@@ -65,8 +65,11 @@ window.COURSE = {
       { id: 'tries',        file: '35-tries.html',              title: 'Digital search trees والـ Tries', min: 35 },
       { id: 'patricia',     file: '36-patricia.html',           title: 'Patricia tries', min: 35 },
       { id: 'tst',          file: '37-tst.html',                title: 'Multiway tries و TSTs وتطبيقات النصوص', min: 40 },
+      { id: 'ex-ch15',      file: 'ex-15-radix-search.html',    title: 'تمارين محلولة: الفصل 15', min: 45 },
       { id: 'btree',        file: '38-btree.html',              title: 'البحث الخارجي: ISAM و B-trees', min: 40 },
-      { id: 'extendible',   file: '39-extendible-hashing.html', title: 'Extendible hashing والـ Perspective', min: 35 }]},
+      { id: 'extendible',   file: '39-extendible-hashing.html', title: 'Extendible hashing والـ Perspective', min: 35 },
+      { id: 'ex-ch16',      file: 'ex-16-external-searching.html', title: 'تمارين محلولة: الفصل 16', min: 40 }
+    ]},
     { title: 'الخاتمة', lessons: [
       { id: 'practice',     file: '40-practice.html',           title: 'تختار إيه إمتى؟ ومشاريع تطبيقية', min: 30 }
     ]}

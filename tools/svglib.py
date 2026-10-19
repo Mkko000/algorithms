@@ -61,8 +61,9 @@ def tree(t, dx=34, dy=50, r=15, title='', show_null=False):
     if not P:
         return svg(60, 40, text(30, 25, '(empty)'), title)
     maxx = max(p[0] for p in P.values()); maxd = max(p[1] for p in P.values())
-    W = (maxx + 1) * dx + 20; H = (maxd + 1) * dy + 20
-    xy = lambda n: (10 + dx / 2 + P[id(n)][0] * dx, 10 + r + P[id(n)][1] * dy)
+    top = 12 if t.note else 0          # room for the root's note label
+    W = (maxx + 1) * dx + 20; H = (maxd + 1) * dy + 20 + top
+    xy = lambda n: (10 + dx / 2 + P[id(n)][0] * dx, 10 + top + r + P[id(n)][1] * dy)
     edges, nodes = [], []
     def walk(n):
         if n is None: return

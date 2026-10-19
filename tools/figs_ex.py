@@ -275,3 +275,76 @@ def ex14_tables():
     return array_rows(rows, 26, 60, 'EASYQUTION, M = 16, h = 11k mod 16')
 F['ex14-probe'] = ('fig', fig(ex14_tables(),
     'تمرين 14.25 و14.31: نفس المفاتيح في جدول حجمه 16. البنفسجي هي المفاتيح اللي ماقعدتش في مكانها الأصلي. في الـ linear probing الـ Q (h = 11) لقت A فنزلت خطوة لـ 12، فلما جت الـ T (h = 12) اتزقّت هي كمان لـ 13. وده الـ clustering. وفي الـ double hashing الـ Q نطّت بـ 3 لـ 14، فسابت الخانة 12 فاضية، وقعدت فيها الـ T من غير ولا collision. والـ I والـ U نفس الحكاية في الاتنين، لأن خطوتهم 1.'))
+
+# ---------- chapter 15 ----------
+F['ex15-dst'] = ('fig', fig(tree(ptree('E(A(-,I(-,O(-,N))),S(Q(-,U(T,-)),Y))'), 32, 46, 14, 'DST for EASYQUTION'),
+    'تمرين 15.1: الـ DST بعد E A S Y Q U T I O N بكود الـ 5 بت. E في الجذر بتختبر بت 0، والـ A (00001) راحت شمال، والـ S (10011) يمين. وكل مستوى بيبص على البت اللي بعده: الـ I (01001) نزلت شمال من E ويمين من A لأن بت 1 عندها 1. خلّي بالك إن الشجرة دي <b>مش BST</b>: الـ A على يمينها I وO وN وده تمام، بس الـ Q تحت الـ S على الشمال وهي أصغر، والـ Y على يمين الـ S… بالصدفة. الترتيب هنا ترتيب بتات مش ترتيب مفاتيح. والارتفاع 4، عمره ما يعدّي عدد البتات (5).'))
+
+def ex15_trie():
+    paths = {'A': '000', 'E': '001', 'I': '010', 'N': '01110', 'O': '01111',
+             'Q': '1000', 'S': '1001', 'T': '10100', 'U': '10101', 'Y': '11'}
+    def build(prefix):
+        here = [k for k, p in paths.items() if p.startswith(prefix)]
+        if not here: return None
+        if len(here) == 1 and paths[here[0]] == prefix: return N(here[0], cls='node hi')
+        return N('', build(prefix + '0'), build(prefix + '1'), 'node dim')
+    return build('')
+F['ex15-trie'] = ('fig', fig(tree(ex15_trie(), 28, 40, 12, 'trie for EASYQUTION'),
+    'تمرين 15.11: الـ trie لنفس المفاتيح. المفاتيح كلها في الأوراق (الأزرق)، والـ nodes الباهتة جوه مافيهاش مفاتيح، بس بتقول «بص على البت ده». كل مفتاح قاعد عند أول عمق يبقى فيه البادئة بتاعته لوحده: الـ Y (11…) عند عمق 2 لأن مفيش غيرها بيبدأ بـ 11، والـ N والـ O (0111x) لازم ينزلوا لعمق 5 عشان بيختلفوا في آخر بت بس. الـ 11 node الداخلية دي هي التمن اللي بندفعه، والـ patricia بتشيلها.'))
+
+F['ex15-patricia'] = ('fig', fig(tree(N('S', N('I', N('E', N('A', note='4'), None, note='2'), N('O', None, N('N', note='4'), note='2'), note='1'),
+                                            N('Y', N('U', N('Q', note='3'), N('T', note='4'), note='2'), None, note='1'), note='0'), 40, 50, 14, 'patricia for EASYQUTION'),
+    'تمرين 15.33: الـ patricia لنفس المفاتيح: 10 nodes لـ 10 مفاتيح بالظبط. الرقم فوق كل node هو البت اللي بتختبره. المرسوم هنا هو الـ links «لتحت» بس، والـ links الفاضية في الرسمة هي links بترجع لفوق لمفتاح ما (مثلًا link الـ 1 من A بيرجع لـ A نفسها، وlink الـ 0 من A بيرجع للـ head). قارن بالـ trie: البتات 3 اتنطّت في الشمال كله، لأن مفيش مفتاحين هناك محتاجينها.'))
+
+# ---------- chapter 16 ----------
+F['ex16-3456'] = ('fig', fig(mtree(M(['Q'], [M(list('EIN'), [M(list('AE')), M(list('EEFHI')), M(list('KLN')), M(list('OOP'))]),
+                                              M(list('TU'), [M(list('SSS')), M(list('TT')), M(list('WYYY'))])]), kw=20, gap=12, dy=56, title='3-4-5-6 tree'),
+    'تمرين 16.5: شجرة 3-4-5-6 بعد E A S Y Q U E S T I O N W I T H P L E N T Y O F K E Y S، بالـ top-down: أي node فيها 5 مفاتيح (6-node) بنقسمها وإحنا نازلين، المفتاح اللي في النص يطلع لفوق. المفاتيح المتساوية بتروح يمين. 7 splits وارتفاع 2، وكل الأوراق على نفس العمق. والـ (EEFHI) ورقة مليانة: أول insert جاي فيها هيقسمها.'))
+
+def ex16_btree():
+    P = lambda *ks: M([f'{k:03d}' for k in ks], cls='mnode')
+    I = lambda ks, kids: M([f'{k:03d}' for k in ks], kids, cls='mnode hi')
+    t = I([143, 411, 572], [I([143, 171, 343], [P(127, 143, 161), P(171, 177), P(343, 345, 351, 357)]),
+                            I([411, 470], [P(411, 430, 461, 461), P(470, 474, 516)]),
+                            I([572, 635, 706], [P(572, 612, 632), P(635, 664), P(706, 761, 774, 774)])])
+    for n in [t] + t.kids + [g for c in t.kids for g in c.kids]: n.bw = 30
+    return mtree(t, kw=22, gap=10, dy=60, title='B tree, M = 5')
+F['ex16-btree'] = ('fig', fig(ex16_btree(),
+    'تمرين 16.6: الـ B tree (Program 16.3) بعد الـ 25 مفتاح بـ M = 5. الصفحات الخارجية تحت فيها الـ items، والصفحات الملوّنة index: كل entry فيها = أصغر مفتاح في الصفحة اللي تحته + link ليها. ارتفاع 2 و12 صفحة. ولاحظ إن الشجرة كبرت من <b>فوق</b>: عند 572 اتقسم الجذر أول مرة، وعند 612 اتقسم تاني.'))
+
+def ex16_ext():
+    # final table of 16.28: d = 4; pages: A = k4 (0100) {201,221,233}, B = k4 (0101) {240,273,274}, C = k1 (1) {401,562,771}
+    # slots 0000-0011 -> empty pages created by one-way splits (0) ; show them as one dim page
+    from svglib import svg, rect, text, arrow, DEFS
+    out = [DEFS]
+    pages = {'E0': (['(empty, k=2)'], 'dim'), 'E1': (['(empty, k=3)'], 'dim'), 'A': (['201', '221', '233'], 'hi'), 'B': (['240', '273', '274'], 'hi'),
+             'E2': (['(empty, k=3)'], 'dim'), 'C': (['401', '562', '771'], 'hi2')}
+    owner = ['E0'] * 4 + ['A', 'B'] + ['E1'] * 2 + ['C'] * 8
+    # compute actual empty pages from the trace: prefix 00 (k=2) and 011 (k=3)
+    owner = ['E0'] * 4 + ['A', 'B'] + ['E2'] * 2 + ['C'] * 8
+    pages.pop('E1')
+    ch = 20; x0 = 70
+    for i in range(16):
+        y = 10 + i * ch
+        out.append(text(x0 - 6, y + 14, format(i, '04b'), 'lab', 'end', 11))
+        out.append(rect(x0, y, 30, ch - 2, 'cell', 3))
+    order = ['E0', 'A', 'B', 'E2', 'C']
+    py = {}
+    yy = 10
+    for name in order:
+        keys, c = pages[name]
+        h = 24
+        py[name] = yy
+        w = 120 if name.startswith('E') else 3 * 34
+        if name.startswith('E'):
+            out.append(rect(240, yy, w, h, 'dim', 3)); out.append(text(240 + w / 2, yy + 16, keys[0], 'lab', 'middle', 11))
+        else:
+            for j, k in enumerate(keys):
+                out.append(rect(240 + j * 34, yy, 34, h, c, 3)); out.append(text(240 + j * 34 + 17, yy + 16, k, 'tc', 'middle', 12))
+        yy += 64
+    for i, name in enumerate(owner):
+        y = 10 + i * ch + ch / 2 - 1
+        out.append(arrow(x0 + 28, y, 238, py[name] + 12, 'arr' if not name.startswith('E') else 'arr'))
+    return svg(400, 10 + 16 * ch + 10, ''.join(out), 'extendible hash table, d = 4')
+F['ex16-ext'] = ('fig', fig(ex16_ext(),
+    'تمرين 16.28: الجدول بعد المفاتيح التسعة (octal = 9 بت)، وM = 5. الدليل فيه 16 خانة (d = 4)، وكل خانة بتشاور على الصفحة اللي فيها كل المفاتيح اللي أول 4 بتات منها زي رقم الخانة. الصفحة البنفسجي (401 562 771) عمقها k = 1: كل اللي بيبدأ بـ 1، فـ 8 خانات بتشاور عليها. وده نفس شكل تمرين 16.32. الصفحات الرمادي فاضية: سابها الـ split لما المفاتيح كلها راحت ناحية واحدة (كلهم بيبدأوا بـ 010).'))

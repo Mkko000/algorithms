@@ -1,0 +1,287 @@
+<p class="meta">تمارين محلولة · الفصل 16 (External Searching) · تمارين 16.1–16.39</p>
+<p>في الفصل 16 الحسبة كلها بتتغير. المقارنات بقت ببلاش تقريبًا، واللي بيكلّف بجد هو قراية <b>صفحة</b> من الديسك (probe). فالسؤال بقى: كام صفحة لازم نقرا عشان نلاقي مفتاح وسط مليار؟ والإجابة في الفصل كله رقم صغير جدًا، 2 أو 3. التمارين هنا ليها تلات أشكال: «احسب log_M N وشوف قد إيه صغير»، و«ارسم الـ B tree أو الـ extendible hash table بعد الـ inserts دي»، و«حاكي نمو الصفحات وشوف هتبقى مليانة قد إيه».</p>
+<div class="goal"><b>هدف الدرس:</b> تحس بحجم log_M N، وتبني ISAM وB tree بالإيد وتعرف إمتى وفين بيحصل الـ split، وتفرّق بين الـ B tree اللي في الكتاب (index) وشجرة 3-4-5-6 المجردة، وتبني extendible hash table وتفهم الدليل بيتضاعف ليه، وتقيس الصفحات بتتملي قد إيه في B tree وB* وextendible hashing.</div>
+<div class="tip"><b>المفاتيح دي octal</b>المفاتيح اللي زي 516 و177 و562 في أمثلة الكتاب أرقام octal من 3 خانات، يعني كل مفتاح 9 بت (3 بت لكل خانة). 562 = 101 110 010. في الـ B tree ده مش فارق، لأننا بنقارن بس والترتيب واحد. لكن في الـ extendible hashing بنبص على أول بتات المفتاح، فلازم تكتب كل مفتاح بالـ binary الأول.</div>
+<a data-src="src/16-external-search/exercises/ex16_01_isam.c"></a>
+<a data-src="src/16-external-search/exercises/ex16_05_btree.c"></a>
+<a data-src="src/16-external-search/exercises/ex16_11_page_sim.c"></a>
+<a data-src="src/16-external-search/exercises/ex16_27_extendible.c"></a>
+
+<div class="exs">
+<h3>تمرين 16.1، 16.21 و16.12: log_M N صغير قد إيه؟</h3>
+<div class="story"><b>نص التمرين:</b> (16.1) اعمل جدول بقيم log_M N لـ M = 10 و100 و1000، وN = 10³ و10⁴ و10⁵ و10⁶. (16.21) اعمل جدول بالفرق بين log₉₉₉ N وlog₁₀₀₀ N لنفس قيم N. (16.12) افترض إن عندنا شجرة من 3 مستويات، ونقدر نشيل a links في الميموري، وفي صفحات الـ nodes الداخلية من b لـ 2b link، وفي الصفحات الخارجية من c لـ 2c item. إيه أقصى عدد items تقدر الشجرة دي تشيله، كـ function في a وb وc؟</div>
+<div class="think"><b>بنفكّر إزاي</b>الصفحة اللي فيها M entry بتقسم مساحة البحث M حتة مرة واحدة. فبعد h صفحة نقدر نفرّق بين M^h مفتاح، يعني h = log_M N. ولـ 16.21: log₉₉₉ N − log₁₀₀₀ N = ln N × (1/ln 999 − 1/ln 1000)، ده رقم صغير جدًا. ولـ 16.12: أقصى عدد بيحصل لما كل الصفحات تبقى مليانة لآخرها.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.1 log_M N:
+        N \ M         10        100       1000
+         1000       3.00       1.50       1.00
+        10000       4.00       2.00       1.33
+       100000       5.00       2.50       1.67
+      1000000       6.00       3.00       2.00
+16.12 three levels: a links in memory -&gt; pages with b..2b links -&gt; pages with c..2c items
+     maximum = a * 2b * 2c = 4abc items   (minimum a*b*c)
+     e.g. a = 1000, b = c = 500: max 1000000000 items, min 250000000; still 2 probes per search
+16.21 log_999 N - log_1000 N:
+     N =     1000: 1.000145 - 1.000000 = 0.000145
+     N =    10000: 1.333526 - 1.333333 = 0.000193
+     N =   100000: 1.666908 - 1.666667 = 0.000241
+     N =  1000000: 2.000290 - 2.000000 = 0.000290</code></pre>
+<p>بص على الجدول: بصفحة فيها 1000 entry، المليون مفتاح محتاجين صفحتين بس، وأي حاجة أقل من مليار محتاجة 3. وده سبب إننا في الكلام العملي بنقول «عدد ثابت من الـ probes». 16.12: الأقصى a × 2b × 2c = 4abc (والأقل a × b × c). يعني لو a = 1000 وb = c = 500 تشيل مليار item، وأي بحث فيه صفحتين بس من الديسك، لأن المستوى الأولاني في الميموري. 16.21: الفرق أقل من 0.0003 حتى عند المليون. يعني لو شلت item واحد من كل node مش هتفرق، وده بالظبط اللي بيسمح لـ Program 16.3 إنه يقسم الـ node وهي فيها M بدل M−1.</p></div>
+<h3>تمرين 16.2 و16.3: ISAM والمكان الفاضي</h3>
+<div class="story"><b>نص التمرين:</b> (16.2) ارسم indexed sequential file (ISAM) للمفاتيح 516، 177، 143، 632، 572، 161، 774، 470، 411، 706، 461، 612، 761، 474، 774، 635، 343، 461، 351، 430، 664، 127، 345، 171، 357، لـ M = 5 وM = 6. (16.3) افترض إننا بنبني ISAM لـ N item في صفحات حجمها M، بس سايبين k مكان فاضي في كل صفحة عشان التوسّع. اكتب معادلة لعدد الـ probes في البحث بدلالة N وM وk، واستعملها تحسب عدد الـ probes لما k = M/10، لـ M = 10 و100 و1000 وN = 10³ لحد 10⁶.</div>
+<div class="think"><b>بنفكّر إزاي</b>الـ ISAM ببساطة: نرتّب المفاتيح، ونقسمهم على صفحات مليانة كل واحدة فيها M، وبعدين نعمل صفحة index فيها أول مفتاح من كل صفحة، ونكرر لحد ما يفضل صفحة واحدة. والبحث: في كل صفحة index، دوّر على آخر مفتاح ≤ المفتاح اللي بتدوّر عليه، وامشي وراه. ولـ 16.3: لو سايبين k مكان فاضي، كل صفحة (data أو index) بقت بتشيل M − k بس، فعدد المستويات ⌈log_(M−k) N⌉.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.2 ISAM for the 25 keys (774 and 461 appear twice):
+     M = 5: data pages (sorted, full):
+       127 143 161 171 177 | 343 345 351 357 411 | 430 461 461 470 474 | 516 572 612 632 635 | 664 706 761 774 774
+       index level 1 (5 entries = first key of each page below):
+       127 343 430 516 664
+       levels = 2: search 635 -&gt; hit in 2 probes, search 500 -&gt; miss in 2 probes
+     M = 6: data pages (sorted, full):
+       127 143 161 171 177 343 | 345 351 357 411 430 461 | 461 470 474 516 572 612 | 632 635 664 706 761 774 | 774
+       index level 1 (5 entries = first key of each page below):
+       127 345 461 632 774
+       levels = 2: search 635 -&gt; hit in 2 probes, search 500 -&gt; miss in 2 probes
+16.3 probes = ceil(log_(M-k) N); with k = 0 vs k = M/10:
+        N \ M       10 (k=0) (k=M/10)      100 (k=0) (k=M/10)     1000 (k=0) (k=M/10)
+         1000             3(3.00)    4(3.14)             2(1.50)    2(1.54)             1(1.00)    2(1.02)
+        10000             4(4.00)    5(4.19)             2(2.00)    3(2.05)             2(1.33)    2(1.35)
+       100000             5(5.00)    6(5.24)             3(2.50)    3(2.56)             2(1.67)    2(1.69)
+      1000000             6(6.00)    7(6.29)             3(3.00)    4(3.07)             2(2.00)    3(2.03)
+     the real value (in parentheses) grows only 1-5%; the rounded probe count goes up by one
+     only where N sat exactly on a power of M (a full tree with no room left), never by more</code></pre>
+<p>في الحالتين الـ 25 مفتاح عملوا 5 صفحات data وصفحة index واحدة فوقهم، فأي بحث = 2 probe. ولاحظ إن 774 و461 متكررين وقاعدين جنب بعض، ودي ميزة الملف المترتب. وفي M = 6 آخر صفحة فيها مفتاح واحد بس.</p>
+<p>16.3: لما تسيب 10% فاضي، القيمة الحقيقية (اللي بين القوسين) بتزيد من 1% لـ 5% بس. والرقم المقرّب بيزيد واحد في الحالات اللي N فيها كان قوة لـ M بالظبط، يعني شجرة كانت مليانة على الآخر ومفيهاش أي مكان. والمكسب إن الـ inserts الجاية هتلاقي مكان من غير ما تعيد بناء الملف. يعني المكان الفاضي ده رخيص جدًا.</p></div>
+<h3>تمرين 16.5 و16.10: شجرة 3-4-5-6 بالـ top-down</h3>
+<div class="story"><b>نص التمرين:</b> (16.5) اكتب محتوى شجرة 3-4-5-6 اللي هتطلع لما ندخّل E A S Y Q U E S T I O N W I T H P L E N T Y O F K E Y S بالترتيب ده في شجرة فاضية. (16.10) عدّل الـ B-tree insertion في Program 16.3 بحيث يعمل الـ splitting وهو نازل في الشجرة، زي implementation شجرة 2-3-4 في Program 13.6.</div>
+<div class="think"><b>بنفكّر إزاي</b>دي نفس فكرة 2-3-4 بالظبط، بس أكبر: الـ node فيها من 3 لـ 6 links، يعني من 2 لـ 5 مفاتيح. واحنا نازلين، أي node مليانة (5 مفاتيح، يعني 6-node) بنقسمها <b>قبل</b> ما ندخل فيها: المفتاح اللي في النص يطلع للأب، ويفضل 3-node على الشمال و3-node على اليمين. والأب عمره ما هيبقى مليان، لأننا كنا قسمناه وإحنا جايين. فلما نوصل لورقة، أكيد هيبقى فيها مكان. والمفاتيح المتساوية بتروح يمين.</div>
+<div class="sol"><b>الحل</b>
+<!--fig:ex16-3456--><figure class="fig"><svg class="fsvg" viewBox="0 0 574 156" width="574" height="156" role="img" aria-label="3-4-5-6 tree" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="277.0" y1="30.0" x2="170.0" y2="66.0" class="edge"/><line x1="140.0" y1="86.0" x2="33.0" y2="122.0" class="edge"/><rect x="13.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="23.0" y="136.0" class="tc" text-anchor="middle" font-size="12">A</text><rect x="33.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="43.0" y="136.0" class="tc" text-anchor="middle" font-size="12">E</text><line x1="160.0" y1="86.0" x2="121.0" y2="122.0" class="edge"/><rect x="71.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="81.0" y="136.0" class="tc" text-anchor="middle" font-size="12">E</text><rect x="91.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="101.0" y="136.0" class="tc" text-anchor="middle" font-size="12">E</text><rect x="111.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="121.0" y="136.0" class="tc" text-anchor="middle" font-size="12">F</text><rect x="131.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="141.0" y="136.0" class="tc" text-anchor="middle" font-size="12">H</text><rect x="151.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="161.0" y="136.0" class="tc" text-anchor="middle" font-size="12">I</text><line x1="180.0" y1="86.0" x2="219.0" y2="122.0" class="edge"/><rect x="189.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="199.0" y="136.0" class="tc" text-anchor="middle" font-size="12">K</text><rect x="209.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="219.0" y="136.0" class="tc" text-anchor="middle" font-size="12">L</text><rect x="229.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="239.0" y="136.0" class="tc" text-anchor="middle" font-size="12">N</text><line x1="200.0" y1="86.0" x2="297.0" y2="122.0" class="edge"/><rect x="267.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="277.0" y="136.0" class="tc" text-anchor="middle" font-size="12">O</text><rect x="287.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="297.0" y="136.0" class="tc" text-anchor="middle" font-size="12">O</text><rect x="307.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="317.0" y="136.0" class="tc" text-anchor="middle" font-size="12">P</text><rect x="140.0" y="66.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="150.0" y="80.0" class="tc" text-anchor="middle" font-size="12">E</text><rect x="160.0" y="66.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="170.0" y="80.0" class="tc" text-anchor="middle" font-size="12">I</text><rect x="180.0" y="66.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="190.0" y="80.0" class="tc" text-anchor="middle" font-size="12">N</text><line x1="297.0" y1="30.0" x2="453.0" y2="66.0" class="edge"/><line x1="433.0" y1="86.0" x2="375.0" y2="122.0" class="edge"/><rect x="345.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="355.0" y="136.0" class="tc" text-anchor="middle" font-size="12">S</text><rect x="365.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="375.0" y="136.0" class="tc" text-anchor="middle" font-size="12">S</text><rect x="385.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="395.0" y="136.0" class="tc" text-anchor="middle" font-size="12">S</text><line x1="453.0" y1="86.0" x2="443.0" y2="122.0" class="edge"/><rect x="423.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="433.0" y="136.0" class="tc" text-anchor="middle" font-size="12">T</text><rect x="443.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="453.0" y="136.0" class="tc" text-anchor="middle" font-size="12">T</text><line x1="473.0" y1="86.0" x2="521.0" y2="122.0" class="edge"/><rect x="481.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="491.0" y="136.0" class="tc" text-anchor="middle" font-size="12">W</text><rect x="501.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="511.0" y="136.0" class="tc" text-anchor="middle" font-size="12">Y</text><rect x="521.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="531.0" y="136.0" class="tc" text-anchor="middle" font-size="12">Y</text><rect x="541.0" y="122.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="551.0" y="136.0" class="tc" text-anchor="middle" font-size="12">Y</text><rect x="433.0" y="66.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="443.0" y="80.0" class="tc" text-anchor="middle" font-size="12">T</text><rect x="453.0" y="66.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="463.0" y="80.0" class="tc" text-anchor="middle" font-size="12">U</text><rect x="277.0" y="10.0" width="20.0" height="20.0" rx="3" class="mnode"/><text x="287.0" y="24.0" class="tc" text-anchor="middle" font-size="12">Q</text></svg><figcaption>تمرين 16.5: شجرة 3-4-5-6 بعد E A S Y Q U E S T I O N W I T H P L E N T Y O F K E Y S، بالـ top-down: أي node فيها 5 مفاتيح (6-node) بنقسمها وإحنا نازلين، المفتاح اللي في النص يطلع لفوق. المفاتيح المتساوية بتروح يمين. 7 splits وارتفاع 2، وكل الأوراق على نفس العمق. والـ (EEFHI) ورقة مليانة: أول insert جاي فيها هيقسمها.</figcaption></figure><!--/fig:ex16-3456-->
+<pre><code>16.5/16.10 3-4-5-6 tree (top-down splits of 6-nodes) for EASYQUESTIONWITHPLENTYOFKEYS:
+     level 0: (Q)
+     level 1: (EIN) (TU)
+     level 2: (AE) (EEFHI) (KLN) (OOP) (SSS) (TT) (WYYY)
+     7 splits, height 2, every leaf on the same level</code></pre>
+<p>28 مفتاح (فيهم تكرار كتير، E لوحدها 5 مرات) في شجرة ارتفاعها 2. وطبعًا كل الأوراق على نفس العمق، لأن الشجرة مابتطولش غير لما الجذر يتقسم. والـ top-down هنا بيبان في (SSS) و(TT): لو الـ split كان bottom-up كانت الأوراق هتتملي أكتر قبل ما تتقسم، والشكل كان هيختلف شوية.</p></div>
+<h3>تمرين 16.6، 16.22 و16.23: الـ B tree بتاع الكتاب بـ M = 5</h3>
+<div class="story"><b>نص التمرين:</b> (16.6) ارسم رسومات زي Figures 16.5 لحد 16.7 توضّح إدخال المفاتيح 516، 177، 143، 632، 572، 161، 774، 470، 411، 706، 461، 612، 761، 474، 774، 635، 343، 461، 351، 430، 664، 127، 345، 171، 357 بالترتيب ده في شجرة فاضية، بـ M = 5. (16.22) اعمل الـ sort لـ symbol table مبني على B tree. (16.23) اعمل الـ select.</div>
+<div class="think"><b>بنفكّر إزاي</b>الـ B tree بتاع الكتاب (Programs 16.1–16.4) مش زي 3-4-5-6. الـ items كلها في الصفحات الخارجية تحت، والصفحات الداخلية index: كل entry فيها = (أصغر مفتاح تحت + link). الـ insert bottom-up: نحط المفتاح في الصفحة الخارجية مترتب، ولو الصفحة وصلت M entry نقسمها ونطلّع للأب (أول مفتاح في الصفحة الجديدة + link ليها). ولو الأب اتملى يتقسم هو كمان، ولو الجذر اتقسم نعمل جذر جديد والشجرة تطول من فوق. والكتاب بيفترض إن M زوجي. وبما إن M هنا 5، هنسيب 3 في الصفحة ونودّي 2 للجديدة. ولـ 16.22: الأوراق من الشمال لليمين هي الترتيب. ولـ 16.23: نلف على الأوراق ونعدّ لحد k.</div>
+<div class="sol"><b>الحل</b>
+<!--fig:ex16-btree--><figure class="fig"><svg class="fsvg" viewBox="0 0 888 166" width="888" height="166" role="img" aria-label="B tree, M = 5" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="399.0" y1="32.0" x2="164.0" y2="70.0" class="edge"/><line x1="119.0" y1="92.0" x2="58.0" y2="130.0" class="edge"/><rect x="13.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="28.0" y="145.4" class="tc" text-anchor="middle" font-size="12">127</text><rect x="43.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="58.0" y="145.4" class="tc" text-anchor="middle" font-size="12">143</text><rect x="73.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="88.0" y="145.4" class="tc" text-anchor="middle" font-size="12">161</text><line x1="164.0" y1="92.0" x2="149.0" y2="130.0" class="edge"/><rect x="119.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="134.0" y="145.4" class="tc" text-anchor="middle" font-size="12">171</text><rect x="149.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="164.0" y="145.4" class="tc" text-anchor="middle" font-size="12">177</text><line x1="209.0" y1="92.0" x2="255.0" y2="130.0" class="edge"/><rect x="195.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="210.0" y="145.4" class="tc" text-anchor="middle" font-size="12">343</text><rect x="225.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="240.0" y="145.4" class="tc" text-anchor="middle" font-size="12">345</text><rect x="255.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="270.0" y="145.4" class="tc" text-anchor="middle" font-size="12">351</text><rect x="285.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="300.0" y="145.4" class="tc" text-anchor="middle" font-size="12">357</text><rect x="119.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="134.0" y="85.4" class="tc" text-anchor="middle" font-size="12">143</text><rect x="149.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="164.0" y="85.4" class="tc" text-anchor="middle" font-size="12">171</text><rect x="179.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="194.0" y="85.4" class="tc" text-anchor="middle" font-size="12">343</text><line x1="444.0" y1="32.0" x2="444.0" y2="70.0" class="edge"/><line x1="414.0" y1="92.0" x2="391.0" y2="130.0" class="edge"/><rect x="331.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="346.0" y="145.4" class="tc" text-anchor="middle" font-size="12">411</text><rect x="361.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="376.0" y="145.4" class="tc" text-anchor="middle" font-size="12">430</text><rect x="391.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="406.0" y="145.4" class="tc" text-anchor="middle" font-size="12">461</text><rect x="421.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="436.0" y="145.4" class="tc" text-anchor="middle" font-size="12">461</text><line x1="474.0" y1="92.0" x2="512.0" y2="130.0" class="edge"/><rect x="467.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="482.0" y="145.4" class="tc" text-anchor="middle" font-size="12">470</text><rect x="497.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="512.0" y="145.4" class="tc" text-anchor="middle" font-size="12">474</text><rect x="527.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="542.0" y="145.4" class="tc" text-anchor="middle" font-size="12">516</text><rect x="414.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="429.0" y="85.4" class="tc" text-anchor="middle" font-size="12">411</text><rect x="444.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="459.0" y="85.4" class="tc" text-anchor="middle" font-size="12">470</text><line x1="489.0" y1="32.0" x2="724.0" y2="70.0" class="edge"/><line x1="679.0" y1="92.0" x2="618.0" y2="130.0" class="edge"/><rect x="573.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="588.0" y="145.4" class="tc" text-anchor="middle" font-size="12">572</text><rect x="603.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="618.0" y="145.4" class="tc" text-anchor="middle" font-size="12">612</text><rect x="633.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="648.0" y="145.4" class="tc" text-anchor="middle" font-size="12">632</text><line x1="724.0" y1="92.0" x2="709.0" y2="130.0" class="edge"/><rect x="679.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="694.0" y="145.4" class="tc" text-anchor="middle" font-size="12">635</text><rect x="709.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="724.0" y="145.4" class="tc" text-anchor="middle" font-size="12">664</text><line x1="769.0" y1="92.0" x2="815.0" y2="130.0" class="edge"/><rect x="755.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="770.0" y="145.4" class="tc" text-anchor="middle" font-size="12">706</text><rect x="785.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="800.0" y="145.4" class="tc" text-anchor="middle" font-size="12">761</text><rect x="815.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="830.0" y="145.4" class="tc" text-anchor="middle" font-size="12">774</text><rect x="845.0" y="130.0" width="30.0" height="22.0" rx="3" class="mnode"/><text x="860.0" y="145.4" class="tc" text-anchor="middle" font-size="12">774</text><rect x="679.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="694.0" y="85.4" class="tc" text-anchor="middle" font-size="12">572</text><rect x="709.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="724.0" y="85.4" class="tc" text-anchor="middle" font-size="12">635</text><rect x="739.0" y="70.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="754.0" y="85.4" class="tc" text-anchor="middle" font-size="12">706</text><rect x="399.0" y="10.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="414.0" y="25.4" class="tc" text-anchor="middle" font-size="12">143</text><rect x="429.0" y="10.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="444.0" y="25.4" class="tc" text-anchor="middle" font-size="12">411</text><rect x="459.0" y="10.0" width="30.0" height="22.0" rx="3" class="mnode hi"/><text x="474.0" y="25.4" class="tc" text-anchor="middle" font-size="12">572</text></svg><figcaption>تمرين 16.6: الـ B tree (Program 16.3) بعد الـ 25 مفتاح بـ M = 5. الصفحات الخارجية تحت فيها الـ items، والصفحات الملوّنة index: كل entry فيها = أصغر مفتاح في الصفحة اللي تحته + link ليها. ارتفاع 2 و12 صفحة. ولاحظ إن الشجرة كبرت من <b>فوق</b>: عند 572 اتقسم الجذر أول مرة، وعند 612 اتقسم تاني.</figcaption></figure><!--/fig:ex16-btree-->
+<pre><code>16.6 Program 16.3 (bottom-up), M = 5: a page splits when it reaches 5 entries (3 stay, 2 move)
+     insert 516
+     insert 177
+     insert 143
+     insert 632
+     insert 572
+        the external page starting with 143 is full (5 entries): split
+        root split: height is now 1
+        index [143 572]
+            page  [143 177 516]
+            page  [572 632]
+     insert 161
+     insert 774
+     insert 470
+        the external page starting with 143 is full (5 entries): split
+     insert 411
+     insert 706
+     insert 461
+        the external page starting with 143 is full (5 entries): split
+     insert 612
+        the external page starting with 572 is full (5 entries): split
+        the index page starting with 143 is full (5 entries): split
+        root split: height is now 2
+        index [143 572]
+            index [143 411 470]
+                page  [143 161 177]
+                page  [411 461]
+                page  [470 516]
+            index [572 706]
+                page  [572 612 632]
+                page  [706 774]
+     insert 761
+     insert 474
+     insert 774
+     insert 635
+     insert 343
+     insert 461
+     insert 351
+        the external page starting with 143 is full (5 entries): split
+     insert 430
+     insert 664
+        the external page starting with 572 is full (5 entries): split
+     insert 127
+     insert 345
+     insert 171
+        the external page starting with 127 is full (5 entries): split
+        the index page starting with 143 is full (5 entries): split
+     insert 357
+     final tree (height 2, 12 pages):
+      index [143 411 572]
+          index [143 171 343]
+              page  [127 143 161]
+              page  [171 177]
+              page  [343 345 351 357]
+          index [411 470]
+              page  [411 430 461 461]
+              page  [470 474 516]
+          index [572 635 706]
+              page  [572 612 632]
+              page  [635 664]
+              page  [706 761 774 774]
+16.22 sort: 127 143 161 171 177 343 345 351 357 411 430 461 461 470 474 516 572 612 632 635 664 706 761 774 774
+16.23 select:  select(0) = 127  select(6) = 345  select(12) = 461  select(18) = 632  select(24) = 774
+     search 635 -&gt; hit, search 500 -&gt; miss</code></pre>
+<p>ركّز في اللحظتين اللي الجذر اتقسم فيهم. عند 572: الصفحة الوحيدة وصلت 5، فاتقسمت لـ [143 177 516] و[572 632]، وطلع فوقهم index. وعند 612: صفحة 572 اتقسمت، والـ index اتملى (5 entries) فاتقسم هو كمان، فالشجرة بقت 3 مستويات. وفي الآخر 12 صفحة لـ 25 item. والـ select بالطريقة دي بتلف على الأوراق، فهي O(N/M) قراية صفحة. ولو عايزها بعدد probes ثابت لازم كل entry في الـ index تشيل عدد الـ items اللي تحتها، زي ما عملنا مع الـ BST في Chapter 12.</p></div>
+<h3>تمرين 16.7، 16.8 و16.18: الارتفاع والتكرار والصفحات المليانة</h3>
+<div class="story"><b>نص التمرين:</b> (16.7) إيه ارتفاع الـ B trees اللي بتطلع لما ندخّل مفاتيح تمرين 16.28 (562 221 240 771 274 233 401 273 201) بالترتيب ده، لكل قيمة M > 2؟ (16.8) ارسم الـ B tree اللي بيطلع لما ندخّل 16 مفتاح متساويين في شجرة فاضية، بـ M = 4. (16.18) ينفع نبني index كل صفحاته مليانة (زي Figure 16.2) بخوارزمية الـ insert اللي في Program 16.3؟ اشرح.</div>
+<div class="think"><b>بنفكّر إزاي</b>16.7: نجرّب كل M لحد ما المفاتيح التسعة يكفّيهم صفحة واحدة (M ≥ 10، لأن الصفحة بتتقسم لما توصل M). 16.8: Program 16.2 بيروح لآخر child مفتاحه ≤ v. فالمفاتيح المتساوية كلها هتروح لأقصى اليمين، وكل split هيسيب وراه صفحة نصها فاضي. 16.18: بعد أي split، النصين بيبقى في كل واحد M/2، وبيكبروا بس لما inserts جديدة تقع فيهم. فالصفحة بتبقى مليانة لحظة قبل ما تتقسم على طول. نجرّب الحالتين: ترتيب عشوائي وترتيب متصاعد.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.7 heights for the 9 keys of 16.28:  M=3:4  M=4:2  M=5:1  M=6:1  M=7:1  M=8:1  M=9:1  M=10:0   (M &gt;= 10: one page, height 0)
+16.8 sixteen equal keys (777), M = 4:
+      index [777 777]
+          index [777 777]
+              index [777 777]
+                  page  [777 777]
+                  page  [777 777]
+              index [777 777]
+                  page  [777 777]
+                  page  [777 777]
+          index [777 777]
+              index [777 777]
+                  page  [777 777]
+                  page  [777 777]
+              index [777 777]
+                  page  [777 777]
+                  page  [777 777]
+     height 3, 8 external pages for 16 items: search finds a copy only on the rightmost path
+16.18 page fill after inserting 10000 keys, M = 10 (100% would mean 'all pages full'):
+     random order:     1533 pages, 72.5% full (about 1/1.44 = 69%)
+     increasing order: 2000 pages, 55.6% full: every split freezes a half-full page</code></pre>
+<p>16.7: الارتفاع بينزل بسرعة جدًا: 4 لما M = 3، و2 لما M = 4، و1 من 5 لـ 9، و0 من 10 ورايح. 16.8: الـ 16 نسخة اتوزعوا على 8 صفحات، في كل واحدة نسختين، والشجرة ارتفاعها 3 (لأن M = 4 صغيرة جدًا). والمشكلة إن البحث بيروح للصفحة اللي على أقصى اليمين بس. فلو عايز كل النسخ، لازم تمشي شمال على الصفحات اللي جنب بعض، عشان كده في الواقع بنحط النسخ في list ورا مفتاح واحد.</p>
+<p>16.18: <b>لأ</b>. في الترتيب العشوائي الصفحات مليانة حوالي 72%، قريب من 69% بتوع Property 16.3. ولو المفاتيح جت مترتبة، الوضع أوحش: 55.6% بس. كل split بيسيب صفحة شمال فيها النص ومحدش هيرجع لها تاني، لأن كل المفاتيح الجاية أكبر. عشان كده الـ index المليان زي Figure 16.2 بيتبني من تحت لفوق من ملف مترتب (Exercise 16.17)، مش بـ inserts.</p></div>
+<h3>تمرين 16.11، 16.13 و16.16: محاكاة نمو الصفحات وB*</h3>
+<div class="story"><b>نص التمرين:</b> (16.11) اكتب برنامج يحسب متوسط عدد الصفحات الخارجية لـ B tree من order M اتبنى من N insert عشوائي، باستعمال العملية الاحتمالية اللي بعد Property 16.1، لـ M = 10 و100 و1000 وN = 10³ لحد 10⁶. (16.13) فكّر في الـ sibling split (أو B* tree): لما node يجي وقت إنها تتقسم، بنضمها مع جارتها. لو الجارة فيها k entry وk < M − 1، نوزّع الـ items عليهم بحيث كل واحدة تاخد حوالي (M + k)/2. غير كده، نعمل node جديدة ونوزّع على التلاتة كل واحدة حوالي 2M/3. اكتب حدود عدد الـ probes في البحث أو الـ insert في B* tree، وقارنها بالـ B tree. (16.16) اعمل محاكاة احتمالية تحسب متوسط عدد الصفحات مع الـ sibling split لنفس M وN.</div>
+<div class="think"><b>بنفكّر إزاي</b>مش محتاجين نبني الشجرة خالص. اللي يهمنا الصفحات الخارجية وكل واحدة فيها كام. والمفتاح العشوائي بيقع في صفحة باحتمال على قد حجمها (كل فراغ بين مفتاحين ليه نفس الفرصة)، وده الـ Markov chain بتاع Yao. والحيلة: نختار صفحة عشوائي، ونقبلها باحتمال size/M (rejection sampling)، كأننا اخترنا item عشوائي. ولـ B* محتاجين الجيران بجد، فبنحط الصفحات في linked list بالترتيب. ولـ 16.13: في B tree كل node جوه فيها من M/2 لـ M link، فالارتفاع بين log_M N وlog_(M/2) N. وفي B* كل node فيها على الأقل 2M/3، فالحد الأعلى بيبقى log_(2M/3) N.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.11 / 16.16 probabilistic simulation of external pages (one run each)
+         M        N |     B tree  N/pages  x N/M |    B* tree  N/pages  x N/M
+        10     1000 |        150      6.7   1.50 |        126      7.9   1.26
+        10    10000 |       1563      6.4   1.56 |       1267      7.9   1.27
+        10   100000 |      15426      6.5   1.54 |      12619      7.9   1.26
+        10  1000000 |     154963      6.5   1.55 |     126264      7.9   1.26
+       100     1000 |         16     62.5   1.60 |         11     90.9   1.10
+       100    10000 |        142     70.4   1.42 |        115     87.0   1.15
+       100   100000 |       1459     68.5   1.46 |       1155     86.6   1.16
+       100  1000000 |      14615     68.4   1.46 |      11459     87.3   1.15
+      1000    10000 |         16    625.0   1.60 |         12    833.3   1.20
+      1000   100000 |        128    781.2   1.28 |        112    892.9   1.12
+      1000  1000000 |       1438    695.4   1.44 |       1137    879.5   1.14
+     Property 16.3 says B tree ~ 1.44 N/M pages; B* ~ 1.2 N/M (excess 44% -&gt; about 23%)
+16.13 probes for a search: between log_M N and log_(M/2) N (B tree) or log_(2M/3) N (B*)
+         M        N | log_M N |  B log_(M/2) | B* log_(2M/3)
+        10     1000 |    3.00 |         4.29 |         3.64
+        10    10000 |    4.00 |         5.72 |         4.85
+        10   100000 |    5.00 |         7.15 |         6.07
+        10  1000000 |    6.00 |         8.58 |         7.28
+       100     1000 |    1.50 |         1.77 |         1.64
+       100    10000 |    2.00 |         2.35 |         2.19
+       100   100000 |    2.50 |         2.94 |         2.74
+       100  1000000 |    3.00 |         3.53 |         3.29
+      1000     1000 |    1.00 |         1.11 |         1.06
+      1000    10000 |    1.33 |         1.48 |         1.42
+      1000   100000 |    1.67 |         1.85 |         1.77
+      1000  1000000 |    2.00 |         2.22 |         2.12</code></pre>
+<p>الـ B tree بتستعمل حوالي 1.44–1.46 N/M صفحة لما M تكبر، يعني الصفحات مليانة حوالي 69%، زي Property 16.3. ولما M = 10 بتطلع 1.55، لأن الـ split عند M بالظبط بياكل جزء أكبر من صفحة صغيرة. والـ B* نزلت لـ 1.14–1.26 N/M، يعني مليانة 80–88%. الكتاب بيقول المساحة الزيادة بتنزل من 44% لـ 23%، والمحاكاة طلعت قريب من كده أو أحسن شوية (عشان بنبص على الجارين). وجدول 16.13: الفرق في الـ probes تقريبًا مش موجود لـ M = 1000 (2.22 قصاد 2.12 عند المليون). يعني الـ B* بتوفّر <b>مساحة</b> مش وقت.</p></div>
+<h3>تمرين 16.27: كام صفحة هتبقى فاضية؟</h3>
+<div class="story"><b>نص التمرين:</b> لو استعملنا directory حجمه 32 في Figure 16.10، كام صفحة هتبقى فاضية؟</div>
+<div class="think"><b>بنفكّر إزاي</b>Figure 16.10 فيها 24 مفتاح octal (001، 017، 061، 107، … 766)، يعني كل واحد 9 بت. الدليل بتاع 8 خانات بيبص على أول 3 بتات. ولو الدليل 32 يبقى بيبص على أول 5 بتات، ولو كل خانة ليها صفحة لوحدها، الصفحة هتبقى فاضية لما مايكونش فيه ولا مفتاح بيبدأ بالـ 5 بتات دي. يعني نكتب أول 5 بتات من كل مفتاح ونعدّ اللي مش موجود.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.27 Figure 16.10: 24 keys (octal, 9 bits). Directory of 8 (3 bits): 0 of the 8 prefixes
+      are empty, so 7 pages suffice (slots 010 and 011 share the '01' page).
+      Directory of 32 (5 bits), one page per slot: 14 of the 32 pages would be EMPTY:
+       00001 00010 00101 01001 01010 01100 01101 01110 10000 10010 10011 10110 11001 11011
+      (with page sharing, extendible hashing still uses only the 7 real pages)</code></pre>
+<p>14 صفحة من 32 هتبقى فاضية، يعني قرب النص. وده بالظبط ليه الـ extendible hashing بيخلّي كذا خانة تشاور على نفس الصفحة: الدليل بيكبر عادي، بس الصفحات مابتتعملش غير لما يبقى فيه مفاتيح تتحط فيها.</p></div>
+<h3>تمرين 16.28، 16.29، 16.38 و16.39: بناء extendible hash table</h3>
+<div class="story"><b>نص التمرين:</b> (16.28) ارسم رسومات زي Figures 16.11 لحد 16.13 توضّح إدخال المفاتيح 562، 221، 240، 771، 274، 233، 401، 273، 201 بالترتيب ده في جدول فاضي، بـ M = 5. (16.29) نفس المفاتيح بالترتيب المعكوس: هل الجدول هيتغير؟ (16.38) اعمل الـ sort لـ extendible hash table. (16.39) اعمل الـ select.</div>
+<div class="think"><b>بنفكّر إزاي</b>نكتب كل مفتاح 9 بت. ندخّل في الصفحة اللي أول d بت من المفتاح بتشاور عليها. ولو الصفحة عدّت M، نقسمها على البت رقم k: اللي البت ده عنده 0 يفضل، واللي عنده 1 يروح لصفحة جديدة، وk يزيد واحد للاتنين. ولو k الجديد أكبر من d، الدليل يتضاعف: كل pointer يتنسخ مرتين، ومفيش ولا item بيتحرك. وممكن split واحد مايكفيش، لو كل المفاتيح راحت ناحية واحدة، فنقسم تاني. (البرنامج هنا بيسيب الصفحة تشيل M بالظبط، وبيقسم لما تعدّيها، زي Exercise 16.37). والـ sort بسيط: الدليل نفسه مترتب بالبتات، فبنلف عليه ونتخطى الـ pointers المكررة.</div>
+<div class="sol"><b>الحل</b>
+<!--fig:ex16-ext--><figure class="fig"><svg class="fsvg" viewBox="0 0 400 340" width="400" height="340" role="img" aria-label="extendible hash table, d = 4" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="64.0" y="24.0" class="lab" text-anchor="end" font-size="11">0000</text><rect x="70.0" y="10.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="44.0" class="lab" text-anchor="end" font-size="11">0001</text><rect x="70.0" y="30.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="64.0" class="lab" text-anchor="end" font-size="11">0010</text><rect x="70.0" y="50.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="84.0" class="lab" text-anchor="end" font-size="11">0011</text><rect x="70.0" y="70.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="104.0" class="lab" text-anchor="end" font-size="11">0100</text><rect x="70.0" y="90.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="124.0" class="lab" text-anchor="end" font-size="11">0101</text><rect x="70.0" y="110.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="144.0" class="lab" text-anchor="end" font-size="11">0110</text><rect x="70.0" y="130.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="164.0" class="lab" text-anchor="end" font-size="11">0111</text><rect x="70.0" y="150.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="184.0" class="lab" text-anchor="end" font-size="11">1000</text><rect x="70.0" y="170.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="204.0" class="lab" text-anchor="end" font-size="11">1001</text><rect x="70.0" y="190.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="224.0" class="lab" text-anchor="end" font-size="11">1010</text><rect x="70.0" y="210.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="244.0" class="lab" text-anchor="end" font-size="11">1011</text><rect x="70.0" y="230.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="264.0" class="lab" text-anchor="end" font-size="11">1100</text><rect x="70.0" y="250.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="284.0" class="lab" text-anchor="end" font-size="11">1101</text><rect x="70.0" y="270.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="304.0" class="lab" text-anchor="end" font-size="11">1110</text><rect x="70.0" y="290.0" width="30.0" height="18.0" rx="3" class="cell"/><text x="64.0" y="324.0" class="lab" text-anchor="end" font-size="11">1111</text><rect x="70.0" y="310.0" width="30.0" height="18.0" rx="3" class="cell"/><rect x="240.0" y="10.0" width="120.0" height="24.0" rx="3" class="dim"/><text x="300.0" y="26.0" class="lab" text-anchor="middle" font-size="11">(empty, k=2)</text><rect x="240.0" y="74.0" width="34.0" height="24.0" rx="3" class="hi"/><text x="257.0" y="90.0" class="tc" text-anchor="middle" font-size="12">201</text><rect x="274.0" y="74.0" width="34.0" height="24.0" rx="3" class="hi"/><text x="291.0" y="90.0" class="tc" text-anchor="middle" font-size="12">221</text><rect x="308.0" y="74.0" width="34.0" height="24.0" rx="3" class="hi"/><text x="325.0" y="90.0" class="tc" text-anchor="middle" font-size="12">233</text><rect x="240.0" y="138.0" width="34.0" height="24.0" rx="3" class="hi"/><text x="257.0" y="154.0" class="tc" text-anchor="middle" font-size="12">240</text><rect x="274.0" y="138.0" width="34.0" height="24.0" rx="3" class="hi"/><text x="291.0" y="154.0" class="tc" text-anchor="middle" font-size="12">273</text><rect x="308.0" y="138.0" width="34.0" height="24.0" rx="3" class="hi"/><text x="325.0" y="154.0" class="tc" text-anchor="middle" font-size="12">274</text><rect x="240.0" y="202.0" width="120.0" height="24.0" rx="3" class="dim"/><text x="300.0" y="218.0" class="lab" text-anchor="middle" font-size="11">(empty, k=3)</text><rect x="240.0" y="266.0" width="34.0" height="24.0" rx="3" class="hi2"/><text x="257.0" y="282.0" class="tc" text-anchor="middle" font-size="12">401</text><rect x="274.0" y="266.0" width="34.0" height="24.0" rx="3" class="hi2"/><text x="291.0" y="282.0" class="tc" text-anchor="middle" font-size="12">562</text><rect x="308.0" y="266.0" width="34.0" height="24.0" rx="3" class="hi2"/><text x="325.0" y="282.0" class="tc" text-anchor="middle" font-size="12">771</text><line x1="98.0" y1="19.0" x2="238.0" y2="22.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="39.0" x2="238.0" y2="22.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="59.0" x2="238.0" y2="22.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="79.0" x2="238.0" y2="22.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="99.0" x2="238.0" y2="86.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="119.0" x2="238.0" y2="150.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="139.0" x2="238.0" y2="214.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="159.0" x2="238.0" y2="214.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="179.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="199.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="219.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="239.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="259.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="279.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="299.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/><line x1="98.0" y1="319.0" x2="238.0" y2="278.0" class="arr" marker-end="url(#ah)"/></svg><figcaption>تمرين 16.28: الجدول بعد المفاتيح التسعة (octal = 9 بت)، وM = 5. الدليل فيه 16 خانة (d = 4)، وكل خانة بتشاور على الصفحة اللي فيها كل المفاتيح اللي أول 4 بتات منها زي رقم الخانة. الصفحة البنفسجي (401 562 771) عمقها k = 1: كل اللي بيبدأ بـ 1، فـ 8 خانات بتشاور عليها. وده نفس شكل تمرين 16.32. الصفحات الرمادي فاضية: سابها الـ split لما المفاتيح كلها راحت ناحية واحدة (كلهم بيبدأوا بـ 010).</figcaption></figure><!--/fig:ex16-ext-->
+<pre><code>16.28/16.29 the keys are octal, so each is a 9-bit string (3 bits per digit); M = 5:
+      562 = 101110010(562)
+      221 = 010010001(221)
+      240 = 010100000(240)
+      771 = 111111001(771)
+      274 = 010111100(274)
+      233 = 010011011(233)
+      401 = 100000001(401)
+      273 = 010111011(273)
+      201 = 010000001(201)
+      after inserting 233 (directory doubled)  d = 1, directory size 2, 2 pages
+       page k=1  (1 dir entry): 010010001(221) 010011011(233) 010100000(240) 010111100(274)
+       page k=1  (1 dir entry): 101110010(562) 111111001(771)
+      after inserting 201 (directory doubled)  d = 4, directory size 16, 5 pages
+       page k=4  (1 dir entry): 010000001(201) 010010001(221) 010011011(233)
+       page k=4  (1 dir entry): 010100000(240) 010111011(273) 010111100(274)
+       page k=1  (8 dir entries): 100000001(401) 101110010(562) 111111001(771)
+16.38 sort: 201 221 233 240 273 274 401 562 771
+16.39 select:  select(0) = 201  select(2) = 233  select(4) = 273  select(6) = 401  select(8) = 771
+      search 273 -&gt; hit, search 777 -&gt; miss
+16.29 reverse order: d = 4 (was 4), 5 pages (was 5): Property 16.4, the set decides</code></pre>
+<p>بص على الـ insert الأخير (201). صفحة الـ 0 كان فيها 6 مفاتيح كلهم بيبدأوا بـ 010، يعني أول بت ما فرّقش بينهم، وتاني بت كمان. فالدليل اتضاعف 3 مرات ورا بعض لحد d = 4، وفي السكة اتعملت صفحتين فاضيين (الرمادي في الرسمة): واحدة للـ 00xx وواحدة للـ 011x. والتلات مفاتيح اللي بيبدأوا بـ 1 فضلوا في صفحة واحدة عمقها 1، وبيشاور عليها 8 خانات.</p>
+<p>16.29: بالترتيب المعكوس طلع نفس d ونفس عدد الصفحات. ده Property 16.4: الـ extendible hash table بيتحدد بمجموعة المفاتيح بس، زي الـ trie بالظبط، وده منطقي لأنه في الآخر trie على أول بتات المفاتيح، وكل ورقة فيه صفحة.</p></div>
+<h3>تمرين 16.30، 16.31 و16.32: البناء من ملف مترتب، ودليل بـ 8 pointers لصفحة واحدة</h3>
+<div class="story"><b>نص التمرين:</b> (16.30) لو معاك array من items مترتبة، هتعرف حجم الدليل بتاع الـ extendible hash table بتاعها إزاي؟ (16.31) اكتب برنامج يبني extendible hash table من array مترتبة في لفّتين: لفة تحدد حجم الدليل، ولفة توزّع الـ items على الصفحات وتملى الدليل. (16.32) اديني مجموعة مفاتيح الـ extendible hash table بتاعها دليله حجمه 16، وفيه 8 pointers بتشاور على صفحة واحدة.</div>
+<div class="think"><b>بنفكّر إزاي</b>16.30: في الترتيب المترتب، المفاتيح اللي ليها نفس أول d بت بتبقى ورا بعض. فـ d هو أصغر عدد بتات يخلّي كل مجموعة من دول فيها M أو أقل. (مجموعة فيها M + 1 مفتاح متفقين في أول j بت معناها إن d لازم يبقى أكبر من j). 16.31: اللفة الأولى تحسب d. والتانية recursive: لو المجموعة الحالية (بادئة طولها k) تكفيها صفحة، اعمل صفحة عمقها k وخلّي الـ 2^(d−k) خانة بتوعها يشاوروا عليها، وإلا اقسم المجموعة على البت k. 16.32: 8 pointers = 2^(d−k) = 8، ومع d = 4 يبقى k = 1. يعني محتاجين صفحة فيها مفاتيح قليلة، وكل مفاتيحها بتبدأ بـ 0، وفي نفس الوقت حتة تانية في الجدول تجبر الدليل يوصل لـ 4 بت.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.30/16.31 two-pass build from the sorted array: directory depth = 4
+        d = 4, directory size 16, 5 pages
+       page k=4  (1 dir entry): 010000001(201) 010010001(221) 010011011(233)
+       page k=4  (1 dir entry): 010100000(240) 010111011(273) 010111100(274)
+       page k=1  (8 dir entries): 100000001(401) 101110010(562) 111111001(771)
+16.32 want d = 4 (directory size 16) and one page with 8 directory pointers (k = 1).
+      M = 3, W = 6. Keys 0,1,2 (leading bit 0: page never splits).
+      Keys 32,33,36,37 = 100000,100001,100100,100101 (LCP 100: force d = 4):
+        d = 4, directory size 16, 5 pages
+       page k=1  (8 dir entries): 000000(000) 000001(001) 000010(002)
+       page k=4  (1 dir entry): 100000(040) 100001(041)
+       page k=4  (1 dir entry): 100100(044) 100101(045)
+      directory size 16, one page has 8 pointers (k = 1). Done.</code></pre>
+<p>16.31: البناء من المصفوفة المترتبة طلّع نفس الجدول اللي طلع من الـ inserts بالظبط (d = 4، 3 صفحات فيها items)، بس من غير الصفحتين الفاضيين اللي الـ split سابهم. ده لأن اللفة التانية مابتعملش صفحة لبادئة مفيهاش مفاتيح، وبتخلّي الخانة تشاور على صفحة أعلى. والمكسب هنا إن كل item بيتكتب مرة واحدة، من غير ولا split.</p>
+<p>16.32: ‏M = 3 والمفاتيح 6 بت: الصفحة اللي فيها 0 و1 و2 (000000، 000001، 000010) مابتتقسمش أبدًا، فعمقها فاضل 1. والمفاتيح 32 و33 و36 و37 (100000، 100001، 100100، 100101) متفقين على 100، وده بيجبر الصفحة بتاعتهم تتقسم مرتين لحد k = 4. فالدليل بقى 16 خانة، و8 منهم بيشاوروا على صفحة الأصفار. وملاحظة: أول محاولة كانت بـ 4 مفاتيح ورا بعض (32 لـ 35)، بس دول متفقين على 5 بتات، فالدليل وصل 32 بدل 16. يعني لازم تختار المفاتيح بحيث تختلف عند البت الرابع بالظبط.</p></div>
+<h3>تمرين 16.34: Property 16.5 بالأرقام</h3>
+<div class="story"><b>نص التمرين:</b> اكتب برنامج يحسب متوسط عدد الصفحات الخارجية ومتوسط حجم الدليل لـ extendible hash table اتبنى من N insert عشوائي، لما سعة الصفحة M. واحسب نسبة المساحة الفاضية، لـ M = 10 و100 و1000 وN = 10³ لحد 10⁶.</div>
+<div class="think"><b>بنفكّر إزاي</b>Property 16.5 بتقول: حوالي 1.44 N/M صفحة (يعني مليانة حوالي 69%، زي الـ B tree بالظبط)، ودليل حوالي 3.92 N^(1+1/M)/M. بس الدليل لازم يكون قوة لـ 2، فالرقم الحقيقي هيتنطط حوالين القيمة دي. وبنستعمل مفاتيح عشوائية 31 بت ونعدّ الصفحات المختلفة اللي في الدليل.</div>
+<div class="sol"><b>الحل</b>
+<pre><code>16.34 random keys; Property 16.5: pages ~ 1.44 N/M, directory ~ 3.92 N^(1+1/M)/M
+           N     M |        pages     1.44 N/M |          dir       theory | %empty
+        1000    10 |          143          144 |          512          782 |  30.1%
+       10000    10 |         1441         1440 |         8192         9847 |  30.6%
+      100000    10 |        14524        14400 |       262144       123961 |  31.2%
+     1000000    10 |       144232       144000 |      2097152      1560580 |  30.7%
+        1000   100 |           17           14 |           32           42 |  41.2%
+       10000   100 |          129          144 |          256          430 |  22.5%
+      100000   100 |         1412         1440 |         4096         4398 |  29.2%
+     1000000   100 |        16188        14400 |        32768        45008 |  38.2%
+       10000  1000 |           17           14 |           32           40 |  41.2%
+      100000  1000 |          129          144 |          256          397 |  22.5%
+     1000000  1000 |         1247         1440 |         4096         3975 |  19.8%</code></pre>
+<p>الصفحات مظبوطة جدًا: 144,232 قصاد 144,000 لـ M = 10 والمليون، والمساحة الفاضية حوالي 30.7%، يعني 1 − 1/1.44. ولما M تكبر وعدد الصفحات يقل (17 أو 129 صفحة بس)، الرقم بيتنطط حوالين النظرية. أما الدليل فتوقّع إنه يبعد: قوة لـ 2 دايمًا، فممكن يطلع ضعف النظرية (262,144 قصاد 123,961) أو قريب من نصها. وده اللي الكتاب قاله عن «القيم بتتأرجح حوالين المتوسط». ولاحظ إن الدليل لـ M = 10 بقى أكبر من عدد الصفحات بـ 14 مرة. عشان كده لما M صغيرة الدليل نفسه ممكن يبقى هو المشكلة (Exercise 16.36: دليل على مستويين).</p></div>
+</div>
+
+<div class="quiz"><p class="q">B tree فيه 1000 entry في الصفحة، والجذر في الميموري. كام probe للديسك عشان تلاقي مفتاح وسط 100 مليون؟</p>
+<button>27</button>
+<button data-ok>2</button>
+<button>8</button>
+<p class="why">log₁₀₀₀ 10⁸ ≈ 2.67، يعني 3 مستويات، والجذر في الميموري، فيفضل صفحتين من الديسك. والـ 27 دي lg N لو كانت binary search على الديسك.</p></div>
+<div class="quiz"><p class="q">لو دخّلنا المفاتيح في B tree بالترتيب المتصاعد، الصفحات هتبقى مليانة قد إيه؟</p>
+<button>حوالي 100%</button>
+<button>حوالي 69%</button>
+<button data-ok>حوالي 50%</button>
+<p class="why">كل split بيسيب صفحة شمال فيها النص، ومفيش insert هيرجع لها تاني. التجربة طلّعت 55.6%.</p></div>
+<div class="quiz"><p class="q">الدليل في extendible hashing اتضاعف. كام item اتنقل من مكانه؟</p>
+<button>كل الـ items</button>
+<button>نص الـ items</button>
+<button data-ok>ولا item</button>
+<p class="why">التضاعف بينسخ الـ pointers بس، كل خانة بقت خانتين بيشاوروا على نفس الصفحة. الـ items بتتنقل بس في الـ split بتاع الصفحة اللي اتملت.</p></div>

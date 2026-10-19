@@ -2,11 +2,10 @@ bin/
 *.o
 *.out
 .DS_Store
-docs/_ft/
-docs/_figtest.html
 tools/[0-9a-f]*
 tools/*.pdf
 tools/*.pptx
 tools/*.png
 tools/*.html
 !tools/*.py
+__pycache__/

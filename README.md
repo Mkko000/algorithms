@@ -9,8 +9,8 @@
 <br/>
 
 ![C99](https://img.shields.io/badge/C-C99-00599C?style=for-the-badge&logo=c&logoColor=white)
-![Build](https://img.shields.io/badge/Build-136%2F136%20passing-brightgreen?style=for-the-badge)
-![Course](https://img.shields.io/badge/Course-54%20lessons-blueviolet?style=for-the-badge)
+![Build](https://img.shields.io/badge/Build-145%2F145%20passing-brightgreen?style=for-the-badge)
+![Course](https://img.shields.io/badge/Course-56%20lessons-blueviolet?style=for-the-badge)
 ![License](https://img.shields.io/badge/Use-Educational-orange?style=for-the-badge)
 
 <br/>
@@ -65,8 +65,8 @@ algo_repo/
 │   ├── 12-bst/                # BST + rotations
 │   ├── 13-balanced-trees/     # red-black, randomized BST
 │   ├── 14-hashing/            # chaining, linear probing, universal hash
-│   ├── 15-tries/              # binary trie, TST
-│   └── 16-external-search/    # B-tree
+│   ├── 15-tries/              # DST, trie, patricia, multiway trie, TST
+│   └── 16-external-search/    # ISAM, B-tree, extendible hashing
 ├── docs/                      # interactive course (GitHub Pages)
 ├── Makefile
 └── README.md
