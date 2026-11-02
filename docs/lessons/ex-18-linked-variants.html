@@ -1,0 +1,305 @@
+<p class="meta">تمارين محلولة · الفصل 18 (Linked list variants) · Thareja ف6: Review Questions 1–11 + Programming Exercises 1–39 + أسئلة الاختيار/صح-غلط/الفراغات</p>
+<p>الحلول متقسّمة على 4 ملفات كلها بتتشغّل بـ <code>assert</code>: التمارين المنفردة في <code>exercises/ex18_01_linked_lists.c</code>، وتمارين الـ circular/doubly/polynomial محلولة جوه برامج الدرس نفسها (<code>circular_header.c</code> و<code>doubly_list.c</code> و<code>poly_list.c</code>) لأنها ببساطة <b>هي</b> الدوال دي. الجدول الجاي بيقولك كل تمرين فين.</p>
+<div class="goal"><b>هدف الدرس:</b> تحل أي تمرين قايمة بنفس القالب: ارسم، حدّد الحالات الصغيرة (فاضية، عقدة، عقدتين)، اكتب بالـ pointer-to-pointer أو بالـ header، وبعدين اختبر.</div>
+<div class="tip"><b>قالب pointer-to-pointer</b>معظم حلول الصفحة بتستخدم <code>node **pp = &amp;head</code>: <code>pp</code> بيشاور على <i>الحقل</i> اللي بيشاور على العقدة (head نفسه أو next لعقدة). الحذف والإدخال بقوا سطر واحد من غير حالة «أول عقدة».</div>
+<a data-src="src/18-linked-list-variants/exercises/ex18_01_linked_lists.c"></a>
+<a data-src="src/18-linked-list-variants/doubly_list.c"></a>
+<a data-src="src/18-linked-list-variants/circular_header.c"></a>
+<a data-src="src/18-linked-list-variants/poly_list.c"></a>
+
+<h3>خريطة التمارين</h3>
+<table class="comp-table">
+<tr><th>تمرين</th><th>الموضوع</th><th>الحل في</th></tr>
+<tr><td>1</td><td>حذف كل المكرر</td><td>ex18: <code>dedup</code></td></tr>
+<tr><td>2، 21</td><td>عدد مرات ظهور قيمة</td><td>ex18: <code>count_val</code></td></tr>
+<tr><td>3</td><td>اضرب كل عنصر في 10</td><td>ex18: <code>scale</code></td></tr>
+<tr><td>4، 27</td><td>عدد غير الصفري (عادية ودايرية)</td><td>ex18: <code>count_nonzero</code> · circular: <code>ch_count_nonzero</code></td></tr>
+<tr><td>5، 35</td><td>هل القايمة مرتبة؟</td><td>ex18: <code>isSorted</code></td></tr>
+<tr><td>6</td><td>نسخ قايمة دايرية</td><td>circular: <code>ch_copy</code></td></tr>
+<tr><td>7، 9</td><td>دمج قايمتين / مرتبتين</td><td>ex18: <code>concat</code>, <code>merge_sorted</code></td></tr>
+<tr><td>8</td><td>ترتيب doubly circular</td><td>doubly: <code>dl_sort</code></td></tr>
+<tr><td>10، 37–39، 25</td><td>header lists: حذف أول/آخر/وسط، حذف السالب، كل حالات الحذف</td><td>ex18: <code>header_delete_first_last_middle</code> · circular: <code>ch_delete_*</code></td></tr>
+<tr><td>11</td><td>قايمة بكل عنصر تاني</td><td>ex18: <code>alternate_copy</code></td></tr>
+<tr><td>12</td><td>دمج doubly lists</td><td>ex18: <code>d_concat</code> · doubly: <code>dl_concat</code></td></tr>
+<tr><td>13</td><td>الأول يتحوّل آخر (doubly)</td><td>ex18: <code>d_first_to_last</code> · doubly: <code>dl_rotate_left</code></td></tr>
+<tr><td>14</td><td>حذف أول/آخر/كل ظهور لحرف</td><td>ex18: <code>del_*_occ</code></td></tr>
+<tr><td>15، 33</td><td>قلب بالـ recursion وبقلب الروابط</td><td>ex18: <code>rev_rec</code>, <code>rev_iter</code></td></tr>
+<tr><td>16</td><td>أرقام عدد في عقد</td><td>ex18: <code>digits_list</code></td></tr>
+<tr><td>17، 23</td><td>المجموع والمتوسط</td><td>ex18: <code>sum_mean</code></td></tr>
+<tr><td>18</td><td>الأصغر والأكبر</td><td>ex18: <code>min_max</code></td></tr>
+<tr><td>19</td><td>تبديل أول↔آخر، تاني↔قبل الآخر (doubly)</td><td>ex18: <code>d_mirror_values</code></td></tr>
+<tr><td>20</td><td>الأول يبقى الآخر (singly)</td><td>ex18: <code>first_to_last</code></td></tr>
+<tr><td>22</td><td>زوّد 10 في doubly</td><td>ex18: <code>d_add</code></td></tr>
+<tr><td>24</td><td>حذف الـ k-th</td><td>ex18: <code>del_kth</code> · circular: <code>ch_delete_kth</code></td></tr>
+<tr><td>26</td><td>ضرب polynomial في رقم</td><td>poly: <code>poly_scale</code></td></tr>
+<tr><td>28–31، RQ 7–9</td><td>قايمة سجلات موظفين/طلبة: عرض، بحث، إدخال، حذف</td><td>ex18: <code>rec_*</code></td></tr>
+<tr><td>32</td><td>نقل العقدة الوسطى للأول (doubly)</td><td>ex18: <code>d_middle_to_front</code></td></tr>
+<tr><td>34</td><td>n-th من الآخر بمرور واحد</td><td>ex18: <code>nth_from_end</code></td></tr>
+<tr><td>36</td><td>تبديل k و k+1 في doubly circular</td><td>doubly: <code>dl_swap_with_next</code></td></tr>
+<tr><td>RQ 10</td><td>قايمة حروف → حروف كبيرة وصغيرة</td><td>ex18: <code>split_case</code></td></tr>
+<tr><td>RQ 11</td><td>ترتيب أسماء موظفين</td><td>ex18: <code>names_sort</code></td></tr>
+</table>
+
+<div class="exs">
+<h3>أسئلة المراجعة 1–6 و RQ5 (نظرية)</h3>
+<div class="sol"><b>الإجابات</b>
+<p><b>1)</b> الـ array: وصول عشوائي O(1)، الحجم ثابت، إدخال/حذف في النص O(n) إزاحة، أحسن cache locality. القايمة: وصول O(n)، حجمها بيتغيّر، إدخال/حذف O(1) لو عندك مكانه، وكل عقدة ليها overhead pointer. استخدم array لو الحجم معروف والوصول بالـ index كتير؛ قايمة لو الإدخال/الحذف كتير والحجم مش معروف.</p>
+<p><b>2)</b> الـ doubly بتحذف عقدة معروفة O(1) من غير ما تدوّر على السابق، وتمشي في الاتجاهين (undo/redo، browser history، LRU cache). <b>3)</b> الـ circular مناسبة للدوران (round-robin scheduling، Josephus، media playlist loop)، وبتخلّي الدخول للآخر قريب. <b>4)</b> الـ header بتلغي الحالات الخاصة وتخزّن metadata (العدد). <b>6)</b> في الـ circular آخر عقدة بتشاور على الأول (مفيش NULL) فلازم شرط وقف مختلف.</p>
+<p><b>5)</b> 7x³y² − 8x²y + 3xy + 11x − 4: 5 عقد، كل واحدة (c, ex, ey): <code>(7,3,2) → (−8,2,1) → (3,1,1) → (11,1,0) → (−4,0,0) → NULL</code>. ده بالظبط اللي <code>poly_list.c</code> بيبنيه ويطبعه.</p></div>
+
+<h3>التمارين 1–5 و 21 و 35</h3>
+<pre><code>/* ---- PE 1: remove every node whose value already appeared earlier ---- */
+static node *dedup(node *h)
+{
+    for (node *p = h; p; p = p-&gt;next)
+        for (node *q = p; q-&gt;next; ) {
+            if (q-&gt;next-&gt;val == p-&gt;val) { node *d = q-&gt;next; q-&gt;next = d-&gt;next; free(d); } else q = q-&gt;next;
+        }
+    return h;
+}</code></pre>
+<pre><code>/* ---- PE 2 / 21: occurrences of a value;  PE 3: multiply by 10;  PE 4: non-zero;  PE 5/35: sorted ---- */
+static int count_val(const node *h, int v) { int c = 0; for (; h; h = h-&gt;next) c += h-&gt;val == v; return c; }
+static void scale(node *h, int k) { for (; h; h = h-&gt;next) h-&gt;val *= k; }
+static int count_nonzero(const node *h) { int c = 0; for (; h; h = h-&gt;next) c += h-&gt;val != 0; return c; }
+static int isSorted(const node *h) { for (; h &amp;&amp; h-&gt;next; h = h-&gt;next) if (h-&gt;val &gt; h-&gt;next-&gt;val) return 0; return 1; }</code></pre>
+<div class="think"><b>بنفكّر إزاي</b>تمرين 1 فيه فخّين: (أ) لما نحذف <code>q->next</code> مانتقدّمش بـ q (العقدة الجديدة لسه ممكن تكون مكررة)، (ب) كل عقدة p بتحذف المكرر <b>بعدها</b> بس، فأول ظهور هو اللي بيفضل. O(n²) وبدون مساحة زيادة. لو مسموح بمساحة: hash set بتخلّيها O(n).</div>
+
+<h3>التمارين 7 و 9: الدمج</h3>
+<pre><code>/* ---- PE 7: merge (= concatenate) two lists;  PE 9: merge two SORTED lists into a sorted one ---- */
+static node *concat(node *a, node *b)
+{
+    if (!a) return b;
+    node *p = a; while (p-&gt;next) p = p-&gt;next;
+    p-&gt;next = b;
+    return a;
+}
+static node *merge_sorted(node *a, node *b)
+{
+    node d = {0, NULL}, *t = &amp;d;
+    while (a &amp;&amp; b) { node **s = (b-&gt;val &lt; a-&gt;val) ? &amp;b : &amp;a; t-&gt;next = *s; *s = (*s)-&gt;next; t = t-&gt;next; }
+    t-&gt;next = a ? a : b;
+    return d.next;
+}</code></pre>
+<div class="sol"><b>الحل</b><p>الدمج العادي (7) = ربط آخر الأولى بأول التانية. الدمج المرتب (9): مؤشرين وعقدة dummy، وبناخد من b <b>بس لو</b> <code>b &lt; a</code> (يعني التساوي بيجيب من a: stable). مفيش allocation.</p></div>
+
+<h3>التمرين 10: حذف الأول والآخر والوسط في header list</h3>
+<pre><code>/* ---- PE 10: delete first, last and middle node of a header list (h-&gt;next is the first data node) ---- */
+static int del_after(node *p) { node *t = p-&gt;next; if (!t) return 0; p-&gt;next = t-&gt;next; free(t); return 1; }
+static void header_delete_first_last_middle(node *hdr)
+{
+    int n = 0; for (node *p = hdr-&gt;next; p; p = p-&gt;next) n++;
+    if (n == 0) return;
+    int mid = (n - 1) / 2;                       /* index (0-based) of the middle node; lower middle if n is even */
+    node *p = hdr; for (int i = 0; i &lt; mid; i++) p = p-&gt;next;
+    del_after(p);                                /* middle  */
+    p = hdr; while (p-&gt;next &amp;&amp; p-&gt;next-&gt;next) p = p-&gt;next;
+    del_after(p);                                /* last (if the list had &gt;=2 nodes this is a different node) */
+    del_after(hdr);                              /* first   */
+}</code></pre>
+<div class="oops"><b>اختار ترتيب الحذف بعناية</b>الكود بيحذف <b>الوسط الأول</b> (قبل ما العدد يتغيّر)، وبعدين الآخر، وبعدين الأول. لو بدأت بحذف الأول، «الوسط» هيتحسب على قايمة متغيّرة. ولو القايمة عقدة واحدة، الوسط والآخر والأول هما نفس العقدة — الكود بيتعامل (الحذف التاني والتالت بيلاقوا قايمة فاضية فبيتجاهلوا).</div>
+<h3>التمرين 11 و 14</h3>
+<pre><code>/* ---- PE 11: a new list holding every alternate element (1st, 3rd, 5th ...) of an existing one ---- */
+static node *alternate_copy(const node *h)
+{
+    node *res = NULL, **tail = &amp;res; int i = 0;
+    for (; h; h = h-&gt;next, i++) if (i % 2 == 0) { *tail = mk(h-&gt;val, NULL); tail = &amp;(*tail)-&gt;next; }
+    return res;
+}</code></pre>
+<pre><code>/* ---- PE 14: delete the first / the last / all occurrences of a character (list of chars) ---- */
+static node *del_first_occ(node *h, int c)
+{
+    node **pp = &amp;h;
+    while (*pp &amp;&amp; (*pp)-&gt;val != c) pp = &amp;(*pp)-&gt;next;
+    if (*pp) { node *d = *pp; *pp = d-&gt;next; free(d); }
+    return h;
+}
+static node *del_last_occ(node *h, int c)
+{
+    node **last = NULL;
+    for (node **pp = &amp;h; *pp; pp = &amp;(*pp)-&gt;next) if ((*pp)-&gt;val == c) last = pp;
+    if (last) { node *d = *last; *last = d-&gt;next; free(d); }
+    return h;
+}
+static node *del_all_occ(node *h, int c)
+{
+    node **pp = &amp;h;
+    while (*pp) { if ((*pp)-&gt;val == c) { node *d = *pp; *pp = d-&gt;next; free(d); } else pp = &amp;(*pp)-&gt;next; }
+    return h;
+}</code></pre>
+<div class="think"><b>بنفكّر إزاي</b>حذف «آخر ظهور» في تمرين 14: بنفتكر <b>pointer-to-pointer</b> لآخر عقدة طابقت أثناء المرور الوحيد، وبعدين نحذفها. من غير ما نمرّ مرتين أو نخزّن السابق.</div>
+<h3>التمارين 15 و 20 و 33: القلب ونقل الأول</h3>
+<pre><code>/* ---- PE 15: reverse by recursion;  PE 33: reverse by relinking;  PE 20: first node to the end ---- */
+static node *rev_rec(node *h) { if (!h || !h-&gt;next) return h; node *r = rev_rec(h-&gt;next); h-&gt;next-&gt;next = h; h-&gt;next = NULL; return r; }
+static node *rev_iter(node *h) { node *p = NULL; while (h) { node *n = h-&gt;next; h-&gt;next = p; p = h; h = n; } return p; }
+static node *first_to_last(node *h)
+{
+    if (!h || !h-&gt;next) return h;
+    node *first = h, *p = h; h = h-&gt;next;
+    while (p-&gt;next) p = p-&gt;next;
+    p-&gt;next = first; first-&gt;next = NULL;
+    return h;
+}</code></pre>
+<h3>التمارين 16 و 17 و 18 و 23</h3>
+<pre><code>/* ---- PE 16: one digit per node;  PE 17/23: sum and mean;  PE 18: min and max ---- */
+static node *digits_list(long x)
+{
+    node *h = NULL;
+    if (x &lt; 0) x = -x;
+    do { h = mk((int)(x % 10), h); x /= 10; } while (x);   /* least significant digit is pushed first */
+    return h;
+}
+static void sum_mean(const node *h, double *sum, double *mean)
+{
+    int n = 0; *sum = 0;
+    for (; h; h = h-&gt;next, n++) *sum += h-&gt;val;
+    *mean = n ? *sum / n : 0;
+}
+static void min_max(const node *h, int *mn, int *mx)
+{
+    *mn = *mx = h-&gt;val;
+    for (h = h-&gt;next; h; h = h-&gt;next) { if (h-&gt;val &lt; *mn) *mn = h-&gt;val; if (h-&gt;val &gt; *mx) *mx = h-&gt;val; }
+}</code></pre>
+<div class="sol"><b>تمرين 16</b><p>بنبني القايمة بـ push على الرأس (<code>h = mk(digit, h)</code>)، فأول رقم بيطلع (آخر خانة) بينتهي في آخر القايمة بالظبط الترتيب المطلوب: <code>12345 → 1,2,3,4,5</code>. والـ <code>do…while</code> بتضمن إن 0 يدّي عقدة واحدة.</p></div>
+<h3>التمارين 24 و 34</h3>
+<pre><code>/* ---- PE 24: delete the k-th node (k from 1);  PE 34: n-th from the end in one pass ---- */
+static node *del_kth(node *h, int k)
+{
+    if (k &lt; 1 || !h) return h;
+    if (k == 1) { node *t = h-&gt;next; free(h); return t; }
+    node *p = h;
+    for (int i = 2; i &lt; k &amp;&amp; p-&gt;next; i++) p = p-&gt;next;
+    if (p-&gt;next) del_after(p);
+    return h;
+}
+static node *nth_from_end(node *h, int n)
+{
+    node *lead = h, *lag = h;
+    for (int i = 0; i &lt; n; i++) { if (!lead) return NULL; lead = lead-&gt;next; }
+    while (lead) { lead = lead-&gt;next; lag = lag-&gt;next; }
+    return lag;
+}</code></pre>
+<div class="think"><b>بنفكّر إزاي (تمرين 34)</b>مؤشران بينهم فجوة n: لما <code>lead</code> يوصل NULL يبقى <code>lag</code> هو الـ n-th من الآخر. مرور واحد، O(1) مساحة. الـ n أكبر من الطول يرجّع NULL.</div>
+<h3>التمارين 12 و 13 و 19 و 22 و 32: القايمة المزدوجة (النسخة اللي بتنتهي بـ NULL)</h3>
+<pre><code>/* ---- NULL-terminated doubly linked list (the book&#x27;s version): PE 12, 13, 19, 22, 32 ---- */
+typedef struct dn { int val; struct dn *prev, *next; } dn;
+static dn *dpush_back(dn **head, int v)
+{
+    dn *n = malloc(sizeof *n); if (!n) exit(1);
+    n-&gt;val = v; n-&gt;next = NULL; n-&gt;prev = NULL;
+    if (!*head) { *head = n; return n; }
+    dn *p = *head; while (p-&gt;next) p = p-&gt;next;
+    p-&gt;next = n; n-&gt;prev = p;
+    return n;
+}
+static dn *dlast(dn *h) { while (h-&gt;next) h = h-&gt;next; return h; }
+static void dfree(dn *h) { while (h) { dn *t = h-&gt;next; free(h); h = t; } }
+static int dlen(const dn *h) { int n = 0; for (; h; h = h-&gt;next) n++; return n; }
+/* PE 19: first&lt;-&gt;last, second&lt;-&gt;second-last ... (swap the DATA, two pointers walking inwards) */
+static void d_mirror_values(dn *h)
+{
+    if (!h) return;
+    dn *i = h, *j = dlast(h);
+    while (i != j &amp;&amp; i-&gt;prev != j) { int t = i-&gt;val; i-&gt;val = j-&gt;val; j-&gt;val = t; i = i-&gt;next; j = j-&gt;prev; }
+}
+static void d_add(dn *h, int k) { for (; h; h = h-&gt;next) h-&gt;val += k; }          /* PE 22 */
+static dn *d_concat(dn *a, dn *b)                                                /* PE 12 */
+{
+    if (!a) return b;
+    if (!b) return a;
+    dn *l = dlast(a); l-&gt;next = b; b-&gt;prev = l;
+    return a;
+}
+static dn *d_first_to_last(dn *h)                                                /* PE 13 */
+{
+    if (!h || !h-&gt;next) return h;
+    dn *f = h; h = h-&gt;next; h-&gt;prev = NULL;
+    dn *l = dlast(h); l-&gt;next = f; f-&gt;prev = l; f-&gt;next = NULL;
+    return h;
+}
+static dn *d_middle_to_front(dn *h)                                              /* PE 32 */
+{
+    int n = dlen(h); if (n &lt; 3) return h;
+    dn *m = h; for (int i = 0; i &lt; n / 2; i++) m = m-&gt;next;
+    m-&gt;prev-&gt;next = m-&gt;next; if (m-&gt;next) m-&gt;next-&gt;prev = m-&gt;prev;               /* cut it out ...    */
+    m-&gt;prev = NULL; m-&gt;next = h; h-&gt;prev = m;                                    /* ... put it first  */
+    return m;
+}
+static int deq(const dn *h, const int *e, int n)         /* also verifies the prev links */
+{
+    int i = 0; const dn *last = NULL;
+    for (; h; last = h, h = h-&gt;next, i++) { if (i &gt;= n || h-&gt;val != e[i]) return 0; if (h-&gt;prev != last) return 0; }
+    return i == n;
+}</code></pre>
+<div class="oops"><b>تمرين 19: اتجاه المؤشرين</b>شرط الوقف <code>i != j &amp;&amp; i-&gt;prev != j</code>: لو العدد زوجي، المؤشرين بيعدّوا بعض (i بعد j) فلازم نوقف قبل ما نبدّل تاني (وإلا هيرجع كل حاجة زي ما كانت). لو فردي بيتقابلوا عند الوسط.</div>
+<h3>تمارين 28–31 و RQ 7–11: السجلات</h3>
+<pre><code>/* ---- RQ 7-11, PE 28-31: a list of student / employee records ---- */
+typedef struct rec { int id; char name[16]; double pay; struct rec *next; } rec;
+static rec *rec_insert_sorted(rec *h, int id, const char *name, double pay)    /* kept sorted by id */
+{
+    rec *n = malloc(sizeof *n); if (!n) exit(1);
+    n-&gt;id = id; snprintf(n-&gt;name, sizeof n-&gt;name, &quot;%s&quot;, name); n-&gt;pay = pay;
+    rec **pp = &amp;h;
+    while (*pp &amp;&amp; (*pp)-&gt;id &lt; id) pp = &amp;(*pp)-&gt;next;
+    n-&gt;next = *pp; *pp = n;
+    return h;
+}
+static rec *rec_find(rec *h, int id) { for (; h; h = h-&gt;next) if (h-&gt;id == id) return h; return NULL; }
+static rec *rec_delete(rec *h, int id)
+{
+    rec **pp = &amp;h;
+    while (*pp &amp;&amp; (*pp)-&gt;id != id) pp = &amp;(*pp)-&gt;next;
+    if (*pp) { rec *d = *pp; *pp = d-&gt;next; free(d); }
+    return h;
+}
+static void rec_free(rec *h) { while (h) { rec *t = h-&gt;next; free(h); h = t; } }
+/* RQ 11: sort a list of NAMES by exchanging the links of a selection-sort (the names are never copied) */
+typedef struct sn { char s[16]; struct sn *next; } sn;
+static sn *names_sort(sn *h)
+{
+    sn *out = NULL;
+    while (h) {
+        sn **minp = &amp;h;
+        for (sn **pp = &amp;h; *pp; pp = &amp;(*pp)-&gt;next) if (strcmp((*pp)-&gt;s, (*minp)-&gt;s) &lt; 0) minp = pp;
+        sn *m = *minp; *minp = m-&gt;next;                     /* detach the smallest */
+        sn **tail = &amp;out; while (*tail) tail = &amp;(*tail)-&gt;next;
+        m-&gt;next = NULL; *tail = m;
+    }
+    return out;
+}
+/* RQ 10: split a list of letters into an upper-case list and a lower-case list */
+static void split_case(const node *h, node **up, node **lo)
+{
+    node **tu = up, **tl = lo; *up = *lo = NULL;
+    for (; h; h = h-&gt;next) {
+        node *n = mk(h-&gt;val, NULL);
+        if (isupper(h-&gt;val)) { *tu = n; tu = &amp;n-&gt;next; } else { *tl = n; tl = &amp;n-&gt;next; }
+    }
+}</code></pre>
+<div class="sol"><b>ملاحظات</b><p>قايمة الموظفين بتتحافظ <b>مرتبة بالـ id</b> فالإدخال بيجيب مكانه من غير ترتيب بعدين (insertion in sorted list). الحذف بالـ id بيستخدم نفس <code>**pp</code>. ترتيب الأسماء (RQ 11) selection sort على الـ links: بنفصل أصغر عقدة ونضيفها آخر القايمة الناتجة، فمفيش نسخ strings. (تعقيد O(n²)؛ لو عايز أحسن استخدم merge sort من الدرس.)</p></div>
+
+<h3>تشغيل الملفات</h3>
+<pre><code>PE17/18: sum=108 mean=18.0 min=4 max=42
+ex18_01: Thareja ch.6 programming exercises verified</code></pre>
+<pre><code>0..5:               0 1 2 3 4 5 (size 6)
+99 after 2:         0 1 2 99 3 4 5 (size 7)
+erase ends:         1 2 3 4 (size 4)
+reverse:            4 3 2 1 (size 4)
+rotate_left:        3 2 1 4 (size 4)
+...</code></pre>
+</div>
+
+<div class="exs">
+<h3>أسئلة الاختيار (Multiple-choice)</h3>
+<div class="sol"><table class="comp-table">
+<tr><th>#</th><th>الإجابة</th><th>#</th><th>الإجابة</th></tr>
+<tr><td>1</td><td>(b) Sequential access</td><td>5</td><td>(b) Circular</td></tr>
+<tr><td>2</td><td>(a) Random access (الـ index مباشر O(1))</td><td>6</td><td>(d) Circular header</td></tr>
+<tr><td>3</td><td>(d) الكل</td><td>7</td><td>(b) Multi-linked (n pointers)</td></tr>
+<tr><td>4</td><td>(c) Doubly (وكمان circular doubly)</td><td></td><td></td></tr>
+</table></div>
+<h3>صح أو غلط</h3>
+<div class="sol"><p>1) صح · 2) صح · 3) صح · 4) غلط (ده doubly) · 5) غلط (أي نوع بيانات) · 6) غلط (sequential) · 7) صح · 8) غلط (ممكن أي حقول) · 9) صح · 10) صح.</p></div>
+<h3>املا الفراغ</h3>
+<div class="sol"><p>1) AVAIL (بداية الـ free list) · 2) O(1) · 3) O(n) (محتاج السابق للآخر) · 4) <b>4</b> كتابات في singly-with-START شكل doubly: <code>new.next=START; new.prev=NULL; START.prev=new; START=new</code> · 5) <b>2</b> (<code>new.next=p.next; p.next=new</code>) · 6) <b>2</b> (<code>new.next=START; last.next=new</code>) · 7) <b>5</b> (<code>new.next, new.prev, last.next, START.prev, START</code>) · 8) <b>1</b> (<code>START=START.next</code>) · 9) <b>2</b> (<code>p.prev.next</code> و <code>p.next.prev</code>) · 10) <b>1</b> (<code>beforeLast.next=START</code>) · 11) node · 12) head/START · 13) INFO (data) · 14) مفيش خلية حرة متاحة (AVAIL = NULL) · 15) first (الأول).</p>
+<p><i>ملاحظة:</i> أرقام 4–10 بتعدّ كتابات الـ pointers في الكود المذكور؛ لو الكتاب قاس بطريقة تانية (مثلًا من غير ما يحسب START) هتختلف بواحد. المهم الفكرة: كل عملية = عدد ثابت من الكتابات.</p></div>
+</div>
