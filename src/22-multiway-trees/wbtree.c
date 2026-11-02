@@ -287,14 +287,17 @@ int main(void)
         WTree t = { w_parse(f463), 5, 5, 0 };
         assert(w_valid(&t) && w_height(t.root) == 3);
         printf("Fig 4.63: %d items in %d leaves, %d levels\n", w_count(t.root), w_leaves(t.root), w_height(t.root));
+        printf("  T463 %s\n", w_str(t.root));
         assert(w_count(t.root) == 59 && w_leaves(t.root) == 16);
         assert(!strcmp(w_str(t.root), f463));                              /* parse and print are inverses */
 
         assert(w_insert(&t, 57));                                          /* Fig 4.64: the leaf had room */
         assert(strstr(w_str(t.root), "(54 56 57 58 59)") && w_valid(&t));
+        printf("  T464 %s\n", w_str(t.root));
         assert(w_insert(&t, 55));                                          /* Fig 4.65: the leaf splits 3 + 3 */
         assert(strstr(w_str(t.root), "[48 51 54 57]{(41 42 44 46) (48 49 50) (51 52 53) (54 55 56) (57 58 59)}") && w_valid(&t));
         printf("after 57 and 55: ...%s...\n", "[48 51 54 57]{... (54 55 56) (57 58 59)}");
+        printf("  T465 %s\n", w_str(t.root));
         assert(w_insert(&t, 40));                                          /* Fig 4.66: leaf split, then the parent splits */
         assert(!strcmp(w_str(t.root),
             "[26 41 66 87]{[8 18]{(2 4 6) (8 10 12 14 16) (18 20 22 24)} [35 38]{(26 28 30 31 32) (35 36 37) (38 39 40)} "
@@ -302,6 +305,7 @@ int main(void)
             "[72 78 83]{(66 68 69 70) (72 73 74 76) (78 79 81) (83 84 85)} [92 97]{(87 89 90) (92 93 95) (97 98 99)}}"));
         assert(w_valid(&t));
         printf("after 40 (Fig 4.66): the root now has 5 children\n");
+        printf("  T466 %s\n", w_str(t.root));
         assert(w_delete(&t, 99));                                          /* Fig 4.67: combine two leaves, then adopt a child */
         printf("delete 99 -> %s\n", w_log);
         assert(!strcmp(w_log, "combine-left adopt-left"));
