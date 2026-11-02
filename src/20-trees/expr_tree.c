@@ -192,6 +192,12 @@ int main(void)
     char m[256] = ""; infix_min(q7, m);
     assert(!strcmp(m, "e+(d-a/b*c)"));
 
+    /* Weiss Fig 4.14: (a + b * c) + ((d * e + f) * g) built from its POSTFIX form  a b c * + d e * f + g * +  */
+    Node *w414 = from_postfix("a b c * + d e * f + g * +");
+    expect(w414, "((a+(b*c))+(((d*e)+f)*g))", "+ + a * b c * + * d e f g", "a b c * + d e * f + g * +");
+    { char m2[128] = ""; infix_min(w414, m2); assert(!strcmp(m2, "a+b*c+(d*e+f)*g")); printf("Weiss Fig 4.14 minimal infix: %s\n", m2); }
+    free_tree(w414);
+
     /* associativity: minimal brackets must re-parse to the same tree */
     const char *tests[] = { "a-(b-c)", "(a-b)-c", "a^b^c", "(a^b)^c", "(a+b)*c", "a+b*c", "a/(b*c)", "a/b*c" };
     for (int i = 0; i < 8; i++) {

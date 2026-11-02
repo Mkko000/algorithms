@@ -76,7 +76,11 @@ window.COURSE = {
       { id: 'linked-variants', file: '42-linked-variants.html', title: 'قوايم Header و Circular و Doubly و Cursor وكثيرات الحدود', min: 45 },
       { id: 'ex-ch18', file: 'ex-18-linked-variants.html', title: 'تمارين محلولة: الفصل 18', min: 45 },
       { id: 'stacks-queues-apps', file: '43-stacks-queues-apps.html', title: 'Stacks وQueues: التعبيرات والتطبيقات والـ call stack والـ deque', min: 50 },
-      { id: 'ex-ch19', file: 'ex-19-stacks-queues.html', title: 'تمارين محلولة: الفصل 19', min: 45 }
+      { id: 'ex-ch19', file: 'ex-19-stacks-queues.html', title: 'تمارين محلولة: الفصل 19', min: 45 },
+      { id: 'binary-trees', file: '44-binary-trees.html', title: 'الشجر الثنائي: التمثيل والـ traversals وشجر التعبير وHuffman', min: 55 },
+      { id: 'ex-ch20', file: 'ex-20-trees.html', title: 'تمارين محلولة: الفصل 20', min: 45 },
+      { id: 'efficient-trees', file: '45-efficient-trees.html', title: 'BST وThreaded وAVL وRed-Black وSplay', min: 60 },
+      { id: 'ex-ch21', file: 'ex-21-efficient-trees.html', title: 'تمارين محلولة: الفصل 21', min: 55 }
     ]},
     { title: 'الخاتمة', lessons: [
       { id: 'practice',     file: '40-practice.html',           title: 'تختار إيه إمتى؟ ومشاريع تطبيقية', min: 30 }
