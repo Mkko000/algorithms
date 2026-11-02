@@ -70,6 +70,10 @@ window.COURSE = {
       { id: 'extendible',   file: '39-extendible-hashing.html', title: 'Extendible hashing والـ Perspective', min: 35 },
       { id: 'ex-ch16',      file: 'ex-16-external-searching.html', title: 'تمارين محلولة: الفصل 16', min: 40 }
     ]},
+    { title: 'هياكل بيانات إضافية: من كتب Weiss وThareja وLipschutz (الفصول 17–31)', lessons: [
+      { id: 'arrays-matrices', file: '41-arrays-matrices.html', title: 'Arrays والمصفوفات: العناوين والـ Sparse والمثلثية', min: 40 },
+      { id: 'ex-ch17', file: 'ex-17-arrays-matrices.html', title: 'تمارين محلولة: الفصل 17', min: 40 }
+    ]},
     { title: 'الخاتمة', lessons: [
       { id: 'practice',     file: '40-practice.html',           title: 'تختار إيه إمتى؟ ومشاريع تطبيقية', min: 30 }
     ]}

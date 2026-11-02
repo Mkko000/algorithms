@@ -1,0 +1,282 @@
+<p class="meta">المراجع: Thareja ف3 (3.1–3.16) · Bandyopadhyay & Dey ف3 · Pal & Halder ف3 · Lipschutz ف4 (Arrays, Records, Pointers) · Weiss 1.7 (المصفوفات)</p>
+<p>الـ array هي أبسط هيكل بيانات في الدنيا، وكل هيكل تاني (stack, queue, heap, hash table) غالبًا بيتبني فوقها. بس الكتب الأربعة بتحط عليها أسئلة كتير مش واضحة من أول نظرة: <b>إزاي المترجم بيلاقي <code>A[i][j]</code>؟</b> إيه تكلفة الإدخال في النص؟ ليه نخزّن ٩٩٪ أصفار في مصفوفة؟ الدرس ده بيجاوب على كل ده، وكل سطر كود هنا اتجرّب وشغّال في <code>src/17-arrays-matrices/</code>.</p>
+<div class="tip"><b>بدون تكرار</b>الريبو أصلًا فيه الأنواع والمصفوفات في <a href="#/data-structs">درس 05</a> والـ binary search في <a href="#/analysis">درس التحليل</a> والـ sorting كله في الجزء الرابع. هنا بنغطّي بس اللي <b>ناقص</b>: عمليات الـ array الأساسية بتحليل تكلفتها، حساب العناوين، الـ sparse والـ special matrices.</div>
+<div class="goal"><b>هدف الدرس:</b> تحسب عنوان أي عنصر في array متعددة الأبعاد (row/column-major وحدود دنيا مش صفر)، تكتب الإدخال والحذف والدمج والقلب والـ rotation بتكلفتها الصح، وتختار تمثيل مضغوط لمصفوفة sparse أو مثلثية أو tri-diagonal وتحسب وفّرت قد إيه.</div>
+
+<h2>1) الـ array في الذاكرة</h2>
+<p>الـ array = عناصر من <b>نفس النوع</b> محطوطة <b>ورا بعض</b> في الذاكرة. ده بالظبط اللي بيدّيك الـ O(1) في الوصول: لو عارف عنوان أول عنصر (<code>Base</code>) وحجم العنصر (<code>w</code> بالبايت)، عنوان العنصر رقم <code>i</code> حساب بسيط:</p>
+<pre><code>Addr(A[i]) = Base + w · (i − LB)        // LB = أول index (في C بتساوي 0)</code></pre>
+<p>سؤال Thareja رقم 8: <code>int arr[50]</code> و <code>Base=1000</code> و <code>w=2</code>، عنوان <code>arr[35]</code> = 1000 + 2·35 = <b>1070</b>. ولو اللغة بتبدأ من 1 (زي Pascal) أو من رقم تاني (<code>A[-5..5]</code>) بنطرح الـ LB. اللغات دي بتحتاج الطرح ده؛ C مش بتحتاجه، وده سبب إن الـ index بيبدأ من صفر في C.</p>
+<div class="oops"><b>ملاحظة على سؤال 9 في الكتاب</b>سؤال Thareja رقم 9 بيطلب <code>Marks[8][5]</code> في مصفوفة <code>Marks[10][5]</code> — بس الـ index الصحيح للأعمدة من 0 لـ 4، فـ <code>[5]</code> برّه الحدود! الحساب بالمعادلة بيدّي 2090 (والعنصر ده عمليًا هو <code>Marks[9][0]</code> لأن C بتخزّن row-major). مهم تفرّق بين «اللي المعادلة بتحسبه» و«اللي legal فعلًا».</div>
+
+<h2>2) الإدخال والحذف: تكلفة الإزاحة</h2>
+<p>الـ array مكانها ثابت، فلو عايز تدخّل عنصر في النص لازم تحرّك اللي بعده. الشكل ده بيوضّح <b>ليه الكتب كلها بتقولك ابدأ من الآخر</b>:</p>
+<!--fig:arr-insert--><div class="steps"><figure class="frame"><svg class="fsvg" viewBox="0 0 300 102" width="300" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">10</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">20</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">30</text><rect x="171.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="190.0" y="78.2" class="tc" text-anchor="middle" font-size="13">40</text><rect x="211.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="230.0" y="78.2" class="tc" text-anchor="middle" font-size="13">50</text></svg><figcaption>عايزين نحط <b>25</b> في الخانة 2. فيه خانة فاضية في الآخر (السعة 6).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 300 102" width="300" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">10</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">20</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">30</text><rect x="171.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="190.0" y="78.2" class="tc" text-anchor="middle" font-size="13">40</text><rect x="211.0" y="51.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="78.2" class="tc" text-anchor="middle" font-size="13">50</text><rect x="251.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="270.0" y="78.2" class="tc" text-anchor="middle" font-size="13">50</text></svg><figcaption>نسخنا a[4] لـ a[5]. <b>بنبدأ من الآخر</b> عشان ما نكتبش فوق قيمة لسه محتاجينها.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 300 102" width="300" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">10</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">20</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">30</text><rect x="171.0" y="51.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="78.2" class="tc" text-anchor="middle" font-size="13">40</text><rect x="211.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="230.0" y="78.2" class="tc" text-anchor="middle" font-size="13">40</text><rect x="251.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="270.0" y="78.2" class="tc" text-anchor="middle" font-size="13">50</text></svg><figcaption>نسخنا a[3] لـ a[4]. <b>بنبدأ من الآخر</b> عشان ما نكتبش فوق قيمة لسه محتاجينها.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 300 102" width="300" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">10</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">20</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">30</text><rect x="171.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="190.0" y="78.2" class="tc" text-anchor="middle" font-size="13">30</text><rect x="211.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="230.0" y="78.2" class="tc" text-anchor="middle" font-size="13">40</text><rect x="251.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="270.0" y="78.2" class="tc" text-anchor="middle" font-size="13">50</text></svg><figcaption>نسخنا a[2] لـ a[3]. <b>بنبدأ من الآخر</b> عشان ما نكتبش فوق قيمة لسه محتاجينها.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 300 102" width="300" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">10</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">20</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">25</text><rect x="171.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="190.0" y="78.2" class="tc" text-anchor="middle" font-size="13">30</text><rect x="211.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="230.0" y="78.2" class="tc" text-anchor="middle" font-size="13">40</text><rect x="251.0" y="51.0" width="38.0" height="40.0" rx="4" class="cell"/><text x="270.0" y="78.2" class="tc" text-anchor="middle" font-size="13">50</text></svg><figcaption>خانة 2 فضيت، حطّينا 25. اتحرّك 3 عناصر = n − pos. لو الإدخال في الأول: n حركة، وفي الآخر: صفر.</figcaption></figure></div><!--/fig:arr-insert-->
+<pre><code>/* insert value v at position pos (0-based); shifts a[pos..n-1] one step right.
+ * cost: n - pos moves -&gt; O(n) worst case (pos = 0), O(1) best (pos = n). */
+int array_insert(int a[], int n, int cap, int pos, int v)
+{
+    if (n &gt;= cap || pos &lt; 0 || pos &gt; n) return -1;   /* overflow / bad index */
+    for (int i = n - 1; i &gt;= pos; i--)               /* go from the END */
+        a[i + 1] = a[i];
+    a[pos] = v;
+    return n + 1;
+}</code></pre>
+<p>الحذف عكسه: بنزيح <b>من الأول</b> لقدّام (لو بدأت من الآخر هتنسخ نفس القيمة على كل الخانات). في الحالتين التكلفة <code>n − pos</code> حركة: O(n) في الأسوأ، O(1) لو في الآخر. وده بيجاوب سؤال Thareja رقم 14: في 7 أسماء، إدخال Andrew (ترتيبه 1) بيحرّك 6 أسماء، وحذف Esha (index 3) بيحرّك 3.</p>
+<pre><code>/* delete the element at position pos; shifts a[pos+1..n-1] one step left. */
+int array_delete(int a[], int n, int pos)
+{
+    if (pos &lt; 0 || pos &gt;= n) return -1;              /* underflow / bad index */
+    for (int i = pos; i &lt; n - 1; i++)                /* go from the FRONT */
+        a[i] = a[i + 1];
+    return n - 1;
+}</code></pre>
+<h3>الدمج (merging)</h3>
+<p>«الدمج» في Thareja يعني تلزيق مصفوفتين ورا بعض. لكن الدمج المهم هو دمج مصفوفتين <b>مرتبتين</b> في مرتبة (نفس قلب mergesort): بنمشي بمؤشرين ونختار الأصغر. O(n₁+n₂)، ومش بيحتاج ترتيب تاني.</p>
+<pre><code>/* merge two SORTED arrays into c; returns n1 + n2. Stable, O(n1 + n2). */
+int array_merge_sorted(const int a[], int n1, const int b[], int n2, int c[])
+{
+    int i = 0, j = 0, k = 0;
+    while (i &lt; n1 &amp;&amp; j &lt; n2) c[k++] = (b[j] &lt; a[i]) ? b[j++] : a[i++];
+    while (i &lt; n1) c[k++] = a[i++];
+    while (j &lt; n2) c[k++] = b[j++];
+    return k;
+}</code></pre>
+<h3>القلب والـ rotation بتلات reversals</h3>
+<p>عايز تلف المصفوفة <code>k</code> خانات شمال من غير مصفوفة مساعدة؟ قسّمها [A | B] وبدّل أماكنهم. الحيلة: <code>reverse(A)</code> و <code>reverse(B)</code> بعدين <code>reverse(الكل)</code> بيطلّع [B | A]. ليه؟ لأن <code>reverse(reverse(A) reverse(B)) = B A</code>. ثلاث مرّات قلب = O(n) زمن و O(1) مساحة.</p>
+<pre><code>static void rev(int a[], int i, int j) { while (i &lt; j) { int t = a[i]; a[i++] = a[j]; a[j--] = t; } }
+
+void array_reverse(int a[], int n) { rev(a, 0, n - 1); }
+
+/* rotate LEFT by k using three reversals: O(n) time, O(1) extra space.
+ *   [A | B]  -&gt;  reverse(A), reverse(B), reverse(all)  -&gt;  [B | A]       */
+void array_rotate_left(int a[], int n, int k)
+{
+    if (n == 0) return;
+    k %= n;
+    rev(a, 0, k - 1);
+    rev(a, k, n - 1);
+    rev(a, 0, n - 1);
+}</code></pre>
+<pre><code>start                  [10 20 30 40 50]  (n=5)
+insert 25 at 2         [10 20 25 30 40 50]  (n=6)
+insert 5 at front      [5 10 20 25 30 40 50]  (n=7)
+insert 99 at end       [5 10 20 25 30 40 50 99]  (n=8)
+delete index 3         [5 10 20 30 40 50 99]  (n=7)
+delete value 99        [5 10 20 30 40 50]  (n=6)
+merge sorted           [1 2 3 3 4 5 7 8 40]  (n=9)
+concat                 [1 3 5 7 40 2 3 4 8]  (n=9)
+rotate left 3          [4 5 6 7 1 2 3]  (n=7)
+reverse                [3 2 1 7 6 5 4]  (n=7)
+two largest of {7,3,9,4,9,1}: 9, 9  (duplicates count separately)
+unique                 [1 2 3 5]  (n=4)
+pairs summing to 50: (10,40) (30,20) (15,35)
+array_ops: all tests passed</code></pre>
+
+<h2>3) المصفوفات المتعددة الأبعاد وحساب العنوان</h2>
+<p>الذاكرة خط واحد، فلازم نحوّل (i, j) لرقم واحد. فيه طريقتين متفق عليهم:</p>
+<!--fig:arr-rowcol--><figure class="fig"><div class="fside"><div class="fside-item"><b>Row-major (لغة C)</b><svg class="fsvg" viewBox="0 0 164 124" width="164" height="124" role="img" aria-label="row-major" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="30.3" class="tc" text-anchor="middle" font-size="12">0</text><rect x="46.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="30.3" class="tc" text-anchor="middle" font-size="12">1</text><rect x="82.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="30.3" class="tc" text-anchor="middle" font-size="12">2</text><rect x="118.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="30.3" class="tc" text-anchor="middle" font-size="12">3</text><rect x="10.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="66.3" class="tc" text-anchor="middle" font-size="12">4</text><rect x="46.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="66.3" class="tc" text-anchor="middle" font-size="12">5</text><rect x="82.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="66.3" class="tc" text-anchor="middle" font-size="12">6</text><rect x="118.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="66.3" class="tc" text-anchor="middle" font-size="12">7</text><rect x="10.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="102.3" class="tc" text-anchor="middle" font-size="12">8</text><rect x="46.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="102.3" class="tc" text-anchor="middle" font-size="12">9</text><rect x="82.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="102.3" class="tc" text-anchor="middle" font-size="12">10</text><rect x="118.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="102.3" class="tc" text-anchor="middle" font-size="12">11</text></svg></div><div class="fside-item"><b>Column-major (Fortran / MATLAB)</b><svg class="fsvg" viewBox="0 0 164 124" width="164" height="124" role="img" aria-label="column-major" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="30.3" class="tc" text-anchor="middle" font-size="12">0</text><rect x="46.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="30.3" class="tc" text-anchor="middle" font-size="12">3</text><rect x="82.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="30.3" class="tc" text-anchor="middle" font-size="12">6</text><rect x="118.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="30.3" class="tc" text-anchor="middle" font-size="12">9</text><rect x="10.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="66.3" class="tc" text-anchor="middle" font-size="12">1</text><rect x="46.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="66.3" class="tc" text-anchor="middle" font-size="12">4</text><rect x="82.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="66.3" class="tc" text-anchor="middle" font-size="12">7</text><rect x="118.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="66.3" class="tc" text-anchor="middle" font-size="12">10</text><rect x="10.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="102.3" class="tc" text-anchor="middle" font-size="12">2</text><rect x="46.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="102.3" class="tc" text-anchor="middle" font-size="12">5</text><rect x="82.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="102.3" class="tc" text-anchor="middle" font-size="12">8</text><rect x="118.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="102.3" class="tc" text-anchor="middle" font-size="12">11</text></svg></div></div><figcaption>نفس المصفوفة 3×4، والرقم جوه الخلية هو <b>ترتيب تخزينها في الذاكرة</b>. في row-major بنخلّص الصف كله قبل ما ننزل للي بعده، وفي column-major بنخلّص العمود. العنوان: row-major = <code>Base + w·(i·C + j)</code> وcolumn-major = <code>Base + w·(j·R + i)</code>.</figcaption></figure><!--/fig:arr-rowcol-->
+<p>C بتستخدم <b>row-major</b>. وده مش مجرد تفصيلة: لو بتلف على مصفوفة كبيرة بـ <code>for i { for j { a[i][j] } }</code> بتمشي ورا بعض في الذاكرة (الـ cache مبسوط)، ولو عكست الحلقتين بتقفز كل مرة <code>C</code> عنصر — والفرق ممكن يبقى 5–10 أضعاف في السرعة على مصفوفات كبيرة.</p>
+<pre><code>/* 1-D:  Addr(A[i]) = Base + w * (i - LB)                                   */
+long addr1(long base, long w, long lb, long i) { return base + w * (i - lb); }
+
+/* 2-D with arbitrary lower bounds, R rows x C columns:
+ *   row-major    Addr(A[i][j]) = Base + w * ((i - LBr) * C + (j - LBc))
+ *   column-major Addr(A[i][j]) = Base + w * ((j - LBc) * R + (i - LBr))    */
+long addr2_row(long base, long w, long lbr, long lbc, long R, long C, long i, long j)
+{ (void)R; return base + w * ((i - lbr) * C + (j - lbc)); }
+
+long addr2_col(long base, long w, long lbr, long lbc, long R, long C, long i, long j)
+{ (void)C; return base + w * ((j - lbc) * R + (i - lbr)); }
+
+/* n-D row-major: the LAST subscript varies fastest. Horner-style: */
+long addrN_row(long base, long w, int n, const long lb[], const long len[], const long idx[])
+{
+    long off = 0;
+    for (int d = 0; d &lt; n; d++) off = off * len[d] + (idx[d] - lb[d]);
+    return base + w * off;
+}
+
+/* n-D column-major: the FIRST subscript varies fastest. */
+long addrN_col(long base, long w, int n, const long lb[], const long len[], const long idx[])
+{
+    long off = 0;
+    for (int d = n - 1; d &gt;= 0; d--) off = off * len[d] + (idx[d] - lb[d]);
+    return base + w * off;
+}</code></pre>
+<p>الدالة <code>addrN_row</code> بتعمل نفس الحاجة لأي عدد أبعاد بأسلوب Horner: <code>off = off·len[d] + idx[d]</code>. وده بالظبط اللي المترجم بيعمله لـ <code>T[i][j][k]</code> (<code>(i·4 + j)·5 + k</code> في <code>int T[3][4][5]</code>). الكود بيتأكد إن المعادلة تطابق <code>&amp;M[i][j]</code> الحقيقي لكل الخلايا.</p>
+<pre><code>Q8  arr[35] (base 1000, w 2)              = 1070
+Q9  Marks[8][5] row-major (base 2000)     = 2090   (note: column index 5 is OUT of range 0..4!)
+Q13 arr[8][5] column-major (base 1000)    = 1116
+row-major formula matches &amp;M[i][j] for all 24 cells
+A[-2..2][1..4], A[1][3] row-major         = 556
+T[1][2][3] row-major offset = 33 elements; column-major offset = 43
+address_calc: all tests passed</code></pre>
+<div class="tip"><b>مثال محلول</b><code>A[-2..2][1..4]</code> (5 صفوف × 4 أعمدة)، w=4، Base=500. عنوان <code>A[1][3]</code> row-major = 500 + 4·((1−(−2))·4 + (3−1)) = 500 + 4·14 = <b>556</b>.</div>
+
+<h2>4) المصفوفة الـ sparse: ليه نخزّن الأصفار؟</h2>
+<p>جدول 1000×1000 بيحجز مليون خانة. لو فيه 3000 قيمة بس غير صفرية (زي مصفوفة الجيران لشبكة طرق، أو مصفوفة معاملات معادلات)، ٩٩٫٧٪ من الذاكرة بيضيع على أصفار. الحل: نخزّن بس الحدود غير الصفرية كـ <b>triplets</b> (row, col, val) مرتبة بالصف ثم العمود.</p>
+<!--fig:sparse-triplet--><figure class="fig"><div class="fside"><div class="fside-item"><svg class="fsvg" viewBox="0 0 236 196" width="236" height="196" role="img" aria-label="sparse matrix" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="8.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="27.0" y="30.3" class="tc" text-anchor="middle" font-size="12">15</text><rect x="46.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="30.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="82.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="30.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="118.0" y="8.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="135.0" y="30.3" class="tc" text-anchor="middle" font-size="12">22</text><rect x="154.0" y="8.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="171.0" y="30.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="190.0" y="8.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="207.0" y="30.3" class="tc" text-anchor="middle" font-size="12">-15</text><rect x="10.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="66.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="46.0" y="44.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="63.0" y="66.3" class="tc" text-anchor="middle" font-size="12">11</text><rect x="82.0" y="44.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="99.0" y="66.3" class="tc" text-anchor="middle" font-size="12">3</text><rect x="118.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="66.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="154.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="171.0" y="66.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="190.0" y="44.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="207.0" y="66.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="10.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="102.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="46.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="102.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="82.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="102.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="118.0" y="80.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="135.0" y="102.3" class="tc" text-anchor="middle" font-size="12">-6</text><rect x="154.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="171.0" y="102.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="190.0" y="80.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="207.0" y="102.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="10.0" y="116.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="27.0" y="138.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="46.0" y="116.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="138.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="82.0" y="116.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="138.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="118.0" y="116.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="138.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="154.0" y="116.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="171.0" y="138.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="190.0" y="116.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="207.0" y="138.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="10.0" y="152.0" width="34.0" height="34.0" rx="4" class="hi"/><text x="27.0" y="174.3" class="tc" text-anchor="middle" font-size="12">91</text><rect x="46.0" y="152.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="63.0" y="174.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="82.0" y="152.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="99.0" y="174.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="118.0" y="152.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="135.0" y="174.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="154.0" y="152.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="171.0" y="174.3" class="tc" text-anchor="middle" font-size="12">·</text><rect x="190.0" y="152.0" width="34.0" height="34.0" rx="4" class="cell"/><text x="207.0" y="174.3" class="tc" text-anchor="middle" font-size="12">·</text></svg></div><div class="fside-item"><table class="comp-table"><tr><th></th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr><tr><th>row</th><td>5</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>2</td><td>4</td></tr><tr><th>col</th><td>6</td><td>0</td><td>3</td><td>5</td><td>1</td><td>2</td><td>3</td><td>0</td></tr><tr><th>val</th><td>7</td><td>15</td><td>22</td><td>-15</td><td>11</td><td>3</td><td>-6</td><td>91</td></tr></table></div></div><figcaption>مصفوفة 5×6 فيها 7 قيم غير صفرية بس. التخزين الكثيف 30 خانة، والـ triplet 24 (العمود 0 هو الـ header: عدد الصفوف، الأعمدة، الحدود). الفايدة الحقيقية بتظهر لما المصفوفة 1000×1000 وفيها 3000 حد: 3000×3 بدل مليون.</figcaption></figure><!--/fig:sparse-triplet-->
+<pre><code>void sp_from_dense(Sparse *s, int rows, int cols, const int *d)
+{
+    s-&gt;rows = rows; s-&gt;cols = cols; s-&gt;n = 0;
+    for (int i = 0; i &lt; rows; i++)
+        for (int j = 0; j &lt; cols; j++)
+            if (d[i * cols + j] != 0) {
+                assert(s-&gt;n &lt; MAXT);
+                s-&gt;t[s-&gt;n++] = (Term){ i, j, d[i * cols + j] };
+            }
+}</code></pre>
+<h3>Transpose: الطريقة البطيئة والسريعة</h3>
+<p>transpose معناها نبدّل الصف بالعمود، بس لازم نحافظ على ترتيب (صف، عمود) في النتيجة. الطريقة الساذجة: لكل عمود c من A، لف على <b>كل</b> الحدود ودوّر على اللي عمودها c. تكلفتها <code>O(cols · n)</code>، ولو المصفوفة مش sparse جدًا (n ≈ rows·cols) تبقى O(rows·cols²) — أبطأ من التخزين العادي!</p>
+<pre><code>/* Simple transpose: for each column c of A (in order), scan ALL terms.
+ * Cost O(cols * n). When n ~ rows*cols this is O(rows*cols^2): worse than dense! */
+void sp_transpose_slow(const Sparse *a, Sparse *b)
+{
+    b-&gt;rows = a-&gt;cols; b-&gt;cols = a-&gt;rows; b-&gt;n = a-&gt;n;
+    int k = 0;
+    for (int c = 0; c &lt; a-&gt;cols; c++)
+        for (int p = 0; p &lt; a-&gt;n; p++)
+            if (a-&gt;t[p].col == c) b-&gt;t[k++] = (Term){ c, a-&gt;t[p].row, a-&gt;t[p].val };
+}</code></pre>
+<p>الطريقة السريعة هي نفس <b>key-indexed counting</b> اللي شفناه في <a href="#/shellsort-more">الفصل 6</a>: (1) نعدّ عدد الحدود في كل عمود، (2) نحوّل العدّ لمواقع بداية (prefix sums)، (3) نحط كل حد في مكانه من غير ما نبحث. تكلفتها <code>O(cols + n)</code>.</p>
+<pre><code>/* Fast transpose: first COUNT the terms in each column, turn the counts into
+ * starting positions (prefix sums), then place every term once.
+ * Cost O(cols + n)  — the same trick as key-indexed counting. */
+void sp_transpose_fast(const Sparse *a, Sparse *b)
+{
+    int cnt[MAXT] = {0}, pos[MAXT] = {0};
+    b-&gt;rows = a-&gt;cols; b-&gt;cols = a-&gt;rows; b-&gt;n = a-&gt;n;
+    for (int p = 0; p &lt; a-&gt;n; p++) cnt[a-&gt;t[p].col]++;
+    for (int c = 1; c &lt; a-&gt;cols; c++) pos[c] = pos[c - 1] + cnt[c - 1];
+    for (int p = 0; p &lt; a-&gt;n; p++) {
+        int q = pos[a-&gt;t[p].col]++;
+        b-&gt;t[q] = (Term){ a-&gt;t[p].col, a-&gt;t[p].row, a-&gt;t[p].val };
+    }
+}</code></pre>
+<h3>الجمع والضرب</h3>
+<p>الجمع = دمج قايمتين مرتبتين (نفس merge فوق) مع مراعاة إن حدّين في نفس الخلية بيتجمعوا وممكن يطلعوا صفر (ساعتها نشيل الحد). الضرب: نحوّل B لـ Bᵀ بالـ fast transpose، فصف في A وصف في Bᵀ هما قايمتين مرتبتين بالعمود، والـ dot product بيتعمل بـ merge.</p>
+<pre><code>/* C = A + B : merge two sorted term lists (like merging two sorted arrays). */
+int sp_add(const Sparse *a, const Sparse *b, Sparse *c)
+{
+    if (a-&gt;rows != b-&gt;rows || a-&gt;cols != b-&gt;cols) return 0;
+    c-&gt;rows = a-&gt;rows; c-&gt;cols = a-&gt;cols; c-&gt;n = 0;
+    int i = 0, j = 0;
+    while (i &lt; a-&gt;n || j &lt; b-&gt;n) {
+        long ka = i &lt; a-&gt;n ? (long)a-&gt;t[i].row * a-&gt;cols + a-&gt;t[i].col : -1;
+        long kb = j &lt; b-&gt;n ? (long)b-&gt;t[j].row * b-&gt;cols + b-&gt;t[j].col : -1;
+        if (j &gt;= b-&gt;n || (i &lt; a-&gt;n &amp;&amp; ka &lt; kb)) c-&gt;t[c-&gt;n++] = a-&gt;t[i++];
+        else if (i &gt;= a-&gt;n || kb &lt; ka)          c-&gt;t[c-&gt;n++] = b-&gt;t[j++];
+        else {                                  /* same cell */
+            int v = a-&gt;t[i].val + b-&gt;t[j].val;
+            if (v) c-&gt;t[c-&gt;n++] = (Term){ a-&gt;t[i].row, a-&gt;t[i].col, v };
+            i++; j++;
+        }
+    }
+    return 1;
+}</code></pre>
+<pre><code>/* C = A * B using B^T: every row of A is dotted with every row of B^T,
+ * walking two sorted lists (like merge). Cost O(rowsA * n_B + colsB * n_A ...). */
+int sp_mul(const Sparse *a, const Sparse *b, Sparse *c)
+{
+    if (a-&gt;cols != b-&gt;rows) return 0;
+    Sparse bt; sp_transpose_fast(b, &amp;bt);
+    c-&gt;rows = a-&gt;rows; c-&gt;cols = b-&gt;cols; c-&gt;n = 0;
+    int ra = 0;
+    while (ra &lt; a-&gt;n) {
+        int row = a-&gt;t[ra].row, rend = ra;
+        while (rend &lt; a-&gt;n &amp;&amp; a-&gt;t[rend].row == row) rend++;      /* terms [ra,rend) */
+        int cb = 0;
+        while (cb &lt; bt.n) {
+            int col = bt.t[cb].row, cend = cb;                    /* row of B^T = col of B */
+            while (cend &lt; bt.n &amp;&amp; bt.t[cend].row == col) cend++;
+            int i = ra, j = cb, sum = 0;
+            while (i &lt; rend &amp;&amp; j &lt; cend) {
+                if (a-&gt;t[i].col &lt; bt.t[j].col) i++;
+                else if (a-&gt;t[i].col &gt; bt.t[j].col) j++;
+                else sum += a-&gt;t[i++].val * bt.t[j++].val;
+            }
+            if (sum) { assert(c-&gt;n &lt; MAXT); c-&gt;t[c-&gt;n++] = (Term){ row, col, sum }; }
+            cb = cend;
+        }
+        ra = rend;
+    }
+    return 1;
+}</code></pre>
+<pre><code>A  (5 x 6, 7 non-zero)
+  row:  0  0  0  1  1  2  4
+  col:  0  3  5  1  2  3  0
+  val: 15 22 -15 11  3 -6 91
+dense cells: 30,  triplet cells: 24 (3 per term + header)
+A^T (fast)  (6 x 5, 7 non-zero)
+  row:  0  0  1  2  3  3  5
+  col:  0  4  1  1  0  2  0
+  val: 15 91 11  3 22 -6 -15
+200 random add / multiply cases agree with the dense computation
+A * B  (5 x 2, 5 non-zero)
+  row:  0  0  1  2  4
+  col:  0  1  1  0  0
+  val: 81 15 22 -18 91
+sparse_matrix: all tests passed</code></pre>
+<p>البرنامج بيجرّب 200 حالة عشوائية ويقارن الجمع والضرب بالحساب الكثيف على نفس الأرقام — ولا فرق ولا مرة.</p>
+
+<h2>5) المصفوفات الخاصة: مثلثية وtri-diagonal</h2>
+<p>لو المصفوفة ليها شكل ثابت (كل اللي فوق القطر أصفار)، مش محتاجين triplets أصلًا: بنعرف مكان كل خلية بمعادلة. <b>Lower-triangular</b> فيها <code>n(n+1)/2</code> خلية، ونرقّمها صف بصف:</p>
+<!--fig:tri-pack--><figure class="fig"><svg class="fsvg" viewBox="0 0 210 206" width="210" height="206" role="img" aria-label="lower triangular packing" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="8.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="28.0" y="31.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="48.0" y="8.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="66.0" y="31.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="86.0" y="8.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="104.0" y="31.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="124.0" y="8.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="142.0" y="31.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="162.0" y="8.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="180.0" y="31.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="10.0" y="46.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="28.0" y="69.6" class="tc" text-anchor="middle" font-size="12">1</text><rect x="48.0" y="46.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="66.0" y="69.6" class="tc" text-anchor="middle" font-size="12">2</text><rect x="86.0" y="46.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="104.0" y="69.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="124.0" y="46.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="142.0" y="69.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="162.0" y="46.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="180.0" y="69.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="10.0" y="84.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="28.0" y="107.6" class="tc" text-anchor="middle" font-size="12">3</text><rect x="48.0" y="84.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="66.0" y="107.6" class="tc" text-anchor="middle" font-size="12">4</text><rect x="86.0" y="84.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="104.0" y="107.6" class="tc" text-anchor="middle" font-size="12">5</text><rect x="124.0" y="84.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="142.0" y="107.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="162.0" y="84.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="180.0" y="107.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="10.0" y="122.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="28.0" y="145.6" class="tc" text-anchor="middle" font-size="12">6</text><rect x="48.0" y="122.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="66.0" y="145.6" class="tc" text-anchor="middle" font-size="12">7</text><rect x="86.0" y="122.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="104.0" y="145.6" class="tc" text-anchor="middle" font-size="12">8</text><rect x="124.0" y="122.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="142.0" y="145.6" class="tc" text-anchor="middle" font-size="12">9</text><rect x="162.0" y="122.0" width="36.0" height="36.0" rx="4" class="dim"/><text x="180.0" y="145.6" class="tc" text-anchor="middle" font-size="12">0</text><rect x="10.0" y="160.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="28.0" y="183.6" class="tc" text-anchor="middle" font-size="12">10</text><rect x="48.0" y="160.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="66.0" y="183.6" class="tc" text-anchor="middle" font-size="12">11</text><rect x="86.0" y="160.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="104.0" y="183.6" class="tc" text-anchor="middle" font-size="12">12</text><rect x="124.0" y="160.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="142.0" y="183.6" class="tc" text-anchor="middle" font-size="12">13</text><rect x="162.0" y="160.0" width="36.0" height="36.0" rx="4" class="hi"/><text x="180.0" y="183.6" class="tc" text-anchor="middle" font-size="12">14</text></svg><figcaption>مصفوفة lower-triangular 5×5. الأرقام هي <b>رقم الخانة في المصفوفة المضغوطة</b> (<code>i(i+1)/2 + j</code>): الصف 0 ليه خلية، الصف 1 اتنين، وهكذا لحد 15 خانة بدل 25. الأصفار الباهتة مش متخزّنة.</figcaption></figure><!--/fig:tri-pack-->
+<pre><code>/* 0-based (i, j).  Row i of a lower triangle holds i+1 cells, so the rows
+ * before it hold 0+1+...+i = i(i+1)/2 cells.                                 */
+static long lower_idx(int i, int j)  { return (long)i * (i + 1) / 2 + j; }    /* needs j &lt;= i */
+
+/* upper triangle, row by row: row r holds n-r cells; rows before i hold
+ * n + (n-1) + ... + (n-i+1) = i*n - i(i-1)/2                                  */
+static long upper_idx(int n, int i, int j) { return (long)i * n - (long)i * (i - 1) / 2 + (j - i); } /* j &gt;= i */
+
+/* tri-diagonal: only |i-j| &lt;= 1. Row 0 has 2 cells (slots 0,1); every later row
+ * has 3, so row i starts at slot 2 + 3(i-1) = 3i-1  =&gt;  slot(i,j) = 3i-1 + (j-i+1) = 2i+j. */
+static long tri_idx(int i, int j) { return 2L * i + j; }                      /* j in {i-1,i,i+1} */</code></pre>
+<p>اشتقاق <code>tri_idx</code>: الصف 0 ليه خليتين (slots 0 و1)، وأي صف بعده ليه 3، فالصف i بيبدأ عند <code>2 + 3(i−1) = 3i−1</code>، والخلية (i, j) بتبقى في <code>3i−1 + (j−i+1) = 2i + j</code>. مجموع الخلايا <code>3n−2</code>. والـ symmetric matrix بنخزّن نصها بس (lower) ونقرأ <code>(i,j)</code> كـ <code>(j,i)</code> لو i&lt;j: <code>n(n+1)/2</code> بدل n².</p>
+<pre><code>typedef struct { int n; int *a; } TriM;                 /* 3n-2 cells */
+static TriM tri_new(int n) { TriM m = { n, calloc((size_t)(3 * n - 2), sizeof(int)) }; return m; }
+static int  tri_get(const TriM *m, int i, int j) { return (j &lt; i - 1 || j &gt; i + 1) ? 0 : m-&gt;a[tri_idx(i, j)]; }
+static void tri_set(TriM *m, int i, int j, int v) { assert(j &gt;= i - 1 &amp;&amp; j &lt;= i + 1); m-&gt;a[tri_idx(i, j)] = v; }</code></pre>
+<pre><code>lower-triangular index map is a bijection onto 0..14
+upper-triangular index map is a bijection onto 0..14
+row 0: 10
+row 1: 62
+row 2: 188
+row 3: 420
+row 4: 790
+memory: dense 25 ints, packed lower 15 ints
+tri-diagonal: 13 cells instead of 25 (n = 5); slot of (3,2)=8, (3,3)=9, (3,4)=10
+special_matrices: all tests passed</code></pre>
+
+<h2>جدول القرار</h2>
+<table class="comp-table">
+<tr><th>الحالة</th><th>التمثيل</th><th>الذاكرة</th><th>وصول لخلية</th></tr>
+<tr><td>كثيفة</td><td>array 2-D عادي</td><td>n·m</td><td>O(1)</td></tr>
+<tr><td>مثلثية / symmetric</td><td>مضغوطة بمعادلة</td><td>≈ n²/2</td><td>O(1)</td></tr>
+<tr><td>tri-diagonal / band</td><td>مضغوطة بمعادلة</td><td>3n−2</td><td>O(1)</td></tr>
+<tr><td>sparse عشوائية</td><td>triplets</td><td>3·(عدد الحدود)</td><td>O(log n) بـ binary search أو O(n)</td></tr>
+</table>
+<p>لو الـ sparse بتتغيّر كتير (إدخال وحذف حدود)، المصفوفة المتتالية بتتعب (كل إدخال إزاحة) — وقتها بنستخدم <b>قوايم مترابطة</b>، وده موضوع <a href="#/linked-variants">الدرس الجاي</a> (قايمة لكل صف).</p>
+
+<div class="quiz"><p class="q">لـ <code>int a[4][6]</code> عنوانها 1000 (Base)، عنوان <code>a[2][3]</code> بالبايت (int=4)؟</p>
+<button>1000 + 4·(2·4+3) = 1044</button>
+<button data-ok>1000 + 4·(2·6+3) = 1060</button>
+<button>1000 + 4·(3·4+2) = 1056</button>
+<p class="why">row-major: بنضرب الصف في <b>عدد الأعمدة</b> (6) مش الصفوف.</p></div>
+<div class="quiz"><p class="q">ليه الإدخال في array بيبدأ الإزاحة من آخر عنصر؟</p>
+<button>عشان أسرع</button>
+<button data-ok>عشان ما نكتبش فوق عنصر لسه محتاجينه</button>
+<button>مفيش فرق</button>
+<p class="why">لو بدأت من الأول هتنسخ a[pos] على كل اللي بعده وتضيّع القيم.</p></div>
+<div class="quiz"><p class="q">عدد الخلايا المخزّنة في lower-triangular مصفوفة 100×100؟</p>
+<button>10000</button>
+<button data-ok>5050</button>
+<button>100</button>
+<p class="why">1+2+…+100 = 100·101/2 = 5050.</p></div>
+<div class="quiz"><p class="q">إمتى الـ transpose البطيء للـ sparse بيبقى كارثة؟</p>
+<button>لما المصفوفة صغيرة</button>
+<button data-ok>لما عدد الحدود n قريب من rows·cols، فيبقى O(cols·n) ≈ O(rows·cols²)</button>
+<button>لما الأعمدة قليلة جدًا</button>
+<p class="why">الـ fast بيحافظ على O(cols + n) في كل الحالات.</p></div>
