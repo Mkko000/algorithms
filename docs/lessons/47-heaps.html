@@ -1,0 +1,749 @@
+<p class="meta">المراجع: Thareja ف12 (12.1 binary heaps، 12.2 binomial heaps، 12.3 Fibonacci heaps) · Weiss ف6 (6.1–6.5 binary heap وd-heap، 6.6 leftist، 6.7 skew، 6.8 binomial queues، تمارين 6.1–6.40) · Pal &amp; Halder 6.x (priority queue بالـ heap) و8.x (Fig 8.23) · Bandyopadhyay &amp; Dey 10.2.8 (Fig 10.6–10.8). كل الكود في <code>src/23-heaps/</code> وكله بيتأكد بـ assert.</p>
+<p>الـ <b>priority queue</b> هيكل بيطلّع دايمًا أصغر (أو أكبر) عنصر. في دروس سابقة شفنا <a href="#/pq-advanced">الـ priority queue عند Sedgewick</a> و<a href="#/heapsort">heapsort</a> و<a href="#/stacks-queues-apps">الـ priority queue كقايمة في الباب 19</a>. الدرس ده بيغطي اللي الكتب التانية بتضيفه: <b>تحليل الـ heap بالتفصيل، d-heap، min-max heap، وعيلة الـ heaps القابلة للدمج</b> (leftist وskew وbinomial وFibonacci).</p>
+<div class="goal"><b>هدف الدرس:</b> تكتب binary heap من الصفر وتشرح ليه البناء بطريقة Floyd خطي، وتعمل merge لـ leftist وskew heaps بإيدك، وتفهم إن binomial queue هو «عدّاد ثنائي» من الأشجار، وتعرف ليه Fibonacci heap بيخلّي decrease-key رخيص.</div>
+
+<h2>1) المشكلة: أصغر عنصر بسرعة (Weiss 6، Thareja 12.1، P&amp;H 6.x)</h2>
+<p>العمليات: <code>insert</code> و<code>deleteMin</code> (وأحيانًا <code>findMin</code> و<code>decreaseKey</code> و<code>merge</code>). P&amp;H بتعرض التمثيلات التلاتة في Table 6.7:</p>
+<table class="comp-table">
+<tr><th>التمثيل</th><th>Insert</th><th>Peek</th><th>Remove</th></tr>
+<tr><td>array أو قايمة <b>غير مرتبة</b></td><td>O(1)</td><td>O(n)</td><td>O(n)</td></tr>
+<tr><td>array أو قايمة <b>مرتبة</b></td><td>O(n)</td><td>O(1)</td><td>O(1)</td></tr>
+<tr><td><b>heap</b></td><td>O(log n)</td><td>O(1)</td><td>O(log n)</td></tr>
+</table>
+<p>الجدول ده بيطلع من عدّ فعلي في <code>ex23_03</code> (n = 4096): مسح القايمة غير المرتبة 8,386,560 خانة، وإدخال في المرتبة 4,248,715 إزاحة، مقابل حوالي 12 خطوة لكل عملية في الـ heap.</p>
+<pre><code>== P&amp;H priority queue: Insert / Peek / Remove on a max-heap ==
+  after inserting 5 17 3 22 9 30 1   30 17 22 5 9 3 1
+  removals come out in priority order: 30 22 17 9 5 3 1 
+Queue Underflow
+== P&amp;H Table 6.7: insert / peek / remove costs, counted ==
+  n=4096: unsorted remove scanned 8386560 cells; sorted insert shifted 4248715; heap insert &lt;= 40974 levels; heap remove 4096 ops of log n
+== P&amp;H Fig 8.23: (a) a max-heap, (b) a min-heap of the same keys ==
+  (a) max-heap array                 14 12 7 10 9 6
+...</code></pre>
+
+<h2>2) تعريف الـ heap (Thareja 12.1، Weiss 6.3، P&amp;H Fig 8.23، B&amp;D 10.2.8)</h2>
+<p>الـ heap شجرة ثنائية <b>كاملة</b> (complete: كل المستويات ممتلية ما عدا الأخير وده بيتملي من الشمال) + <b>خاصية الترتيب</b>: في الـ min-heap كل عقدة ≤ ولادها (والـ max-heap العكس). الأقدمين بيسموها «partially ordered tree». Fig 8.23 في P&amp;H: (a) max-heap <code>14 12 7 10 9 6</code> و(b) min-heap <code>2 7 5 10 9 6</code>؛ البرنامج بيتأكد إن (a) مش min-heap و(b) مش max-heap.</p>
+<div class="tip"><b>ترتيب جزئي مش كلي</b>الأخوات ما ليهمش علاقة ببعض، فـ heap مش BST: ممكن 10 يبقى شمال 9. <code>ex23_01</code> Q28 بيعدّ بالقوة الغاشمة عدد الترتيبات اللي بتبقى heap وBST في نفس الوقت: 2 لـ n=1، و1 لـ n=2 (ترتيب واحد)، و<b>صفر لكل n من 3 لـ 7</b> (بيتعدّ لحد 7)، لأن في BST الشمال أصغر من الجذر والتاني أكبر، وفي الـ heap الجذر أصغر من الاتنين (أو أكبر منهم).</div>
+<p>الشكل الكامل بيخلّي التخزين في array من غير مؤشرات (أول خانة 1): الأب <code>i/2</code>، والأبناء <code>2i</code> و<code>2i+1</code>. و<b>الارتفاع ⌊log₂ n⌋</b> وعدد العقد في شجرة كاملة ارتفاعها h بين 2<sup>h</sup> و2<sup>h+1</sup>−1 (Weiss 6.6).</p>
+<!--fig:ds23-fig122--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 260 206" width="260" height="206" role="img" aria-label="max-heap" xmlns="http://www.w3.org/2000/svg"><line x1="145.0" y1="23.0" x2="85.0" y2="67.0" class="edge"/><line x1="85.0" y1="67.0" x2="55.0" y2="111.0" class="edge"/><line x1="55.0" y1="111.0" x2="25.0" y2="155.0" class="edge"/><line x1="85.0" y1="67.0" x2="115.0" y2="111.0" class="edge"/><line x1="145.0" y1="23.0" x2="205.0" y2="67.0" class="edge"/><line x1="205.0" y1="67.0" x2="175.0" y2="111.0" class="edge"/><line x1="205.0" y1="67.0" x2="235.0" y2="111.0" class="edge"/><circle cx="25.0" cy="155.0" r="13" class="node"/><text x="25.0" y="160.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="55.0" cy="111.0" r="13" class="node"/><text x="55.0" y="116.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="115.0" cy="111.0" r="13" class="node"/><text x="115.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="85.0" cy="67.0" r="13" class="node"/><text x="85.0" y="72.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="175.0" cy="111.0" r="13" class="node"/><text x="175.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="235.0" cy="111.0" r="13" class="node"/><text x="235.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="205.0" cy="67.0" r="13" class="node"/><text x="205.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="145.0" cy="23.0" r="13" class="node"/><text x="145.0" y="28.0" class="tn" text-anchor="middle" font-size="13">54</text></svg><svg class="fsvg" viewBox="0 0 234 44" width="234" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">54</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="197.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="210.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text></svg></div><figcaption>Fig 12.2: الـ heap كشجرة وكـ array (الشجرة مش بتتخزن فعلاً: الأب i وأبناؤه 2i و2i+1).</figcaption></figure><!--/fig:ds23-fig122-->
+<p><b>أسئلة Thareja 21–24:</b> الشجرة <code>4 | 6 12 | 7 9 21 39 | 13 19 10</code> هي min-heap (مش max-heap)، وتمثيلها <code>4 6 12 7 9 21 39 13 19 10</code>. والـ array <code>45 27 36 18 16 21 23 10</code> فيها أب 10 هو 18 (الخانة 4)، وأب 21 هو 36، وأب 23 هو 36 (الخانة 7: ولاده كانوا هيبقوا في 14 و15 وهما بره n=8). كلها في <code>ex23_01</code>.</p>
+
+<h2>3) الإدخال (Thareja Fig 12.7، Example 12.1، P&amp;H Algorithm Insert)</h2>
+<p>نحط العنصر في أول خانة فاضية (الشجرة تفضل كاملة) وبعدين <b>نطلّعه</b> (percolate up / shift-up) طول ما هو أحسن من أبوه. أقصى حاجة = عمق الشجرة.</p>
+<pre><code>typedef struct { int *a; int n, cap; int mx; long cmp; } BHeap;   /* a[0] unused (or a sentinel); mx=1: max-heap */
+
+static BHeap bh_new(int cap, int mx) { BHeap h = { calloc((size_t)cap + 2, sizeof(int)), 0, cap, mx, 0 }; return h; }
+static void  bh_free(BHeap *h) { free(h-&gt;a); h-&gt;a = NULL; }
+/* &quot;x belongs above y&quot;: the one comparison the whole structure is made of */
+static int   bh_above(BHeap *h, int x, int y) { h-&gt;cmp++; return h-&gt;mx ? x &gt; y : x &lt; y; }
+static void  bh_swap(int *x, int *y) { int t = *x; *x = *y; *y = t; }
+
+/* Thareja Fig 12.7: put VAL at the end (the tree stays complete), then let it rise while it beats its parent */
+static int bh_insert(BHeap *h, int val)
+{
+    assert(h-&gt;n &lt; h-&gt;cap);
+    int pos = ++h-&gt;n;                                  /* Step 1 */
+    h-&gt;a[pos] = val;                                   /* Step 2 */
+    while (pos &gt; 1) {                                  /* Steps 3-5 */
+        int par = pos / 2;
+        if (!bh_above(h, h-&gt;a[pos], h-&gt;a[par])) break;
+        bh_swap(&amp;h-&gt;a[pos], &amp;h-&gt;a[par]);
+        pos = par;
+    }
+    return pos;                                        /* where VAL finally rests */
+}
+
+/* Thareja Fig 12.10: remove the root. LAST replaces it and sinks. The book&#x27;s Step 5 reads HEAP[RIGHT] even when
+   RIGHT &gt; N (a node with a single child). That works in the book because cell N+1 still holds LAST; here we test RIGHT &lt;= N first, so the code never relies on a stale cell (see exercises/ex23_01). */
+static int bh_delete_root(BHeap *h)
+{
+    assert(h-&gt;n &gt; 0);
+    int top = h-&gt;a[1], last = h-&gt;a[h-&gt;n--];            /* Step 1 */
+    if (h-&gt;n == 0) return top;
+    int ptr = 1, left = 2;                             /* Step 2 */
+    h-&gt;a[ptr] = last;                                  /* Step 3 */
+    while (left &lt;= h-&gt;n) {                             /* Step 4 */
+        int c = left;                                  /* the better child */
+        if (left + 1 &lt;= h-&gt;n &amp;&amp; bh_above(h, h-&gt;a[left + 1], h-&gt;a[left])) c = left + 1;
+        if (!bh_above(h, h-&gt;a[c], h-&gt;a[ptr])) break;   /* Step 5: PTR is at least as good as both children */
+        bh_swap(&amp;h-&gt;a[ptr], &amp;h-&gt;a[c]);                 /* Steps 6-7 */
+        ptr = c; left = 2 * ptr;
+    }
+    return top;
+}</code></pre>
+<p>مثال Thareja 12.1: ندخّل 99 في max-heap بتاعة Fig 12.2 (<code>54 45 36 27 21 18 21 11</code>):</p>
+<!--fig:ds23-insert99--><div class="steps"><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 290 206" width="290" height="206" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="175.0" y1="23.0" x2="115.0" y2="67.0" class="edge"/><line x1="115.0" y1="67.0" x2="55.0" y2="111.0" class="edge"/><line x1="55.0" y1="111.0" x2="25.0" y2="155.0" class="edge"/><line x1="55.0" y1="111.0" x2="85.0" y2="155.0" class="edge"/><line x1="115.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="23.0" x2="235.0" y2="67.0" class="edge"/><line x1="235.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><line x1="235.0" y1="67.0" x2="265.0" y2="111.0" class="edge"/><circle cx="25.0" cy="155.0" r="13" class="node"/><text x="25.0" y="160.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="85.0" cy="155.0" r="13" class="node hi"/><text x="85.0" y="160.0" class="tn" text-anchor="middle" font-size="13">99</text><circle cx="55.0" cy="111.0" r="13" class="node"/><text x="55.0" y="116.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="115.0" cy="67.0" r="13" class="node"/><text x="115.0" y="72.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="265.0" cy="111.0" r="13" class="node"/><text x="265.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="235.0" cy="67.0" r="13" class="node"/><text x="235.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="175.0" cy="23.0" r="13" class="node"/><text x="175.0" y="28.0" class="tn" text-anchor="middle" font-size="13">54</text></svg><svg class="fsvg" viewBox="0 0 262 44" width="262" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">54</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="197.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="210.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="225.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="238.0" y="24.0" class="tc" text-anchor="middle" font-size="13">99</text></svg></div><figcaption>نحط 99 في أول خانة فاضية (الخانة 9)؛ أبوه 27 أصغر منه.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 290 206" width="290" height="206" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="175.0" y1="23.0" x2="115.0" y2="67.0" class="edge"/><line x1="115.0" y1="67.0" x2="55.0" y2="111.0" class="edge"/><line x1="55.0" y1="111.0" x2="25.0" y2="155.0" class="edge"/><line x1="55.0" y1="111.0" x2="85.0" y2="155.0" class="edge"/><line x1="115.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="23.0" x2="235.0" y2="67.0" class="edge"/><line x1="235.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><line x1="235.0" y1="67.0" x2="265.0" y2="111.0" class="edge"/><circle cx="25.0" cy="155.0" r="13" class="node"/><text x="25.0" y="160.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="85.0" cy="155.0" r="13" class="node"/><text x="85.0" y="160.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="55.0" cy="111.0" r="13" class="node hi"/><text x="55.0" y="116.0" class="tn" text-anchor="middle" font-size="13">99</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="115.0" cy="67.0" r="13" class="node"/><text x="115.0" y="72.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="265.0" cy="111.0" r="13" class="node"/><text x="265.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="235.0" cy="67.0" r="13" class="node"/><text x="235.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="175.0" cy="23.0" r="13" class="node"/><text x="175.0" y="28.0" class="tn" text-anchor="middle" font-size="13">54</text></svg><svg class="fsvg" viewBox="0 0 262 44" width="262" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">54</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">99</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="197.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="210.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="225.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="238.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text></svg></div><figcaption>بدّلنا مع 27: بقى في الخانة 4 وأبوه 45 أصغر.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 290 206" width="290" height="206" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="175.0" y1="23.0" x2="115.0" y2="67.0" class="edge"/><line x1="115.0" y1="67.0" x2="55.0" y2="111.0" class="edge"/><line x1="55.0" y1="111.0" x2="25.0" y2="155.0" class="edge"/><line x1="55.0" y1="111.0" x2="85.0" y2="155.0" class="edge"/><line x1="115.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="23.0" x2="235.0" y2="67.0" class="edge"/><line x1="235.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><line x1="235.0" y1="67.0" x2="265.0" y2="111.0" class="edge"/><circle cx="25.0" cy="155.0" r="13" class="node"/><text x="25.0" y="160.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="85.0" cy="155.0" r="13" class="node"/><text x="85.0" y="160.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="55.0" cy="111.0" r="13" class="node"/><text x="55.0" y="116.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="115.0" cy="67.0" r="13" class="node hi"/><text x="115.0" y="72.0" class="tn" text-anchor="middle" font-size="13">99</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="265.0" cy="111.0" r="13" class="node"/><text x="265.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="235.0" cy="67.0" r="13" class="node"/><text x="235.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="175.0" cy="23.0" r="13" class="node"/><text x="175.0" y="28.0" class="tn" text-anchor="middle" font-size="13">54</text></svg><svg class="fsvg" viewBox="0 0 262 44" width="262" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">54</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">99</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="197.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="210.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="225.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="238.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text></svg></div><figcaption>بدّلنا مع 45: بقى في الخانة 2 وأبوه 54 أصغر.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 290 206" width="290" height="206" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="175.0" y1="23.0" x2="115.0" y2="67.0" class="edge"/><line x1="115.0" y1="67.0" x2="55.0" y2="111.0" class="edge"/><line x1="55.0" y1="111.0" x2="25.0" y2="155.0" class="edge"/><line x1="55.0" y1="111.0" x2="85.0" y2="155.0" class="edge"/><line x1="115.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="23.0" x2="235.0" y2="67.0" class="edge"/><line x1="235.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><line x1="235.0" y1="67.0" x2="265.0" y2="111.0" class="edge"/><circle cx="25.0" cy="155.0" r="13" class="node"/><text x="25.0" y="160.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="85.0" cy="155.0" r="13" class="node"/><text x="85.0" y="160.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="55.0" cy="111.0" r="13" class="node"/><text x="55.0" y="116.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="115.0" cy="67.0" r="13" class="node"/><text x="115.0" y="72.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="265.0" cy="111.0" r="13" class="node"/><text x="265.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="235.0" cy="67.0" r="13" class="node"/><text x="235.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="175.0" cy="23.0" r="13" class="node hi"/><text x="175.0" y="28.0" class="tn" text-anchor="middle" font-size="13">99</text></svg><svg class="fsvg" viewBox="0 0 262 44" width="262" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">99</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">54</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="197.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="210.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="225.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="238.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text></svg></div><figcaption>بدّلنا مع 54: وصل للجذر، خلص (3 تبديلات = عمق الشجرة).</figcaption></figure></div><!--/fig:ds23-insert99-->
+<p>P&amp;H بتكتب نفس الفكرة بدون swap: بتزحزح الأب لتحت وتحط العنصر مرة واحدة في الآخر (<code>Q[I] = Q[J]</code> في الحلقة ثم <code>Q[I] = ITEM</code>)، وده بيوفّر تلت التخصيصات؛ وهو بالظبط اللي بيتعمل في <code>ph_insert</code> في <code>ex23_03</code>. وWeiss 6.5 بيحط <b>نسخة من العنصر في الخانة 0 كحارس</b> فيتشال اختبار <code>pos &gt; 1</code> من الحلقة (<code>bh_insert_sentinel</code>)؛ اتجرّب على 2000 heap عشوائي وطلعت النتيجة نفس الإدخال العادي.</p>
+<pre><code>/* Weiss Exercise 6.5: put a copy of the inserted item in position 0. It stops the loop with no  pos &gt; 1  test. */
+static void bh_insert_sentinel(BHeap *h, int val)
+{
+    assert(h-&gt;n &lt; h-&gt;cap);
+    int pos = ++h-&gt;n;
+    h-&gt;a[0] = val;                                     /* nothing is above position 0: the loop ends there */
+    for (; bh_above(h, val, h-&gt;a[pos / 2]); pos /= 2) h-&gt;a[pos] = h-&gt;a[pos / 2];
+    h-&gt;a[pos] = val;
+}</code></pre>
+<div class="tip"><b>متوسط التكلفة</b>أسوأ إدخال O(log n) (لو العنصر الأصغر في الكل). Weiss بيقول إن المتوسط 2.607 مقارنة. اتقاس في <code>ex23_02</code> على heaps (لحد 1000 مفتاح) متبنية بإدخالات عشوائية متتالية فطلع <b>2.238</b>؛ الإعدادين مش بالضرورة نفس التوزيع، فمش بنقول إن الرقمين متعارضين.</div>
+
+<h2>4) الحذف (Thareja Fig 12.10، Example 12.3، P&amp;H Remove وHeapify)</h2>
+<p>الجذر هو اللي بيتشال. نحط <b>آخر عنصر</b> مكانه (الشجرة تفضل كاملة) وننزّله (percolate down) باستبداله مع <b>أحسن ابن</b> لحد ما يبقى أحسن من ابنيه أو ورقة. P&amp;H بتسميها <code>Heapify(Q, 1)</code>. مثال 12.3: بنمسح 54 من <code>54 45 36 27 29 18 21 11</code> فتطلع <code>45 29 36 27 11 18 21</code>:</p>
+<!--fig:ds23-deleteroot--><div class="steps"><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 230 162" width="230" height="162" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="115.0" y1="23.0" x2="55.0" y2="67.0" class="edge"/><line x1="55.0" y1="67.0" x2="25.0" y2="111.0" class="edge"/><line x1="55.0" y1="67.0" x2="85.0" y2="111.0" class="edge"/><line x1="115.0" y1="23.0" x2="175.0" y2="67.0" class="edge"/><line x1="175.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><circle cx="25.0" cy="111.0" r="13" class="node"/><text x="25.0" y="116.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="85.0" cy="111.0" r="13" class="node"/><text x="85.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="55.0" cy="67.0" r="13" class="node"/><text x="55.0" y="72.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="175.0" cy="67.0" r="13" class="node"/><text x="175.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="115.0" cy="23.0" r="13" class="node hi"/><text x="115.0" y="28.0" class="tn" text-anchor="middle" font-size="13">11</text></svg><svg class="fsvg" viewBox="0 0 206 44" width="206" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text></svg></div><figcaption>نشيل الجذر 54 ونحط آخر عنصر (11) مكانه.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 230 162" width="230" height="162" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="115.0" y1="23.0" x2="55.0" y2="67.0" class="edge"/><line x1="55.0" y1="67.0" x2="25.0" y2="111.0" class="edge"/><line x1="55.0" y1="67.0" x2="85.0" y2="111.0" class="edge"/><line x1="115.0" y1="23.0" x2="175.0" y2="67.0" class="edge"/><line x1="175.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><circle cx="25.0" cy="111.0" r="13" class="node"/><text x="25.0" y="116.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="85.0" cy="111.0" r="13" class="node"/><text x="85.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="55.0" cy="67.0" r="13" class="node hi"/><text x="55.0" y="72.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="175.0" cy="67.0" r="13" class="node"/><text x="175.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="115.0" cy="23.0" r="13" class="node"/><text x="115.0" y="28.0" class="tn" text-anchor="middle" font-size="13">45</text></svg><svg class="fsvg" viewBox="0 0 206 44" width="206" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text></svg></div><figcaption>11 أصغر من أكبر ابنين ← بدّلنا معاه ونزل خانة.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 230 162" width="230" height="162" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="115.0" y1="23.0" x2="55.0" y2="67.0" class="edge"/><line x1="55.0" y1="67.0" x2="25.0" y2="111.0" class="edge"/><line x1="55.0" y1="67.0" x2="85.0" y2="111.0" class="edge"/><line x1="115.0" y1="23.0" x2="175.0" y2="67.0" class="edge"/><line x1="175.0" y1="67.0" x2="145.0" y2="111.0" class="edge"/><line x1="175.0" y1="67.0" x2="205.0" y2="111.0" class="edge"/><circle cx="25.0" cy="111.0" r="13" class="node hi"/><text x="25.0" y="116.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="85.0" cy="111.0" r="13" class="node"/><text x="85.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="55.0" cy="67.0" r="13" class="node"/><text x="55.0" y="72.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="145.0" cy="111.0" r="13" class="node"/><text x="145.0" y="116.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="205.0" cy="111.0" r="13" class="node"/><text x="205.0" y="116.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="175.0" cy="67.0" r="13" class="node"/><text x="175.0" y="72.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="115.0" cy="23.0" r="13" class="node"/><text x="115.0" y="28.0" class="tn" text-anchor="middle" font-size="13">45</text></svg><svg class="fsvg" viewBox="0 0 206 44" width="206" height="44" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="1.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="14.0" y="24.0" class="tc" text-anchor="middle" font-size="13">45</text><rect x="29.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="42.0" y="24.0" class="tc" text-anchor="middle" font-size="13">27</text><rect x="57.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="70.0" y="24.0" class="tc" text-anchor="middle" font-size="13">36</text><rect x="85.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell hi"/><text x="98.0" y="24.0" class="tc" text-anchor="middle" font-size="13">11</text><rect x="113.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="126.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text><rect x="141.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="154.0" y="24.0" class="tc" text-anchor="middle" font-size="13">18</text><rect x="169.0" y="5.0" width="26.0" height="28.0" rx="4" class="cell"/><text x="182.0" y="24.0" class="tc" text-anchor="middle" font-size="13">21</text></svg></div><figcaption>11 بقى أكبر من ابنيه (أو ورقة): خلص.</figcaption></figure></div><!--/fig:ds23-deleteroot-->
+<div class="oops"><b>الخطوة 5 في كتاب Thareja</b>الخطوة 5 في Fig 12.10 بتقارن مع <code>HEAP[RIGHT]</code> حتى لو <code>RIGHT &gt; N</code> (عقدة بابن واحد). ده <b>بيشتغل في الكتاب</b> لأن الخانة N+1 لسه فيها قيمة LAST القديمة. اتجرّب: على 20000 heap و«الخانة القديمة محفوظة» ما فيش ولا اختلاف. لكن لو الخانة اتمسحت واتحطت مفاتيح سالبة، بيحصل خطأ في 3175 حالة (مثال: <code>-2 0 -2 -13</code> بدل الصح <code>-2 -8 -2 -13</code>). فكودنا بيختبر <code>left+1 &lt;= n</code> الأول ومش بيعتمد على الخانة القديمة. (في أول محاولة افتكرناها غلطة في الكتاب، وبعد الاختبار اتراجعنا.)</div>
+<p>P&amp;H Algorithm Remove: <code>Item = Q[1]; Q[1] = Q[N]; N = N-1; Heapify(Q,1)</code>، وبترجّع «Queue Underflow» لو N &lt; 1. اتنفّذت بالحرف في <code>ph_remove</code> واتجرّب على 7 عناصر: الإخراج <code>30 22 17 9 5 3 1</code> مرتّب تنازليًا، والمحاولة الثامنة بتطبع Underflow.</p>
+<div class="tip"><b>الحذف بتكلفة أقل (Weiss 6.13a)</b>بدل ما نقارن مع الابنين في كل مستوى (2 log N مقارنة)، ندوّر على المسار «أحسن ابن» بس (log N مقارنة)، وبعدين نعمل <b>binary search</b> على المسار ده لمكان LAST (log log N). اتقاس على 65536 مفتاح: <b>18.4</b> مقارنة للحذف بدل <b>29.3</b>.</div>
+
+<h2>5) بناء الـ heap من n عنصر (Thareja Ex 12.2، Weiss 6.3.4 وFig 6.14، P&amp;H، تمرين Weiss 6.2 وThareja Q29)</h2>
+<p>طريقتين:</p>
+<ol>
+<li><b>الإدخال واحد واحد</b> (P&amp;H بتسميها shift-up): n × O(log n) = O(n log n) في الأسوأ.</li>
+<li><b>Floyd</b> (Weiss buildHeap، P&amp;H shift-down): انسخ العناصر زي ما هي، وبعدين نزّل من <code>i = n/2</code> لـ <code>1</code>. <b>O(n)</b>.</li>
+</ol>
+<pre><code>/* Pal &amp; Halder 10.2 &quot;shift-up&quot;: build by n insertions (top-down) */
+static void bh_build_insert(BHeap *h, const int *v, int n) { for (int i = 0; i &lt; n; i++) bh_insert(h, v[i]); }
+
+static void bh_sift_down(BHeap *h, int i)
+{
+    int x = h-&gt;a[i];
+    for (;;) {
+        int c = 2 * i;
+        if (c &gt; h-&gt;n) break;
+        if (c + 1 &lt;= h-&gt;n &amp;&amp; bh_above(h, h-&gt;a[c + 1], h-&gt;a[c])) c++;
+        if (!bh_above(h, h-&gt;a[c], x)) break;
+        h-&gt;a[i] = h-&gt;a[c]; i = c;                      /* the hole moves down, no swap needed (Weiss Fig 6.12) */
+    }
+    h-&gt;a[i] = x;
+}
+/* Weiss Fig 6.14 / P&amp;H &quot;shift-down&quot;: copy the items in any order, then fix the parents from n/2 down to 1 */
+static void bh_build_floyd(BHeap *h, const int *v, int n)
+{
+    assert(n &lt;= h-&gt;cap);
+    memcpy(h-&gt;a + 1, v, (size_t)n * sizeof(int)); h-&gt;n = n;
+    for (int i = n / 2; i &gt;= 1; i--) bh_sift_down(h, i);
+}</code></pre>
+<!--fig:ds23-build2--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-end"><div style="text-align:center"><svg class="fsvg" viewBox="0 0 244 198" width="244" height="198" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="136.0" y1="23.0" x2="80.0" y2="65.0" class="edge"/><line x1="80.0" y1="65.0" x2="52.0" y2="107.0" class="edge"/><line x1="52.0" y1="107.0" x2="24.0" y2="149.0" class="edge"/><line x1="80.0" y1="65.0" x2="108.0" y2="107.0" class="edge"/><line x1="136.0" y1="23.0" x2="192.0" y2="65.0" class="edge"/><line x1="192.0" y1="65.0" x2="164.0" y2="107.0" class="edge"/><line x1="192.0" y1="65.0" x2="220.0" y2="107.0" class="edge"/><circle cx="24.0" cy="149.0" r="13" class="node"/><text x="24.0" y="154.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="52.0" cy="107.0" r="13" class="node"/><text x="52.0" y="112.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="108.0" cy="107.0" r="13" class="node"/><text x="108.0" y="112.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="80.0" cy="65.0" r="13" class="node"/><text x="80.0" y="70.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="164.0" cy="107.0" r="13" class="node"/><text x="164.0" y="112.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="220.0" cy="107.0" r="13" class="node"/><text x="220.0" y="112.0" class="tn" text-anchor="middle" font-size="13">61</text><circle cx="192.0" cy="65.0" r="13" class="node"/><text x="192.0" y="70.0" class="tn" text-anchor="middle" font-size="13">63</text><circle cx="136.0" cy="23.0" r="13" class="node"/><text x="136.0" y="28.0" class="tn" text-anchor="middle" font-size="13">72</text></svg><div style="font-size:.85em;opacity:.8">بالإدخال واحد واحد: 72 54 63 27 36 45 61 18</div></div><div style="text-align:center"><svg class="fsvg" viewBox="0 0 244 198" width="244" height="198" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="136.0" y1="23.0" x2="80.0" y2="65.0" class="edge"/><line x1="80.0" y1="65.0" x2="52.0" y2="107.0" class="edge"/><line x1="52.0" y1="107.0" x2="24.0" y2="149.0" class="edge"/><line x1="80.0" y1="65.0" x2="108.0" y2="107.0" class="edge"/><line x1="136.0" y1="23.0" x2="192.0" y2="65.0" class="edge"/><line x1="192.0" y1="65.0" x2="164.0" y2="107.0" class="edge"/><line x1="192.0" y1="65.0" x2="220.0" y2="107.0" class="edge"/><circle cx="24.0" cy="149.0" r="13" class="node"/><text x="24.0" y="154.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="52.0" cy="107.0" r="13" class="node"/><text x="52.0" y="112.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="108.0" cy="107.0" r="13" class="node"/><text x="108.0" y="112.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="80.0" cy="65.0" r="13" class="node"/><text x="80.0" y="70.0" class="tn" text-anchor="middle" font-size="13">63</text><circle cx="164.0" cy="107.0" r="13" class="node"/><text x="164.0" y="112.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="220.0" cy="107.0" r="13" class="node"/><text x="220.0" y="112.0" class="tn" text-anchor="middle" font-size="13">45</text><circle cx="192.0" cy="65.0" r="13" class="node"/><text x="192.0" y="70.0" class="tn" text-anchor="middle" font-size="13">61</text><circle cx="136.0" cy="23.0" r="13" class="node"/><text x="136.0" y="28.0" class="tn" text-anchor="middle" font-size="13">72</text></svg><div style="font-size:.85em;opacity:.8">بطريقة Floyd (ننزّل من n/2 لـ 1): 72 63 61 27 36 54 45 18</div></div></div><figcaption>نفس المدخلات 45 36 54 27 63 72 61 18 (Thareja Ex 12.2). الطريقتين يدّوا heap صح بس مش نفس الـ heap.</figcaption></figure><!--/fig:ds23-build2-->
+<p><b>ليه Floyd خطي؟</b> العقدة في ارتفاع h بتتنزّل في أسوأ الأحوال h مستوى، وفي الشجرة الكاملة عدد العقد اللي ارتفاعها h حوالي n/2<sup>h+1</sup>. فالمجموع ≤ Σ h·n/2<sup>h+1</sup> = n · Σ h/2<sup>h+1</sup> = n. بالظبط: مجموع ارتفاعات كل العقد في شجرة كاملة ≤ n−1. وكل نزول مستوى = مقارنتين، فالحد الأعلى <b>&lt; 2n مقارنة</b> (Thareja Q29)؛ اتجرّب لكل n من 1 لـ 995.</p>
+<p>القياس في <code>ex23_01</code> (مفاتيح عشوائية، عدّ المقارنات):</p>
+<table class="comp-table">
+<tr><th>n</th><th>إدخال واحد واحد</th><th>Floyd</th></tr>
+<tr><td>100</td><td>480</td><td>190</td></tr><tr><td>400</td><td>2698</td><td>786</td></tr><tr><td>1600</td><td>13964</td><td>3182</td></tr><tr><td>3200</td><td>31117</td><td>6380</td></tr>
+</table>
+<p>وعلى n=200000 (Weiss 6.12): لو المدخل مرتب تصاعديًا الاتنين 199,999 مقارنة (مفيش حركة)؛ ولو معكوس: الإدخال 3,137,875 وFloyd 399,976؛ وعشوائي: 456,453 مقابل 376,556. يعني الفرق كبير لما المدخل «وحش».</p>
+<p><b>Weiss 6.7:</b> (a) Floyd بيستخدم على الأكتر 2N−2 مقارنة: اتجرّب على مدخلات عشوائية لكل N من 1 لـ 600. (b) كل الـ 40320 ترتيب لـ 8 عناصر (8!) اتبنى منها heap بـ <b>8 مقارنات بالظبط</b> وكل مرة النتيجة heap سليم وفيها نفس العناصر. (c) خوارزمية 13N/8 مسألة بحثية: مش متنفّذة وده مسجّل في COVERAGE.</p>
+
+<h2>6) عمليات تانية لما نعرف مكان العنصر (Weiss 6.3.3، Thareja Q22)</h2>
+<p>الـ heap مش بيدعم البحث عن مفتاح (O(n))، لكن لو معانا <b>المكان</b>: <code>decreaseKey</code> (percolate up) و<code>increaseKey</code> (percolate down) و<code>remove</code> (= decreaseKey بـ −∞ ثم deleteMin): كلها O(log n).</p>
+<pre><code>/* Weiss 6.3: when the position of an item is known, three more operations cost O(log N) */
+static void bh_percolate_up(BHeap *h, int p)
+{
+    int x = h-&gt;a[p];
+    for (; p &gt; 1 &amp;&amp; bh_above(h, x, h-&gt;a[p / 2]); p /= 2) h-&gt;a[p] = h-&gt;a[p / 2];
+    h-&gt;a[p] = x;
+}
+static void bh_change_key(BHeap *h, int p, int delta, int toward_root)   /* decreaseKey in a min-heap = toward_root */
+{
+    assert(p &gt;= 1 &amp;&amp; p &lt;= h-&gt;n &amp;&amp; delta &gt;= 0);
+    int sign = h-&gt;mx ? 1 : -1;                         /* &quot;better&quot; direction */
+    h-&gt;a[p] += (toward_root ? sign : -sign) * delta;
+    if (toward_root) bh_percolate_up(h, p); else bh_sift_down(h, p);
+}
+/* remove(p): decreaseKey(p, infinity), then deleteMin */
+static void bh_remove(BHeap *h, int p)
+{
+    assert(p &gt;= 1 &amp;&amp; p &lt;= h-&gt;n);
+    h-&gt;a[p] = h-&gt;mx ? 2147483647 : -2147483647 - 1;    /* &quot;infinity&quot; in the good direction */
+    bh_percolate_up(h, p);
+    bh_delete_root(h);
+}</code></pre>
+<p><b>Thareja Q22:</b> الشجرة <code>45 | 27 36 | 16 18 29 21 | 54</code> بعد إضافة 54 في آخرها بتتصلّح بـ percolate up لـ <code>54 45 36 27 18 29 21 16</code>.</p>
+<p><b>Q25</b> (أي تتابع binary heap؟): (a) max-heap، (b) مش heap، (c) هو min-heap وmax-heap في نفس الوقت (كل المفاتيح متساوية). <b>Q26/Q27</b>: <code>52 32 42 22 12 27 37 12 7</code> بعد 3 حذفات يشيل 52 و42 و37 ويبقى <code>32 22 27 7 12 12</code>، وبعد إضافة 35 و24 و10 للـ heap الأصلي بتبقى <code>52 35 42 22 32 27 37 12 7 12 24 10</code>.</p>
+
+<h2>7) d-heap (Weiss 6.14 و6.15)</h2>
+<p>كل عقدة لها d ابن. الارتفاع log<sub>d</sub> n فالإدخال أسرع (مستويات أقل)، لكن الحذف بيقارن مع d ابن في كل مستوى (d·log<sub>d</sub> n). المواقع (الترقيم من 1): <code>parent(i) = ⌊(i−2)/d⌋ + 1</code> و<code>child k of i = d(i−1) + 2 + k</code> للـ k = 0…d−1.</p>
+<pre><code>/* Weiss 6.5 / Exercise 6.14: a d-heap in an array a[1..n]. Children of i: d(i-1)+2 .. d(i-1)+d+1; parent: (i-2)/d + 1 */
+static int dh_parent(int i, int d) { return (i - 2) / d + 1; }
+static int dh_child(int i, int d, int k) { return d * (i - 1) + 2 + k; }          /* k = 0..d-1 */
+typedef struct { int *a; int n, cap, d; long cmp; } DHeap;
+static DHeap dh_new(int cap, int d) { DHeap h = { calloc((size_t)cap + 2, sizeof(int)), 0, cap, d, 0 }; return h; }
+static void dh_insert(DHeap *h, int v)                 /* min-heap */
+{
+    int p = ++h-&gt;n;
+    while (p &gt; 1) { int q = dh_parent(p, h-&gt;d); h-&gt;cmp++; if (v &gt;= h-&gt;a[q]) break; h-&gt;a[p] = h-&gt;a[q]; p = q; }
+    h-&gt;a[p] = v;
+}
+static int dh_delete_min(DHeap *h)
+{
+    int top = h-&gt;a[1], x = h-&gt;a[h-&gt;n--], i = 1;
+    if (h-&gt;n == 0) return top;
+    for (;;) {
+        int first = dh_child(i, h-&gt;d, 0);
+        if (first &gt; h-&gt;n) break;
+        int best = first;
+        for (int k = 1; k &lt; h-&gt;d &amp;&amp; first + k &lt;= h-&gt;n; k++) { h-&gt;cmp++; if (h-&gt;a[first + k] &lt; h-&gt;a[best]) best = first + k; }
+        h-&gt;cmp++;
+        if (h-&gt;a[best] &gt;= x) break;
+        h-&gt;a[i] = h-&gt;a[best]; i = best;
+    }
+    h-&gt;a[i] = x;
+    return top;
+}
+static int dh_valid(const DHeap *h)
+{
+    for (int i = 2; i &lt;= h-&gt;n; i++) if (h-&gt;a[dh_parent(i, h-&gt;d)] &gt; h-&gt;a[i]) return 0;
+    return 1;
+}</code></pre>
+<p>الاختبار بيعمل d من 2 لـ 8، يتأكد من العلاقة بين الأب والأبناء، ويدخّل 700 رقم ويطلّعهم مرتبين. (<b>تصحيح:</b> أول نسخة كتبت <code>d(i−2)+2+k</code> وده غلط للخانة 1 واتكشف بالاختبار.)</p>
+<p><b>اختيار d (6.15):</b> لو عندنا M عملية إدخال/decreaseKey وN حذف، التكلفة ≈ <code>M log<sub>d</sub> N + N d log<sub>d</sub> N</code>. بالأرقام: N = 10<sup>6</sup>: لو M = N الأحسن d = 4، ولو M = 10N الأحسن d = 9، ولو M = 100N الأحسن d = 38. يعني كل ما الإدخالات أكتر قارن d. (ده السبب في إن Dijkstra على graph كثيفة بتستفيد من d كبير.)</p>
+<p>كمان: لو الـ heap مخزّن كعقد بمؤشرات (6.16) ندوّر على الموقع i بقراءة bits العدد i بعد أول 1 (0 شمال و1 يمين): O(log N)؛ اتأكد لكل i ≤ 1000.</p>
+
+<h2>8) Min-max heap (Weiss 6.18، Fig 6.58)</h2>
+<p>عايزين <code>deleteMin</code> و<code>deleteMax</code> في نفس الهيكل. نفس شكل الـ heap بس: مستويات العمق الزوجي (0، 2، …) <b>min levels</b> (العقدة أصغر من كل شجرتها الفرعية)، والفردي <b>max levels</b> (أكبر من كل شجرتها الفرعية). الـ min = <code>a[1]</code> والـ max = الأكبر بين <code>a[2]</code> و<code>a[3]</code>، والتلاتة O(1)، والإدخال والحذفين O(log N).</p>
+<!--fig:ds23-minmax--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 380 206" width="380" height="206" role="img" aria-label="min-max heap" xmlns="http://www.w3.org/2000/svg"><line x1="190.0" y1="22.0" x2="94.0" y2="66.0" class="edge"/><line x1="94.0" y1="66.0" x2="46.0" y2="110.0" class="edge"/><line x1="46.0" y1="110.0" x2="22.0" y2="154.0" class="edge"/><line x1="46.0" y1="110.0" x2="70.0" y2="154.0" class="edge"/><line x1="94.0" y1="66.0" x2="142.0" y2="110.0" class="edge"/><line x1="142.0" y1="110.0" x2="118.0" y2="154.0" class="edge"/><line x1="142.0" y1="110.0" x2="166.0" y2="154.0" class="edge"/><line x1="190.0" y1="22.0" x2="286.0" y2="66.0" class="edge"/><line x1="286.0" y1="66.0" x2="238.0" y2="110.0" class="edge"/><line x1="238.0" y1="110.0" x2="214.0" y2="154.0" class="edge"/><line x1="238.0" y1="110.0" x2="262.0" y2="154.0" class="edge"/><line x1="286.0" y1="66.0" x2="334.0" y2="110.0" class="edge"/><line x1="334.0" y1="110.0" x2="310.0" y2="154.0" class="edge"/><line x1="334.0" y1="110.0" x2="358.0" y2="154.0" class="edge"/><circle cx="22.0" cy="154.0" r="12" class="node"/><text x="22.0" y="159.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="70.0" cy="154.0" r="12" class="node"/><text x="70.0" y="159.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="46.0" cy="110.0" r="12" class="node hi"/><text x="46.0" y="115.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="118.0" cy="154.0" r="12" class="node"/><text x="118.0" y="159.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="166.0" cy="154.0" r="12" class="node"/><text x="166.0" y="159.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="142.0" cy="110.0" r="12" class="node hi"/><text x="142.0" y="115.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="94.0" cy="66.0" r="12" class="node"/><text x="94.0" y="71.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="214.0" cy="154.0" r="12" class="node"/><text x="214.0" y="159.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="262.0" cy="154.0" r="12" class="node"/><text x="262.0" y="159.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="238.0" cy="110.0" r="12" class="node hi"/><text x="238.0" y="115.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="310.0" cy="154.0" r="12" class="node"/><text x="310.0" y="159.0" class="tn" text-anchor="middle" font-size="13">13</text><circle cx="358.0" cy="154.0" r="12" class="node"/><text x="358.0" y="159.0" class="tn" text-anchor="middle" font-size="13">14</text><circle cx="334.0" cy="110.0" r="12" class="node hi"/><text x="334.0" y="115.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="286.0" cy="66.0" r="12" class="node"/><text x="286.0" y="71.0" class="tn" text-anchor="middle" font-size="13">15</text><circle cx="190.0" cy="22.0" r="12" class="node hi"/><text x="190.0" y="27.0" class="tn" text-anchor="middle" font-size="13">1</text></svg></div><figcaption>الشكل بعد إدخال 1..15 بالترتيب. المستويات المضاءة (0، 2، …) هي <b>min levels</b>: كل عقدة هناك أصغر من كل ولادها وأحفادها؛ المستويات التانية <b>max levels</b>: كل عقدة أكبر من كل أحفادها.</figcaption></figure><!--/fig:ds23-minmax-->
+<pre><code>#include &lt;assert.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+typedef struct { int a[512]; int n; } MMHeap;                 /* a[0] unused, as in the book&#x27;s binary heap */
+
+static int mm_level_is_min(int i) { int d = 0; while (i &gt; 1) { i &gt;&gt;= 1; d++; } return d % 2 == 0; }
+static int mm_min(const MMHeap *h) { return h-&gt;a[1]; }
+static int mm_max_index(const MMHeap *h) { return h-&gt;n == 1 ? 1 : (h-&gt;n == 2 || h-&gt;a[2] &gt;= h-&gt;a[3]) ? 2 : 3; }
+static int mm_max(const MMHeap *h) { return h-&gt;a[mm_max_index(h)]; }
+
+static void swap(int *x, int *y) { int t = *x; *x = *y; *y = t; }
+
+/* bubble up on the levels of the same kind: grandparent (i/4) */
+static void mm_up_same(MMHeap *h, int i, int min_level)
+{
+    while (i &gt;= 4 &amp;&amp; (min_level ? h-&gt;a[i] &lt; h-&gt;a[i / 4] : h-&gt;a[i] &gt; h-&gt;a[i / 4])) { swap(&amp;h-&gt;a[i], &amp;h-&gt;a[i / 4]); i /= 4; }
+}
+static void mm_bubble_up(MMHeap *h, int i)
+{
+    if (i == 1) return;
+    int p = i / 2;
+    if (mm_level_is_min(i)) {
+        if (h-&gt;a[i] &gt; h-&gt;a[p]) { swap(&amp;h-&gt;a[i], &amp;h-&gt;a[p]); mm_up_same(h, p, 0); }   /* belongs on a max level */
+        else mm_up_same(h, i, 1);
+    } else {
+        if (h-&gt;a[i] &lt; h-&gt;a[p]) { swap(&amp;h-&gt;a[i], &amp;h-&gt;a[p]); mm_up_same(h, p, 1); }
+        else mm_up_same(h, i, 0);
+    }
+}
+static void mm_insert(MMHeap *h, int x) { assert(h-&gt;n &lt; 511); h-&gt;a[++h-&gt;n] = x; mm_bubble_up(h, h-&gt;n); }
+
+/* the smallest (min level) or largest (max level) key among the children and grandchildren of i; 0 if none */
+static int mm_best_descendant(const MMHeap *h, int i, int want_min)
+{
+    int best = 0, c[6] = { 2 * i, 2 * i + 1, 4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3 };
+    for (int k = 0; k &lt; 6; k++) {
+        if (c[k] &gt; h-&gt;n) continue;
+        if (!best || (want_min ? h-&gt;a[c[k]] &lt; h-&gt;a[best] : h-&gt;a[c[k]] &gt; h-&gt;a[best])) best = c[k];
+    }
+    return best;
+}
+static void mm_trickle_down(MMHeap *h, int i)
+{
+    int min_level = mm_level_is_min(i);
+    for (;;) {
+        int m = mm_best_descendant(h, i, min_level);
+        if (!m) return;
+        if (m &gt;= 4 * i) {                                                  /* m is a grandchild */
+            if (min_level ? h-&gt;a[m] &lt; h-&gt;a[i] : h-&gt;a[m] &gt; h-&gt;a[i]) {
+                swap(&amp;h-&gt;a[m], &amp;h-&gt;a[i]);
+                int p = m / 2;                                             /* fix the parent of m on the other kind of level */
+                if (min_level ? h-&gt;a[m] &gt; h-&gt;a[p] : h-&gt;a[m] &lt; h-&gt;a[p]) swap(&amp;h-&gt;a[m], &amp;h-&gt;a[p]);
+                i = m;
+            } else return;
+        } else {                                                           /* m is a child: the last possible move */
+            if (min_level ? h-&gt;a[m] &lt; h-&gt;a[i] : h-&gt;a[m] &gt; h-&gt;a[i]) swap(&amp;h-&gt;a[m], &amp;h-&gt;a[i]);
+            return;
+        }
+    }
+}
+static int mm_delete_min(MMHeap *h) { assert(h-&gt;n); int r = h-&gt;a[1]; h-&gt;a[1] = h-&gt;a[h-&gt;n--]; if (h-&gt;n) mm_trickle_down(h, 1); return r; }
+static int mm_delete_max(MMHeap *h)
+{
+    assert(h-&gt;n); int i = mm_max_index(h), r = h-&gt;a[i];
+    h-&gt;a[i] = h-&gt;a[h-&gt;n--]; if (i &lt;= h-&gt;n) mm_trickle_down(h, i);
+    return r;
+}
+/* the definition, checked literally: min-level keys &lt;= everything below them, max-level keys &gt;= everything below */
+static int mm_subtree_ok(const MMHeap *h, int i, int j)                    /* is key i ordered against node j ? */
+{
+    return mm_level_is_min(i) ? h-&gt;a[i] &lt;= h-&gt;a[j] : h-&gt;a[i] &gt;= h-&gt;a[j];
+}
+static int mm_valid(const MMHeap *h)
+{
+    for (int i = 1; i &lt;= h-&gt;n; i++) {
+        int stack[512], sp = 0;
+        if (2 * i &lt;= h-&gt;n) stack[sp++] = 2 * i;
+        if (2 * i + 1 &lt;= h-&gt;n) stack[sp++] = 2 * i + 1;
+        while (sp) { int j = stack[--sp]; if (!mm_subtree_ok(h, i, j)) return 0;
+            if (2 * j &lt;= h-&gt;n) stack[sp++] = 2 * j;
+            if (2 * j + 1 &lt;= h-&gt;n) stack[sp++] = 2 * j + 1; }
+    }
+    return 1;
+}
+/* linear-time build (Exercise 6.18d): trickle-down from n/2 to 1, exactly like buildHeap */
+static void mm_build(MMHeap *h, const int *v, int n)
+{
+    h-&gt;n = n; memcpy(h-&gt;a + 1, v, sizeof(int) * (size_t)n);
+    for (int i = n / 2; i &gt;= 1; i--) mm_trickle_down(h, i);
+}
+static void mm_print(const MMHeap *h, const char *label)
+{
+    printf(&quot;%s:&quot;, label); for (int i = 1; i &lt;= h-&gt;n; i++) printf(&quot; %d&quot;, h-&gt;a[i]); printf(&quot;\n&quot;);
+}
+
+#ifndef MM_NO_MAIN
+int main(void)
+{
+    /* Figure 6.58 */
+    int fig[] = { 6, 81, 87, 14, 17, 12, 28, 71, 25, 80, 20, 52, 78, 31, 42, 31, 59, 16, 24, 79, 63, 18, 19, 32, 13, 15, 48 };
+    MMHeap h; h.n = 27; memcpy(h.a + 1, fig, sizeof fig);
+    assert(mm_valid(&amp;h) &amp;&amp; mm_min(&amp;h) == 6 &amp;&amp; mm_max(&amp;h) == 87);                  /* 6.18a */
+    /* insert the keys 1..15 in order and delete from both ends */
+    MMHeap g = { { 0 }, 0 };
+    for (int i = 1; i &lt;= 15; i++) { mm_insert(&amp;g, i); assert(mm_valid(&amp;g)); }
+    mm_print(&amp;g, &quot;insert 1..15      &quot;);
+    assert(mm_min(&amp;g) == 1 &amp;&amp; mm_max(&amp;g) == 15);
+    assert(mm_delete_min(&amp;g) == 1 &amp;&amp; mm_delete_max(&amp;g) == 15 &amp;&amp; mm_valid(&amp;g));
+    mm_print(&amp;g, &quot;after min and max  &quot;);
+    /* Fig 6.58 itself: deleteMin then deleteMax */
+    assert(mm_delete_min(&amp;h) == 6 &amp;&amp; mm_valid(&amp;h) &amp;&amp; mm_min(&amp;h) == 12);
+    assert(mm_delete_max(&amp;h) == 87 &amp;&amp; mm_valid(&amp;h) &amp;&amp; mm_max(&amp;h) == 81);
+    mm_print(&amp;h, &quot;Fig 6.58 after dMin, dMax&quot;);
+    /* random: compare with a sorted array, both ends, plus linear build */
+    srand(61);
+    for (int round = 0; round &lt; 300; round++) {
+        MMHeap r = { { 0 }, 0 }; int ref[300], m = 0;
+        for (int step = 0; step &lt; 300; step++) {
+            int op = rand() % 4;
+            if (op &lt; 2 &amp;&amp; m &lt; 300) { int x = rand() % 500; mm_insert(&amp;r, x); ref[m++] = x; }
+            else if (m) {
+                int lo = 0, hi = 0; for (int i = 1; i &lt; m; i++) { if (ref[i] &lt; ref[lo]) lo = i; if (ref[i] &gt; ref[hi]) hi = i; }
+                int idx = op == 2 ? lo : hi; int got = op == 2 ? mm_delete_min(&amp;r) : mm_delete_max(&amp;r);
+                assert(got == ref[idx]); ref[idx] = ref[--m];
+            }
+            assert(mm_valid(&amp;r) &amp;&amp; r.n == m);
+            if (m) { int lo = ref[0], hi = ref[0]; for (int i = 1; i &lt; m; i++) { if (ref[i] &lt; lo) lo = ref[i]; if (ref[i] &gt; hi) hi = ref[i]; }
+                     assert(mm_min(&amp;r) == lo &amp;&amp; mm_max(&amp;r) == hi); }
+        }
+    }
+    for (int round = 0; round &lt; 200; round++) {
+        int v[200], n = 1 + rand() % 200; for (int i = 0; i &lt; n; i++) v[i] = rand() % 1000;
+        MMHeap b; mm_build(&amp;b, v, n); assert(mm_valid(&amp;b));
+    }
+    printf(&quot;minmax: all checks passed\n&quot;);
+    return 0;
+}
+#endif</code></pre>
+<pre><code>insert 1..15      : 1 11 15 2 4 3 6 5 8 9 10 7 12 13 14
+after min and max  : 2 14 13 5 4 3 6 11 8 9 10 7 12
+Fig 6.58 after dMin, dMax: 12 81 78 14 17 13 28 71 25 80 20 52 15 31 42 31 59 16 24 79 63 18 19 32 48
+minmax: all checks passed</code></pre>
+<p>النتيجة في Fig 6.58 بعد <code>deleteMin</code> و<code>deleteMax</code> اتقارنت مع الكتاب، وبعد كل عملية في الاختبار بنستدعي <code>mm_valid</code> وبنقارن بحل بالقوة الغاشمة.</p>
+
+<h2>9) Leftist heaps (Weiss 6.6، Fig 6.20–6.30، تمارين 6.19–6.25)</h2>
+<p>عايزين <b>merge</b> سريع. الـ binary heap بياخد O(n). الفكرة: شجرة heap-ordered (مش لازم كاملة)، لكن نخليها <b>مائلة للشمال</b> عشان المسار اليمين يبقى قصير.</p>
+<p><b>null path length:</b> <code>npl(x)</code> = طول أقصر مسار من x لعقدة فيها ابن فاضي. <code>npl(NULL) = −1</code>. <b>الشرط:</b> لكل عقدة <code>npl(left) ≥ npl(right)</code>. النتيجة: أقصر مسار لـ NULL هو المسار اليمين، وعقدة npl = r فيها على الأقل 2<sup>r+1</sup>−1 عقدة، فالمسار اليمين في heap بـ N عقدة <b>≤ ⌊log₂(N+1)⌋</b> (اتأكد بـ assert في كل اختبار).</p>
+<pre><code>typedef struct LNode { int key, npl; struct LNode *left, *right; } LNode;     /* npl = null path length; npl(NULL) = -1 */
+static long lh_steps;                                  /* how many nodes the merges visited (cost counter) */
+static int npl(const LNode *t) { return t ? t-&gt;npl : -1; }
+static LNode *lh_node(int key) { LNode *t = malloc(sizeof *t); t-&gt;key = key; t-&gt;npl = 0; t-&gt;left = t-&gt;right = NULL; return t; }</code></pre>
+<pre><code>/* Weiss Fig 6.26/6.27. merge1 handles the case h1-&gt;key &lt;= h2-&gt;key. */
+static LNode *lh_merge(LNode *h1, LNode *h2);
+static LNode *lh_merge1(LNode *h1, LNode *h2)
+{
+    if (h1-&gt;left == NULL)                              /* a single node: h2 simply becomes its left child */
+        h1-&gt;left = h2;
+    else {
+        h1-&gt;right = lh_merge(h1-&gt;right, h2);           /* the recursion goes down the RIGHT path only */
+        if (npl(h1-&gt;left) &lt; npl(h1-&gt;right)) { LNode *t = h1-&gt;left; h1-&gt;left = h1-&gt;right; h1-&gt;right = t; }  /* leftist rule */
+        h1-&gt;npl = npl(h1-&gt;right) + 1;
+    }
+    return h1;
+}
+static LNode *lh_merge(LNode *h1, LNode *h2)
+{
+    lh_steps++;
+    if (!h1) return h2;
+    if (!h2) return h1;
+    return h1-&gt;key &lt; h2-&gt;key ? lh_merge1(h1, h2) : lh_merge1(h2, h1);
+}
+static LNode *lh_insert(LNode *h, int x) { return lh_merge(lh_node(x), h); }
+static LNode *lh_delete_min(LNode *h, int *out)        /* Fig 6.30: the root goes, its two subheaps are merged */
+{
+    LNode *l = h-&gt;left, *r = h-&gt;right; *out = h-&gt;key; free(h);
+    return lh_merge(l, r);
+}</code></pre>
+<p>الـ merge بينزل على المسار اليمين بس. لو h1 أصغر جذر: يتدمج h2 في ابنه اليمين، ولو الشرط اتكسر بنبدّل الابنين، ويتحدّث npl. الشكل ده الـ H1 وH2 اللي في Weiss (Fig 6.21) وخطوات الدمج (Fig 6.22–6.24):</p>
+<!--fig:ds23-leftist--><div class="steps"><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 196 206" width="196" height="206" role="img" aria-label="H1" xmlns="http://www.w3.org/2000/svg"><line x1="109.0" y1="22.0" x2="65.0" y2="66.0" class="edge"/><line x1="65.0" y1="66.0" x2="43.0" y2="110.0" class="edge"/><line x1="43.0" y1="110.0" x2="21.0" y2="154.0" class="edge"/><line x1="65.0" y1="66.0" x2="87.0" y2="110.0" class="edge"/><line x1="109.0" y1="22.0" x2="175.0" y2="66.0" class="edge"/><line x1="175.0" y1="66.0" x2="153.0" y2="110.0" class="edge"/><line x1="153.0" y1="110.0" x2="131.0" y2="154.0" class="edge"/><circle cx="21.0" cy="154.0" r="12" class="node"/><text x="21.0" y="159.0" class="tn" text-anchor="middle" font-size="13">23</text><circle cx="43.0" cy="110.0" r="12" class="node"/><text x="43.0" y="115.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="87.0" cy="110.0" r="12" class="node"/><text x="87.0" y="115.0" class="tn" text-anchor="middle" font-size="13">14</text><circle cx="65.0" cy="66.0" r="12" class="node"/><text x="65.0" y="71.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="131.0" cy="154.0" r="12" class="node"/><text x="131.0" y="159.0" class="tn" text-anchor="middle" font-size="13">26</text><circle cx="153.0" cy="110.0" r="12" class="node"/><text x="153.0" y="115.0" class="tn" text-anchor="middle" font-size="13">17</text><circle cx="175.0" cy="66.0" r="12" class="node"/><text x="175.0" y="71.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="109.0" cy="22.0" r="12" class="node"/><text x="109.0" y="27.0" class="tn" text-anchor="middle" font-size="13">3</text></svg><svg class="fsvg" viewBox="0 0 196 206" width="196" height="206" role="img" aria-label="H2" xmlns="http://www.w3.org/2000/svg"><line x1="109.0" y1="22.0" x2="65.0" y2="66.0" class="edge"/><line x1="65.0" y1="66.0" x2="43.0" y2="110.0" class="edge"/><line x1="43.0" y1="110.0" x2="21.0" y2="154.0" class="edge"/><line x1="65.0" y1="66.0" x2="87.0" y2="110.0" class="edge"/><line x1="109.0" y1="22.0" x2="153.0" y2="66.0" class="edge"/><line x1="153.0" y1="66.0" x2="131.0" y2="110.0" class="edge"/><line x1="153.0" y1="66.0" x2="175.0" y2="110.0" class="edge"/><circle cx="21.0" cy="154.0" r="12" class="node"/><text x="21.0" y="159.0" class="tn" text-anchor="middle" font-size="13">33</text><circle cx="43.0" cy="110.0" r="12" class="node"/><text x="43.0" y="115.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="87.0" cy="110.0" r="12" class="node"/><text x="87.0" y="115.0" class="tn" text-anchor="middle" font-size="13">24</text><circle cx="65.0" cy="66.0" r="12" class="node"/><text x="65.0" y="71.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="131.0" cy="110.0" r="12" class="node"/><text x="131.0" y="115.0" class="tn" text-anchor="middle" font-size="13">37</text><circle cx="175.0" cy="110.0" r="12" class="node"/><text x="175.0" y="115.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="153.0" cy="66.0" r="12" class="node"/><text x="153.0" y="71.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="109.0" cy="22.0" r="12" class="node"/><text x="109.0" y="27.0" class="tn" text-anchor="middle" font-size="13">6</text></svg></div><figcaption>H1 و H2 (كل واحد leftist heap).</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 262 250" width="262" height="250" role="img" aria-label="merge(H2, 8…)" xmlns="http://www.w3.org/2000/svg"><line x1="109.0" y1="22.0" x2="65.0" y2="66.0" class="edge"/><line x1="65.0" y1="66.0" x2="43.0" y2="110.0" class="edge"/><line x1="43.0" y1="110.0" x2="21.0" y2="154.0" class="edge"/><line x1="65.0" y1="66.0" x2="87.0" y2="110.0" class="edge"/><line x1="109.0" y1="22.0" x2="219.0" y2="66.0" class="edge"/><line x1="219.0" y1="66.0" x2="175.0" y2="110.0" class="edge"/><line x1="175.0" y1="110.0" x2="153.0" y2="154.0" class="edge"/><line x1="153.0" y1="154.0" x2="131.0" y2="198.0" class="edge"/><line x1="175.0" y1="110.0" x2="197.0" y2="154.0" class="edge"/><line x1="219.0" y1="66.0" x2="241.0" y2="110.0" class="edge"/><circle cx="21.0" cy="154.0" r="12" class="node"/><text x="21.0" y="159.0" class="tn" text-anchor="middle" font-size="13">33</text><circle cx="43.0" cy="110.0" r="12" class="node"/><text x="43.0" y="115.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="87.0" cy="110.0" r="12" class="node"/><text x="87.0" y="115.0" class="tn" text-anchor="middle" font-size="13">24</text><circle cx="65.0" cy="66.0" r="12" class="node"/><text x="65.0" y="71.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="131.0" cy="198.0" r="12" class="node"/><text x="131.0" y="203.0" class="tn" text-anchor="middle" font-size="13">26</text><circle cx="153.0" cy="154.0" r="12" class="node"/><text x="153.0" y="159.0" class="tn" text-anchor="middle" font-size="13">17</text><circle cx="197.0" cy="154.0" r="12" class="node"/><text x="197.0" y="159.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="175.0" cy="110.0" r="12" class="node"/><text x="175.0" y="115.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="241.0" cy="110.0" r="12" class="node"/><text x="241.0" y="115.0" class="tn" text-anchor="middle" font-size="13">37</text><circle cx="219.0" cy="66.0" r="12" class="node"/><text x="219.0" y="71.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="109.0" cy="22.0" r="12" class="node"/><text x="109.0" y="27.0" class="tn" text-anchor="middle" font-size="13">6</text></svg></div><figcaption>نعمل merge للـ H2 مع الابن اليمين لـ H1 (الجذر 8): النتيجة هتبقى الابن اليمين الجديد.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 372 294" width="372" height="294" role="img" aria-label="قبل التبديل" xmlns="http://www.w3.org/2000/svg"><line x1="109.0" y1="22.0" x2="65.0" y2="66.0" class="edge"/><line x1="65.0" y1="66.0" x2="43.0" y2="110.0" class="edge"/><line x1="43.0" y1="110.0" x2="21.0" y2="154.0" class="edge"/><line x1="65.0" y1="66.0" x2="87.0" y2="110.0" class="edge"/><line x1="109.0" y1="22.0" x2="219.0" y2="66.0" class="edge"/><line x1="219.0" y1="66.0" x2="175.0" y2="110.0" class="edge"/><line x1="175.0" y1="110.0" x2="153.0" y2="154.0" class="edge"/><line x1="153.0" y1="154.0" x2="131.0" y2="198.0" class="edge"/><line x1="175.0" y1="110.0" x2="197.0" y2="154.0" class="edge"/><line x1="219.0" y1="66.0" x2="329.0" y2="110.0" class="edge"/><line x1="329.0" y1="110.0" x2="285.0" y2="154.0" class="edge"/><line x1="285.0" y1="154.0" x2="263.0" y2="198.0" class="edge"/><line x1="263.0" y1="198.0" x2="241.0" y2="242.0" class="edge"/><line x1="285.0" y1="154.0" x2="307.0" y2="198.0" class="edge"/><line x1="329.0" y1="110.0" x2="351.0" y2="154.0" class="edge"/><circle cx="21.0" cy="154.0" r="12" class="node"/><text x="21.0" y="159.0" class="tn" text-anchor="middle" font-size="13">23</text><circle cx="43.0" cy="110.0" r="12" class="node"/><text x="43.0" y="115.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="87.0" cy="110.0" r="12" class="node"/><text x="87.0" y="115.0" class="tn" text-anchor="middle" font-size="13">14</text><circle cx="65.0" cy="66.0" r="12" class="node"/><text x="65.0" y="71.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="131.0" cy="198.0" r="12" class="node"/><text x="131.0" y="203.0" class="tn" text-anchor="middle" font-size="13">33</text><circle cx="153.0" cy="154.0" r="12" class="node"/><text x="153.0" y="159.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="197.0" cy="154.0" r="12" class="node"/><text x="197.0" y="159.0" class="tn" text-anchor="middle" font-size="13">24</text><circle cx="175.0" cy="110.0" r="12" class="node"/><text x="175.0" y="115.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="241.0" cy="242.0" r="12" class="node"/><text x="241.0" y="247.0" class="tn" text-anchor="middle" font-size="13">26</text><circle cx="263.0" cy="198.0" r="12" class="node"/><text x="263.0" y="203.0" class="tn" text-anchor="middle" font-size="13">17</text><circle cx="307.0" cy="198.0" r="12" class="node"/><text x="307.0" y="203.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="285.0" cy="154.0" r="12" class="node"/><text x="285.0" y="159.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="351.0" cy="154.0" r="12" class="node"/><text x="351.0" y="159.0" class="tn" text-anchor="middle" font-size="13">37</text><circle cx="329.0" cy="110.0" r="12" class="node"/><text x="329.0" y="115.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="219.0" cy="66.0" r="12" class="node"/><text x="219.0" y="71.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="109.0" cy="22.0" r="12" class="node"/><text x="109.0" y="27.0" class="tn" text-anchor="middle" font-size="13">3</text></svg></div><figcaption>نركّبها كابن يمين لـ 3: ممكن تخالف شرط leftist (npl الشمال 1 < اليمين 2).</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 372 294" width="372" height="294" role="img" aria-label="بعد التبديل" xmlns="http://www.w3.org/2000/svg"><line x1="263.0" y1="22.0" x2="109.0" y2="66.0" class="edge"/><line x1="109.0" y1="66.0" x2="65.0" y2="110.0" class="edge"/><line x1="65.0" y1="110.0" x2="43.0" y2="154.0" class="edge"/><line x1="43.0" y1="154.0" x2="21.0" y2="198.0" class="edge"/><line x1="65.0" y1="110.0" x2="87.0" y2="154.0" class="edge"/><line x1="109.0" y1="66.0" x2="219.0" y2="110.0" class="edge"/><line x1="219.0" y1="110.0" x2="175.0" y2="154.0" class="edge"/><line x1="175.0" y1="154.0" x2="153.0" y2="198.0" class="edge"/><line x1="153.0" y1="198.0" x2="131.0" y2="242.0" class="edge"/><line x1="175.0" y1="154.0" x2="197.0" y2="198.0" class="edge"/><line x1="219.0" y1="110.0" x2="241.0" y2="154.0" class="edge"/><line x1="263.0" y1="22.0" x2="329.0" y2="66.0" class="edge"/><line x1="329.0" y1="66.0" x2="307.0" y2="110.0" class="edge"/><line x1="307.0" y1="110.0" x2="285.0" y2="154.0" class="edge"/><line x1="329.0" y1="66.0" x2="351.0" y2="110.0" class="edge"/><circle cx="21.0" cy="198.0" r="12" class="node"/><text x="21.0" y="203.0" class="tn" text-anchor="middle" font-size="13">33</text><circle cx="43.0" cy="154.0" r="12" class="node"/><text x="43.0" y="159.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="87.0" cy="154.0" r="12" class="node"/><text x="87.0" y="159.0" class="tn" text-anchor="middle" font-size="13">24</text><circle cx="65.0" cy="110.0" r="12" class="node"/><text x="65.0" y="115.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="131.0" cy="242.0" r="12" class="node"/><text x="131.0" y="247.0" class="tn" text-anchor="middle" font-size="13">26</text><circle cx="153.0" cy="198.0" r="12" class="node"/><text x="153.0" y="203.0" class="tn" text-anchor="middle" font-size="13">17</text><circle cx="197.0" cy="198.0" r="12" class="node"/><text x="197.0" y="203.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="175.0" cy="154.0" r="12" class="node"/><text x="175.0" y="159.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="241.0" cy="154.0" r="12" class="node"/><text x="241.0" y="159.0" class="tn" text-anchor="middle" font-size="13">37</text><circle cx="219.0" cy="110.0" r="12" class="node"/><text x="219.0" y="115.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="109.0" cy="66.0" r="12" class="node"/><text x="109.0" y="71.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="285.0" cy="154.0" r="12" class="node"/><text x="285.0" y="159.0" class="tn" text-anchor="middle" font-size="13">23</text><circle cx="307.0" cy="110.0" r="12" class="node"/><text x="307.0" y="115.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="351.0" cy="110.0" r="12" class="node"/><text x="351.0" y="115.0" class="tn" text-anchor="middle" font-size="13">14</text><circle cx="329.0" cy="66.0" r="12" class="node"/><text x="329.0" y="71.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="263.0" cy="22.0" r="12" class="node"/><text x="263.0" y="27.0" class="tn" text-anchor="middle" font-size="13">3</text></svg></div><figcaption>نبدّل ابنين الجذر 3: الـ leftist heap اتصلّح.</figcaption></figure></div><!--/fig:ds23-leftist-->
+<pre><code>H1 = 3(10(21(23),14),8(17(26)))
+H2 = 6(12(18(33),24),7(37,18))
+Fig 6.22 merge(H2, right of H1) = 6(12(18(33),24),7(8(17(26),18),37))
+Fig 6.23 before the swap       = 3(10(21(23),14),6(12(18(33),24),7(8(17(26),18),37)))
+Fig 6.24 after the swap        = 3(6(12(18(33),24),7(8(17(26),18),37)),10(21(23),14))
+leftist merge, recursive = 3(6(12(18(33),24),7(8(17(26),18),37)),10(21(23),14))
+Fig 6.32 skew merge(H2, right of H1) = 6(7(8(18,17(26)),37),12(18(33),24))
+Fig 6.33 skew merge result           = 3(6(7(8(18,17(26)),37),12(18(33),24)),10(21(23),14))
+leftist: all checks passed</code></pre>
+<p><code>insert</code> = merge مع heap من عقدة واحدة، و<code>deleteMin</code> = merge للابنين بعد شيل الجذر؛ التكلفة O(log N) لأن المسارات اليمين لوغاريتمية. وفيه نسخة <b>تكرارية</b> من غير recursion (Fig 6.28 والنص بعده): مرحلة تدمج المسارين اليمين كأنهم قايمتين مرتبتين، ومرحلة ترجع من تحت تصلّح npl وتبدّل:</p>
+<pre><code>/* Weiss Fig 6.28 and the text after it: do it in two passes over the right path, with no recursion.
+   Pass 1 merges the two right paths into one sorted path; pass 2 walks back up fixing npl and swapping children. */
+static LNode *lh_merge_iter(LNode *a, LNode *b)
+{
+    LNode *path[128]; int np = 0;
+    while (a &amp;&amp; b) {                                   /* pass 1: detach nodes from the right paths in key order */
+        LNode **w = a-&gt;key &lt; b-&gt;key ? &amp;a : &amp;b;
+        LNode *n = *w; *w = n-&gt;right; n-&gt;right = NULL;
+        path[np++] = n;
+    }
+    LNode *rest = a ? a : b;                           /* what is left of one path is already in order */
+    while (rest) { LNode *n = rest; rest = n-&gt;right; n-&gt;right = NULL; path[np++] = n; }
+    LNode *below = NULL;                               /* pass 2: from the bottom of the merged path up */
+    for (int i = np - 1; i &gt;= 0; i--) {
+        LNode *n = path[i]; n-&gt;right = below;
+        if (npl(n-&gt;left) &lt; npl(n-&gt;right)) { LNode *t = n-&gt;left; n-&gt;left = n-&gt;right; n-&gt;right = t; }
+        n-&gt;npl = npl(n-&gt;right) + 1;
+        below = n;
+    }
+    return below;
+}</code></pre>
+<p><b>تمارين Weiss على الـ leftist:</b></p>
+<ul>
+<li><b>6.19:</b> الدمج للـ heaps في Fig 6.59 (H1 = <code>2(11(12(18,15),17),5(8(31)))</code> وH2 = <code>4(9(18,10),6(11(21)))</code>) ينتج <code>2(4(9(18,10),5(8(31),6(11(21)))),11(12(18,15),17))</code>. <i>(Fig 6.59 مقروء جزئيًا من الـ PDF؛ قراءتنا الأولى لـ H1 كسرت شرط الـ heap (17(15)) فاتصحّحت، والتحقق على الشروط مش على صورة الكتاب.)</i></li>
+<li><b>6.20 و6.21:</b> إدخال 1…15 بالترتيب بيدّي <code>1(2(7(8,9),6(10,11)),3(5(12,13),4(14,15)))</code>، وهي <b>perfect</b> لكل k = 1…7 (n = 2<sup>k</sup>−1). (افتراضنا الأول إنها مش هتبقى perfect طلع غلط، وعدّلنا الـ assert.)</li>
+<li><b>6.22:</b> ترتيب إدخال بيدّي أحسن شجرة (perfect على 7 مفاتيح): <code>1 2 3 4 5 6 7</code> وبتطلع <code>1(3(4,5),2(6,7))</code>.</li>
+<li><b>6.23 (decreaseKey في leftist):</b> سؤال نظري، <b>مش متنفّذ في الكود</b>. الاتجاه: محتاجين مؤشر للأب؛ نقطع عقدة x (ونحط مكانها merge لابنيها)، ونقلّل مفتاحها وندمجها من جديد. المشكلة إن إصلاح npl لأجداد x بيطلع لفوق ومسار الأجداد ممكن يكون طويل (شمال)، فمش بنادّعي حد O(log N) هنا؛ الإجابة اللي نقدر ندافع عنها «ممكن مع parent pointers لكن الضمان اللوغاريتمي محتاج برهان إضافي».</li>
+<li><b>6.24 (lazy deletion):</b> نعلّم العقد المحذوفة، ولما <code>findMin</code> يلاقي الجذر محذوف يعمل merge للابنين ويكمل. على 4000 عقدة، 300 معلّمة: findMin واحد شال 300 جذر ميت بـ 2855 خطوة دمج (الحد k log N = 3590). والحد O(k log(2N/k)) مثبت في النص.</li>
+<li><b>6.25 (buildHeap بـ queue):</b> نحط كل عنصر كـ heap لوحده في queue، ونكرر: خد اتنين، ادمجهم، ارجّع النتيجة آخر الطابور. بيتبنى بحوالي <b>2 خطوة دمج لكل عنصر</b> (N=65536: 132,244 خطوة = 2.02 لكل عنصر) في حين أن الإدخال المتكرر بيكبر مع log N (8.68 لكل عنصر).</li>
+<li><b>6.40:</b> نسخ/تحرير leftist heap بدون recursion عميق: لو بنيناه بإدخالات تنازلية (N=20000) الارتفاع 20000 (عمود فقري شمال)، لكن لو التحرير بيمشي يمين بس ويلف الشمال بحلقة فعمق الـ recursion = 2؛ ولو إدخالات تصاعدية (N=300000) الارتفاع 19. الحد: المسار اليمين ≤ log₂(N+1).</li>
+</ul>
+
+<h2>10) Skew heaps (Weiss 6.7، Fig 6.31–6.33، تمارين 6.26–6.29)</h2>
+<p>نفس الـ merge لكن <b>من غير npl</b>: بعد الدمج في الابن اليمين <b>نبدّل الابنين دايمًا</b>. مفيش ضمان على التكلفة في عملية واحدة (ممكن O(N))، لكن <b>amortized O(log N)</b>. مميزاته: كود أقصر، ومفيش حقل إضافي.</p>
+<pre><code>/* Weiss 6.7: no npl at all. After merging into the right subtree, ALWAYS swap the two children
+   (the book swaps every node on the right path except the last one; this recursive form is the same thing). */
+static LNode *sk_merge(LNode *h1, LNode *h2)
+{
+    lh_steps++;
+    if (!h1) return h2;
+    if (!h2) return h1;
+    if (h2-&gt;key &lt; h1-&gt;key) { LNode *t = h1; h1 = h2; h2 = t; }
+    LNode *r = sk_merge(h1-&gt;right, h2);
+    h1-&gt;right = h1-&gt;left; h1-&gt;left = r;                /* swap, with the merged heap landing on the left */
+    return h1;
+}
+static LNode *sk_insert(LNode *h, int x) { return sk_merge(lh_node(x), h); }
+static LNode *sk_delete_min(LNode *h, int *out)
+{
+    LNode *l = h-&gt;left, *r = h-&gt;right; *out = h-&gt;key; free(h);
+    return sk_merge(l, r);
+}</code></pre>
+<!--fig:ds23-skew--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-end"><div style="text-align:center"><svg class="fsvg" viewBox="0 0 372 294" width="372" height="294" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="263.0" y1="22.0" x2="109.0" y2="66.0" class="edge"/><line x1="109.0" y1="66.0" x2="65.0" y2="110.0" class="edge"/><line x1="65.0" y1="110.0" x2="43.0" y2="154.0" class="edge"/><line x1="43.0" y1="154.0" x2="21.0" y2="198.0" class="edge"/><line x1="65.0" y1="110.0" x2="87.0" y2="154.0" class="edge"/><line x1="109.0" y1="66.0" x2="219.0" y2="110.0" class="edge"/><line x1="219.0" y1="110.0" x2="175.0" y2="154.0" class="edge"/><line x1="175.0" y1="154.0" x2="153.0" y2="198.0" class="edge"/><line x1="153.0" y1="198.0" x2="131.0" y2="242.0" class="edge"/><line x1="175.0" y1="154.0" x2="197.0" y2="198.0" class="edge"/><line x1="219.0" y1="110.0" x2="241.0" y2="154.0" class="edge"/><line x1="263.0" y1="22.0" x2="329.0" y2="66.0" class="edge"/><line x1="329.0" y1="66.0" x2="307.0" y2="110.0" class="edge"/><line x1="307.0" y1="110.0" x2="285.0" y2="154.0" class="edge"/><line x1="329.0" y1="66.0" x2="351.0" y2="110.0" class="edge"/><circle cx="21.0" cy="198.0" r="12" class="node"/><text x="21.0" y="203.0" class="tn" text-anchor="middle" font-size="13">33</text><circle cx="43.0" cy="154.0" r="12" class="node"/><text x="43.0" y="159.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="87.0" cy="154.0" r="12" class="node"/><text x="87.0" y="159.0" class="tn" text-anchor="middle" font-size="13">24</text><circle cx="65.0" cy="110.0" r="12" class="node"/><text x="65.0" y="115.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="131.0" cy="242.0" r="12" class="node"/><text x="131.0" y="247.0" class="tn" text-anchor="middle" font-size="13">26</text><circle cx="153.0" cy="198.0" r="12" class="node"/><text x="153.0" y="203.0" class="tn" text-anchor="middle" font-size="13">17</text><circle cx="197.0" cy="198.0" r="12" class="node"/><text x="197.0" y="203.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="175.0" cy="154.0" r="12" class="node"/><text x="175.0" y="159.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="241.0" cy="154.0" r="12" class="node"/><text x="241.0" y="159.0" class="tn" text-anchor="middle" font-size="13">37</text><circle cx="219.0" cy="110.0" r="12" class="node"/><text x="219.0" y="115.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="109.0" cy="66.0" r="12" class="node"/><text x="109.0" y="71.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="285.0" cy="154.0" r="12" class="node"/><text x="285.0" y="159.0" class="tn" text-anchor="middle" font-size="13">23</text><circle cx="307.0" cy="110.0" r="12" class="node"/><text x="307.0" y="115.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="351.0" cy="110.0" r="12" class="node"/><text x="351.0" y="115.0" class="tn" text-anchor="middle" font-size="13">14</text><circle cx="329.0" cy="66.0" r="12" class="node"/><text x="329.0" y="71.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="263.0" cy="22.0" r="12" class="node"/><text x="263.0" y="27.0" class="tn" text-anchor="middle" font-size="13">3</text></svg><div style="font-size:.85em;opacity:.8">leftist (Fig 6.24)</div></div><div style="text-align:center"><svg class="fsvg" viewBox="0 0 372 294" width="372" height="294" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><line x1="263.0" y1="22.0" x2="153.0" y2="66.0" class="edge"/><line x1="153.0" y1="66.0" x2="109.0" y2="110.0" class="edge"/><line x1="109.0" y1="110.0" x2="43.0" y2="154.0" class="edge"/><line x1="43.0" y1="154.0" x2="21.0" y2="198.0" class="edge"/><line x1="43.0" y1="154.0" x2="87.0" y2="198.0" class="edge"/><line x1="87.0" y1="198.0" x2="65.0" y2="242.0" class="edge"/><line x1="109.0" y1="110.0" x2="131.0" y2="154.0" class="edge"/><line x1="153.0" y1="66.0" x2="219.0" y2="110.0" class="edge"/><line x1="219.0" y1="110.0" x2="197.0" y2="154.0" class="edge"/><line x1="197.0" y1="154.0" x2="175.0" y2="198.0" class="edge"/><line x1="219.0" y1="110.0" x2="241.0" y2="154.0" class="edge"/><line x1="263.0" y1="22.0" x2="329.0" y2="66.0" class="edge"/><line x1="329.0" y1="66.0" x2="307.0" y2="110.0" class="edge"/><line x1="307.0" y1="110.0" x2="285.0" y2="154.0" class="edge"/><line x1="329.0" y1="66.0" x2="351.0" y2="110.0" class="edge"/><circle cx="21.0" cy="198.0" r="12" class="node"/><text x="21.0" y="203.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="65.0" cy="242.0" r="12" class="node"/><text x="65.0" y="247.0" class="tn" text-anchor="middle" font-size="13">26</text><circle cx="87.0" cy="198.0" r="12" class="node"/><text x="87.0" y="203.0" class="tn" text-anchor="middle" font-size="13">17</text><circle cx="43.0" cy="154.0" r="12" class="node"/><text x="43.0" y="159.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="131.0" cy="154.0" r="12" class="node"/><text x="131.0" y="159.0" class="tn" text-anchor="middle" font-size="13">37</text><circle cx="109.0" cy="110.0" r="12" class="node"/><text x="109.0" y="115.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="175.0" cy="198.0" r="12" class="node"/><text x="175.0" y="203.0" class="tn" text-anchor="middle" font-size="13">33</text><circle cx="197.0" cy="154.0" r="12" class="node"/><text x="197.0" y="159.0" class="tn" text-anchor="middle" font-size="13">18</text><circle cx="241.0" cy="154.0" r="12" class="node"/><text x="241.0" y="159.0" class="tn" text-anchor="middle" font-size="13">24</text><circle cx="219.0" cy="110.0" r="12" class="node"/><text x="219.0" y="115.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="153.0" cy="66.0" r="12" class="node"/><text x="153.0" y="71.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="285.0" cy="154.0" r="12" class="node"/><text x="285.0" y="159.0" class="tn" text-anchor="middle" font-size="13">23</text><circle cx="307.0" cy="110.0" r="12" class="node"/><text x="307.0" y="115.0" class="tn" text-anchor="middle" font-size="13">21</text><circle cx="351.0" cy="110.0" r="12" class="node"/><text x="351.0" y="115.0" class="tn" text-anchor="middle" font-size="13">14</text><circle cx="329.0" cy="66.0" r="12" class="node"/><text x="329.0" y="71.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="263.0" cy="22.0" r="12" class="node"/><text x="263.0" y="27.0" class="tn" text-anchor="middle" font-size="13">3</text></svg><div style="font-size:.85em;opacity:.8">skew heap (Fig 6.33): نفس المدخلات، من غير npl</div></div></div><figcaption>الـ skew heap بيبدّل الابنين دايمًا على طول المسار اليمين من غير ما يخزّن npl.</figcaption></figure><!--/fig:ds23-skew-->
+<p><b>6.26:</b> دمج heaps الـ Fig 6.59 كـ skew يطلع <code>2(4(5(6(11(21)),8(31)),9(18,10)),11(12(18,15),17))</code>. <b>6.27/6.28:</b> إدخال 1…15 بالترتيب بيدّي <code>1(3(7(15,11),5(13,9)),2(6(14,10),4(12,8)))</code>، وكمان perfect لكل k ≤ 7. <b>6.29:</b> نفس حيلة الـ queue على skew بتدّي حوالي <b>2.6</b> خطوة لكل عنصر (2.56 → 2.63 لما N بيكبر): أعلى شوية من leftist (2.0) لكن لسه خطي.</p>
+<div class="tip"><b>أيهما أحسن؟</b>leftist: ضمان في الأسوأ، وبتحتاج npl. skew: أبسط وأسرع في الواقع غالبًا، وضمانه amortized، والمسار اليمين ممكن يبقى طويل (فالـ recursion ممكن تتعمّق: استخدم النسخة التكرارية في الإنتاج).</div>
+
+<h2>11) Binomial heaps / queues (Thareja 12.2، Weiss 6.8، تمارين 6.30–6.36)</h2>
+<p>كل الـ heaps اللي فاتت ما بتديش <code>insert</code> بـ O(1) في أسوأ حالة. الـ <b>binomial queue</b> هو «عدّاد ثنائي» من الأشجار:</p>
+<p><b>الشجرة binomial B<sub>k</sub></b> = شجرتين B<sub>k−1</sub> واحدة معلّقة تحت جذر التانية. فيها 2<sup>k</sup> عقدة، وجذرها له k ابن (B<sub>k−1</sub> … B<sub>0</sub>)، وعدد العقد على العمق d هو <b>C(k, d)</b> (ومن هنا الاسم binomial). (الكتاب Thareja في Table و T/F 6 بيطبع «2i» وده أكيد 2<sup>i</sup> اتحوّلت في الاستخراج؛ والـ T/F رقم 6 «Bi فيها 2i عقدة» مفتاحها False.)</p>
+<!--fig:ds23-btrees--><div class="steps"><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 46" width="48" height="46" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>B0: عقدة واحدة.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>B1 = شجرتين B0 (واحدة تحت التانية).</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><line x1="60.0" y1="72.0" x2="60.0" y2="90.0" class="edge"/><rect x="49.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>B2 = شجرتين B1.</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 156 166" width="156" height="166" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="67.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><line x1="78.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><line x1="60.0" y1="72.0" x2="60.0" y2="90.0" class="edge"/><rect x="49.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="89.0" y1="32.0" x2="114.0" y2="50.0" class="edge"/><line x1="103.0" y1="72.0" x2="96.0" y2="90.0" class="edge"/><rect x="85.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="96.0" y="105.4" class="tc" text-anchor="middle" font-size="12">6</text><line x1="125.0" y1="72.0" x2="132.0" y2="90.0" class="edge"/><line x1="132.0" y1="112.0" x2="132.0" y2="130.0" class="edge"/><rect x="121.0" y="130.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="132.0" y="145.4" class="tc" text-anchor="middle" font-size="12">8</text><rect x="121.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="132.0" y="105.4" class="tc" text-anchor="middle" font-size="12">7</text><rect x="103.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="114.0" y="65.4" class="tc" text-anchor="middle" font-size="12">5</text><rect x="67.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="78.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>B3 = شجرتين B2: 8 عقد، والجذر له 3 أبناء (B0 وB1 وB2).</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 300 206" width="300" height="206" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="139.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><line x1="146.3" y1="32.0" x2="60.0" y2="50.0" class="edge"/><line x1="60.0" y1="72.0" x2="60.0" y2="90.0" class="edge"/><rect x="49.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="153.7" y1="32.0" x2="114.0" y2="50.0" class="edge"/><line x1="103.0" y1="72.0" x2="96.0" y2="90.0" class="edge"/><rect x="85.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="96.0" y="105.4" class="tc" text-anchor="middle" font-size="12">6</text><line x1="125.0" y1="72.0" x2="132.0" y2="90.0" class="edge"/><line x1="132.0" y1="112.0" x2="132.0" y2="130.0" class="edge"/><rect x="121.0" y="130.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="132.0" y="145.4" class="tc" text-anchor="middle" font-size="12">8</text><rect x="121.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="132.0" y="105.4" class="tc" text-anchor="middle" font-size="12">7</text><rect x="103.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="114.0" y="65.4" class="tc" text-anchor="middle" font-size="12">5</text><line x1="161.0" y1="32.0" x2="222.0" y2="50.0" class="edge"/><line x1="211.0" y1="72.0" x2="168.0" y2="90.0" class="edge"/><rect x="157.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="168.0" y="105.4" class="tc" text-anchor="middle" font-size="12">10</text><line x1="222.0" y1="72.0" x2="204.0" y2="90.0" class="edge"/><line x1="204.0" y1="112.0" x2="204.0" y2="130.0" class="edge"/><rect x="193.0" y="130.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="204.0" y="145.4" class="tc" text-anchor="middle" font-size="12">12</text><rect x="193.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="204.0" y="105.4" class="tc" text-anchor="middle" font-size="12">11</text><line x1="233.0" y1="72.0" x2="258.0" y2="90.0" class="edge"/><line x1="247.0" y1="112.0" x2="240.0" y2="130.0" class="edge"/><rect x="229.0" y="130.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="240.0" y="145.4" class="tc" text-anchor="middle" font-size="12">14</text><line x1="269.0" y1="112.0" x2="276.0" y2="130.0" class="edge"/><line x1="276.0" y1="152.0" x2="276.0" y2="170.0" class="edge"/><rect x="265.0" y="170.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="276.0" y="185.4" class="tc" text-anchor="middle" font-size="12">16</text><rect x="265.0" y="130.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="276.0" y="145.4" class="tc" text-anchor="middle" font-size="12">15</text><rect x="247.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="258.0" y="105.4" class="tc" text-anchor="middle" font-size="12">13</text><rect x="211.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="222.0" y="65.4" class="tc" text-anchor="middle" font-size="12">9</text><rect x="139.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="150.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>B4: 16 عقدة (2^4)، الجذر له 4 أبناء، وعلى العمق d فيه C(4,d) عقدة: 1، 4، 6، 4، 1.</figcaption></figure></div><!--/fig:ds23-btrees-->
+<p>الـ heap = <b>مجموعة أشجار binomial، أقصى واحدة من كل رتبة k</b>، كل واحدة heap-ordered. فعدد العقد N بالثنائي يحدد الأشجار: N = 12 = 1100₂ يعني B<sub>3</sub> وB<sub>2</sub> (Fig 12.13: 8 + 4 عقد).</p>
+<!--fig:ds23-fig1213--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">16</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">11</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">27</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">7</text></svg><svg class="fsvg" viewBox="0 0 156 166" width="156" height="166" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="67.0" y1="32.0" x2="42.0" y2="50.0" class="edge"/><line x1="31.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><line x1="24.0" y1="112.0" x2="24.0" y2="130.0" class="edge"/><rect x="13.0" y="130.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="145.4" class="tc" text-anchor="middle" font-size="12">19</text><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">12</text><line x1="53.0" y1="72.0" x2="60.0" y2="90.0" class="edge"/><rect x="49.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="105.4" class="tc" text-anchor="middle" font-size="12">18</text><rect x="31.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="65.4" class="tc" text-anchor="middle" font-size="12">10</text><line x1="78.0" y1="32.0" x2="96.0" y2="50.0" class="edge"/><line x1="96.0" y1="72.0" x2="96.0" y2="90.0" class="edge"/><rect x="85.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="96.0" y="105.4" class="tc" text-anchor="middle" font-size="12">21</text><rect x="85.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="96.0" y="65.4" class="tc" text-anchor="middle" font-size="12">14</text><line x1="89.0" y1="32.0" x2="132.0" y2="50.0" class="edge"/><rect x="121.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="132.0" y="65.4" class="tc" text-anchor="middle" font-size="12">36</text><rect x="67.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="78.0" y="25.4" class="tc" text-anchor="middle" font-size="12">9</text></svg></div><figcaption>Fig 12.13: الشجرة الأولى 7(11(16),27) فيها 4 عقد = B2، والتانية 9(…) فيها 8 عقد = B3. إجمالي 12 عقدة = 1100 بالثنائي (bits 2 و3 مشغولين).</figcaption></figure><!--/fig:ds23-fig1213-->
+<pre><code>typedef struct BNode { int val, degree; struct BNode *parent, *child, *sibling; } BNode;
+static long bn_links;                                  /* number of Link calls = number of key comparisons that built trees */
+static BNode *bn_node(int val) { BNode *x = calloc(1, sizeof *x); x-&gt;val = val; return x; }
+
+/* Thareja Fig 12.15: the minimum is one of the roots, so look at all of them: O(log n) */
+static BNode *bn_min(BNode *head)
+{
+    BNode *y = NULL, *x = head; int min = INT_MAX;     /* Step 1 */
+    while (x) {                                        /* Steps 2-4 */
+        if (x-&gt;val &lt; min) { min = x-&gt;val; y = x; }
+        x = x-&gt;sibling;
+    }
+    return y;                                          /* Step 5 */
+}
+
+/* Thareja Fig 12.17: make Y (a B(i-1)) the leftmost child of Z (another B(i-1)): the result is a B(i) */
+static void bn_link(BNode *y, BNode *z)
+{
+    y-&gt;parent = z;                                     /* Step 1 */
+    y-&gt;sibling = z-&gt;child;                             /* Step 2 */
+    z-&gt;child = y;                                      /* Step 3 */
+    z-&gt;degree++;                                       /* Step 4 */
+    bn_links++;
+}</code></pre>
+<p><b>دمج (Union) = جمع ثنائي مع carry:</b> ندمج قايمتين الجذور كأنهم مرتبين بالـ degree، وبعدين نمشي: لو فيه شجرتين بنفس الرتبة نربطهم (الجذر الأصغر يفضل جذر ويبقى التاني ابنه)، ويطلع «carry» بالرتبة اللي بعدها. Thareja بتسميها Link (Fig 12.17) وUnion (Fig 12.18)، وWeiss Fig 6.55.</p>
+<pre><code>/* the first half of Union: merge the two root lists into one list sorted by degree (like merging two sorted lists) */
+static BNode *bn_merge_roots(BNode *a, BNode *b)
+{
+    BNode dummy = { 0 }, *t = &amp;dummy;
+    while (a &amp;&amp; b) {
+        if (a-&gt;degree &lt;= b-&gt;degree) { t-&gt;sibling = a; a = a-&gt;sibling; } else { t-&gt;sibling = b; b = b-&gt;sibling; }
+        t = t-&gt;sibling;
+    }
+    t-&gt;sibling = a ? a : b;
+    return dummy.sibling;
+}
+
+/* Thareja Fig 12.18. PTR is the root being examined, NEXT the one after it, PREV the one before. */
+static BNode *bn_union(BNode *h1, BNode *h2)
+{
+    BNode *head = bn_merge_roots(h1, h2);              /* Steps 1-3 */
+    if (!head) return NULL;                            /* Step 4 */
+    BNode *prev = NULL, *ptr = head, *next = ptr-&gt;sibling;   /* Step 5 */
+    while (next) {                                     /* Step 6 */
+        if (ptr-&gt;degree != next-&gt;degree ||
+            (next-&gt;sibling &amp;&amp; next-&gt;sibling-&gt;degree == ptr-&gt;degree)) {   /* Step 7: nothing to link here, move on */
+            prev = ptr; ptr = next;
+        } else if (ptr-&gt;val &lt;= next-&gt;val) {            /* two equal degrees: the smaller key stays the root */
+            ptr-&gt;sibling = next-&gt;sibling;
+            bn_link(next, ptr);
+        } else {
+            if (!prev) head = next; else prev-&gt;sibling = next;
+            bn_link(ptr, next);
+            ptr = next;
+        }
+        next = ptr-&gt;sibling;
+    }
+    return head;                                       /* Step 8 */
+}
+static BNode *bn_insert(BNode *head, BNode *x)         /* Fig 12.20: a one-node heap united with H */
+{
+    x-&gt;parent = x-&gt;child = x-&gt;sibling = NULL; x-&gt;degree = 0;
+    return bn_union(head, x);
+}</code></pre>
+<p><b>insert</b> = union مع heap من عقدة واحدة. <b>extract-min</b> (Thareja 12.21، Weiss Fig 6.56) = نشيل أصغر جذر؛ أبناؤه <code>B<sub>k−1</sub> … B<sub>0</sub></code> هم أصلاً binomial heap كامل (بعد عكس الترتيب) فنعمل union معاه ومع الباقي. و<b>decrease</b> بنطلّع القيمة بالتبديل مع الأب، و<b>delete</b> = decrease لـ −∞ ثم extract-min.</p>
+<pre><code>/* Thareja Fig 12.21: remove the smallest root R; R&#x27;s children, reversed, become a heap of their own; unite. */
+static BNode *bn_extract_min(BNode *head, BNode **out)
+{
+    BNode *r = bn_min(head);                           /* Step 1 */
+    assert(r);
+    if (head == r) head = r-&gt;sibling;                  /* Step 2: unlink R from the root list */
+    else { BNode *p = head; while (p-&gt;sibling != r) p = p-&gt;sibling; p-&gt;sibling = r-&gt;sibling; }
+    BNode *rev = NULL, *c = r-&gt;child;                  /* Steps 3-5: reverse the child list (degrees now rise) */
+    while (c) { BNode *nx = c-&gt;sibling; c-&gt;sibling = rev; c-&gt;parent = NULL; rev = c; c = nx; }
+    r-&gt;child = NULL; r-&gt;sibling = NULL; r-&gt;degree = 0;
+    *out = r;
+    return bn_union(head, rev);                        /* Step 6 */
+}
+
+/* Thareja Fig 12.23: lower a value and let it rise by swapping values with its parent.
+   (Swapping the VALUES means a node pointer no longer names &quot;the same item&quot;; Weiss/CLRS note this too.) */
+static void bn_decrease(BNode *x, int k)
+{
+    assert(k &lt;= x-&gt;val);
+    x-&gt;val = k;
+    BNode *ptr = x, *par = ptr-&gt;parent;
+    while (par &amp;&amp; ptr-&gt;val &lt; par-&gt;val) { int t = ptr-&gt;val; ptr-&gt;val = par-&gt;val; par-&gt;val = t; ptr = par; par = ptr-&gt;parent; }
+}
+/* Fig 12.24: delete = decrease to minus infinity, then extract the minimum */
+static BNode *bn_delete(BNode *head, BNode *x)
+{
+    BNode *out;
+    bn_decrease(x, INT_MIN);
+    head = bn_extract_min(head, &amp;out);
+    free(out);
+    return head;
+}</code></pre>
+<p>سبع إدخالات متتالية 1…7 بتبيّن إن الشكل هو العدّاد الثنائي بالظبط:</p>
+<!--fig:ds23-bn-insert--><div class="steps"><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 46" width="48" height="46" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 1: عدد الأشجار = عدد الـ 1 في 1 (1 بالثنائي)</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 2: عدد الأشجار = عدد الـ 1 في 10 (2 بالثنائي)</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 46" width="48" height="46" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">3</text></svg><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 3: عدد الأشجار = عدد الـ 1 في 11 (3 بالثنائي)</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 4: عدد الأشجار = عدد الـ 1 في 100 (4 بالثنائي)</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 46" width="48" height="46" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">5</text></svg><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 5: عدد الأشجار = عدد الـ 1 في 101 (5 بالثنائي)</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">6</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">5</text></svg><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 6: عدد الأشجار = عدد الـ 1 في 110 (6 بالثنائي)</figcaption></figure><figure class="frame"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 46" width="48" height="46" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">7</text></svg><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">6</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">5</text></svg><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><figcaption>بعد إدخال 7: عدد الأشجار = عدد الـ 1 في 111 (7 بالثنائي)</figcaption></figure></div><!--/fig:ds23-bn-insert-->
+<p><b>عدد الـ links:</b> N إدخالات بتعمل بالظبط <b>N − popcount(N)</b> link (كل link مقارنة واحدة)؛ لـ 7: 7 − 3 = 4 (مكتوب في الخرج). فالإدخال <b>amortized O(1)</b> (زي زيادة العدّاد)، لكن الأسوأ O(log N) لما carry يتسلسل. وهذا إجابة Weiss 6.33(a،b).</p>
+<!--fig:ds23-bn-extract--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-end"><div style="text-align:center"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 46" width="48" height="46" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">7</text></svg><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">6</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">5</text></svg><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">3</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">2</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">1</text></svg></div><div style="font-size:.85em;opacity:.8">قبل: 7 5(6) 1(3(4),2)</div></div><div style="text-align:center"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 48 86" width="48" height="86" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="24.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">7</text><rect x="13.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="25.4" class="tc" text-anchor="middle" font-size="12">2</text></svg><svg class="fsvg" viewBox="0 0 84 126" width="84" height="126" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="31.0" y1="32.0" x2="24.0" y2="50.0" class="edge"/><line x1="24.0" y1="72.0" x2="24.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="105.4" class="tc" text-anchor="middle" font-size="12">6</text><rect x="13.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="24.0" y="65.4" class="tc" text-anchor="middle" font-size="12">5</text><line x1="53.0" y1="32.0" x2="60.0" y2="50.0" class="edge"/><rect x="49.0" y="50.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="60.0" y="65.4" class="tc" text-anchor="middle" font-size="12">4</text><rect x="31.0" y="10.0" width="22.0" height="22.0" rx="3" class="mnode"/><text x="42.0" y="25.4" class="tc" text-anchor="middle" font-size="12">3</text></svg></div><div style="font-size:.85em;opacity:.8">بعد extract-min (الجذر 1 اتشال، أبناءه اتدمجوا مع الباقي)</div></div></div><figcaption>extract-min في binomial heap = شيل الجذر الأصغر + اعمل union بين أبناءه وباقي الغابة. التكلفة O(log n).</figcaption></figure><!--/fig:ds23-bn-extract-->
+<pre><code>Fig 12.13: 7(11(16),27) 9(10(12(19),18),14(21),36)
+insert 1: 1
+insert 2: 1(2)
+insert 3: 3 1(2)
+insert 4: 1(3(4),2)
+insert 5: 5 1(3(4),2)
+insert 6: 5(6) 1(3(4),2)
+insert 7: 7 5(6) 1(3(4),2)
+7 inserts used 4 links (7 - popcount(7) = 4)
+after extract-min: 2(7) 3(5(6),4)
+after delete 5   : 4 2(3(6),7)
+Weiss queue after inserting 1..7: 7 5(6) 1(3(4),2)
+...</code></pre>
+<p><b>Weiss 6.32:</b> دمج H1 = <code>13 23(24(65),51) 12(14(16(18),26),21(65),24)</code> وH2 = <code>4 15(18) 2(11(55),29)</code> بيدّي <code>4(15(18),13) 2(12(14(16(18),26),21(65),24),23(24(65),51),11(55),29)</code> (شجرتين: B<sub>1</sub>+B<sub>1</sub> → B<sub>2</sub>، وهكذا مع carry). <i>(Fig 6.60 مقروء جزئيًا، والـ check على قواعد الـ binomial/heap.)</i></p>
+<p><b>6.34/6.35:</b> الإدخال المباشر من غير استدعاء merge (<code>bq_insert_direct</code>) بيدّي نفس الـ queue بالظبط في 500 تجربة. والـ <b>early stop</b> (نوقف الحلقة لما الـ carry يخلص ومفيش حاجة تانية) بيخفّض متوسط عدد دورات الحلقة من 32 (ثابتة) لـ <b>2.13</b>. 6.35(b): «الصغير يندمج في الكبير» (5.9) أحسن من العكس (11.4). و6.36 (insert بـ O(1) أسوأ حالة بـ «عدّاد زائد») بنشرحه نظريًا فقط (مش مكتوب كود).</p>
+
+<h2>12) Fibonacci heaps (Thareja 12.3، Examples 12.8–12.10، Q30)</h2>
+<p>الفكرة: <b>نأجّل الشغل</b>. قايمة جذور (circular doubly linked) بدون قيود، والـ min بمؤشر. <code>insert</code> و<code>union</code> و<code>find-min</code> = O(1) <b>حقيقية</b> (Thareja Table 12.1 بتكتب find-min وcreate بـ O(n)؛ وده غلط طباعي واضح: الاتنين O(1)). وكل الشغل بيتعمل في <code>extract-min</code> بـ <b>consolidate</b>: نربط الجذور بنفس الرتبة (زي binomial) لحد ما رتب الجذور تبقى مختلفة. ودرجة أي عقدة في heap بـ n عقدة ≤ log<sub>φ</sub> n (φ = 1.618…).</p>
+<pre><code>typedef struct FNode { int key, degree, mark; struct FNode *parent, *child, *left, *right; } FNode;
+typedef struct { FNode *min; int n; long links, cuts; FNode *start; } FHeap;   /* min[H] and n[H]; start = where a hand-drawn root list begins */
+
+static FNode *fn_new(int key) { FNode *x = calloc(1, sizeof *x); x-&gt;key = key; x-&gt;left = x-&gt;right = x; return x; }
+
+/* put x (a whole circular list of one) next to y in y&#x27;s list: O(1)  — &quot;concatenate&quot; in the book */
+static void list_splice(FNode *y, FNode *x)           /* x&#x27;s list is merged into y&#x27;s list */
+{
+    FNode *yr = y-&gt;right, *xl = x-&gt;left;
+    y-&gt;right = x; x-&gt;left = y; xl-&gt;right = yr; yr-&gt;left = xl;
+}
+static void list_remove(FNode *x) { x-&gt;left-&gt;right = x-&gt;right; x-&gt;right-&gt;left = x-&gt;left; x-&gt;left = x-&gt;right = x; }
+
+/* Fig 12.28 */
+static void fh_insert(FHeap *h, FNode *x)
+{
+    x-&gt;degree = 0; x-&gt;parent = x-&gt;child = NULL; x-&gt;mark = 0; x-&gt;left = x-&gt;right = x;     /* Steps 1-2 */
+    if (h-&gt;min) list_splice(h-&gt;min, x);                                                  /* Step 3 */
+    if (!h-&gt;min || x-&gt;key &lt; h-&gt;min-&gt;key) h-&gt;min = x;                                     /* Step 4 */
+    h-&gt;n++;                                                                              /* Step 5 */
+}
+/* Fig 12.30: the two root lists are joined into one in O(1); h2 is left empty */
+static void fh_union(FHeap *h1, FHeap *h2)
+{
+    if (!h1-&gt;min) h1-&gt;min = h2-&gt;min;
+    else if (h2-&gt;min) { list_splice(h1-&gt;min, h2-&gt;min); if (h2-&gt;min-&gt;key &lt; h1-&gt;min-&gt;key) h1-&gt;min = h2-&gt;min; }
+    h1-&gt;n += h2-&gt;n; h1-&gt;links += h2-&gt;links; h1-&gt;cuts += h2-&gt;cuts;
+    h2-&gt;min = NULL; h2-&gt;n = 0;
+}</code></pre>
+<!--fig:ds23-fib-insert--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-end"><div style="text-align:center"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 76 122" width="76" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="29.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">54</text><line x1="47.0" y1="28.0" x2="54.0" y2="50.0" class="edge"/><line x1="54.0" y1="68.0" x2="54.0" y2="90.0" class="edge"/><rect x="45.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="102.6" class="tc" text-anchor="middle" font-size="12">41</text><rect x="45.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="62.6" class="tc" text-anchor="middle" font-size="12">36</text><rect x="29.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="38.0" y="22.6" class="tc" text-anchor="middle" font-size="12">4</text></svg><svg class="fsvg" viewBox="0 0 76 122" width="76" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="29.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">32</text><line x1="47.0" y1="28.0" x2="54.0" y2="50.0" class="edge"/><line x1="54.0" y1="68.0" x2="54.0" y2="90.0" class="edge"/><rect x="45.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="102.6" class="tc" text-anchor="middle" font-size="12">39</text><rect x="45.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="62.6" class="tc" text-anchor="middle" font-size="12">27</text><rect x="29.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="38.0" y="22.6" class="tc" text-anchor="middle" font-size="12">18</text></svg><svg class="fsvg" viewBox="0 0 44 82" width="44" height="82" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="22.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">44</text><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">24</text></svg><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">36</text></svg><svg class="fsvg" viewBox="0 0 44 122" width="44" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="22.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><line x1="22.0" y1="68.0" x2="22.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="102.6" class="tc" text-anchor="middle" font-size="12">33</text><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">19</text><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">18</text></svg></div><div style="font-size:.85em;opacity:.8">Fig 12.29</div></div><div style="text-align:center"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 76 122" width="76" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="29.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">54</text><line x1="47.0" y1="28.0" x2="54.0" y2="50.0" class="edge"/><line x1="54.0" y1="68.0" x2="54.0" y2="90.0" class="edge"/><rect x="45.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="102.6" class="tc" text-anchor="middle" font-size="12">41</text><rect x="45.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="62.6" class="tc" text-anchor="middle" font-size="12">36</text><rect x="29.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="38.0" y="22.6" class="tc" text-anchor="middle" font-size="12">4</text></svg><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode hi"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">16</text></svg><svg class="fsvg" viewBox="0 0 76 122" width="76" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="29.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">32</text><line x1="47.0" y1="28.0" x2="54.0" y2="50.0" class="edge"/><line x1="54.0" y1="68.0" x2="54.0" y2="90.0" class="edge"/><rect x="45.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="102.6" class="tc" text-anchor="middle" font-size="12">39</text><rect x="45.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="62.6" class="tc" text-anchor="middle" font-size="12">27</text><rect x="29.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="38.0" y="22.6" class="tc" text-anchor="middle" font-size="12">18</text></svg><svg class="fsvg" viewBox="0 0 44 82" width="44" height="82" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="22.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">44</text><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">24</text></svg><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">36</text></svg><svg class="fsvg" viewBox="0 0 44 122" width="44" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="22.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><line x1="22.0" y1="68.0" x2="22.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="102.6" class="tc" text-anchor="middle" font-size="12">33</text><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">19</text><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">18</text></svg></div><div style="font-size:.85em;opacity:.8">بعد insert 16 (Ex 12.8): جذر جديد في قائمة الجذور من غير أي دمج</div></div></div><figcaption>الإدخال في Fibonacci heap = O(1): بنضيف عقدة لقايمة الجذور وبس. الشغل بيتأجّل لأول extract-min.</figcaption></figure><!--/fig:ds23-fib-insert-->
+<pre><code>/* Fig 12.33: remove y from the root list and make it a child of x */
+static void fh_link(FHeap *h, FNode *y, FNode *x)
+{
+    list_remove(y);                                    /* Step 1 */
+    y-&gt;parent = x;                                     /* Step 2 */
+    if (!x-&gt;child) x-&gt;child = y; else list_splice(x-&gt;child, y);
+    x-&gt;degree++;                                       /* Step 3 */
+    y-&gt;mark = 0;                                       /* Step 4 */
+    h-&gt;links++;
+}
+/* Fig 12.32: until every root has its own degree */
+static void fh_consolidate(FHeap *h)
+{
+    FNode *A[64] = { 0 };                              /* A[d] = the root of degree d seen so far (D(n) &lt;= log_phi n &lt; 64) */
+    FNode **roots = malloc(sizeof(FNode *) * (size_t)(h-&gt;n + 2)); int nr = 0;   /* at most n roots */
+    /* the root list is circular and has no first element; the book simply walks it from the left of its picture.
+       h-&gt;start remembers that left end when the heap was written down by hand, otherwise we begin at min[H]. */
+    FNode *begin = (h-&gt;start &amp;&amp; !h-&gt;start-&gt;parent) ? h-&gt;start : h-&gt;min, *x = begin;
+    do { roots[nr++] = x; x = x-&gt;right; } while (x != begin);    /* take a snapshot: the list changes while we link */
+    h-&gt;start = NULL;
+    for (int i = 0; i &lt; nr; i++) {
+        FNode *ptr = roots[i]; int d = ptr-&gt;degree;
+        while (A[d]) {
+            FNode *temp = A[d];
+            if (ptr-&gt;key &gt; temp-&gt;key) { FNode *t = ptr; ptr = temp; temp = t; }    /* the smaller key becomes the parent */
+            fh_link(h, temp, ptr);
+            A[d] = NULL; d++;
+        }
+        A[d] = ptr;
+    }
+    free(roots);
+    h-&gt;min = NULL;                                     /* Steps 13-18: rebuild the root list and min[H] from A[] */
+    for (int i = 0; i &lt; 64; i++)
+        if (A[i]) {
+            A[i]-&gt;left = A[i]-&gt;right = A[i];
+            if (!h-&gt;min) h-&gt;min = A[i]; else { list_splice(h-&gt;min, A[i]); if (A[i]-&gt;key &lt; h-&gt;min-&gt;key) h-&gt;min = A[i]; }
+        }
+}
+/* Fig 12.31 */
+static FNode *fh_extract_min(FHeap *h)
+{
+    FNode *x = h-&gt;min;
+    if (!x) return NULL;
+    if (x-&gt;child) {                                    /* every child becomes a root */
+        FNode *c = x-&gt;child;
+        do { c-&gt;parent = NULL; c = c-&gt;right; } while (c != x-&gt;child);
+        list_splice(x, x-&gt;child);                      /* the child list joins the root list next to x */
+        x-&gt;child = NULL; x-&gt;degree = 0;
+    }
+    FNode *r = x-&gt;right;
+    if (h-&gt;start == x) h-&gt;start = (x-&gt;right == x) ? NULL : x-&gt;right;
+    list_remove(x);                                    /* remove x from the root list */
+    h-&gt;n--;
+    if (r == x) h-&gt;min = NULL;                         /* x was the only node */
+    else { h-&gt;min = r; fh_consolidate(h); }
+    return x;
+}</code></pre>
+<p><b>decrease-key:</b> بنقلّل القيمة، ولو بقت أصغر من الأب نقطع العقدة ونحطها في قايمة الجذور (cut). ولو الأب كان معلّم (فقد ابن قبل كده) يتقطع كمان، وهكذا للأعلى (<b>cascading cut</b>). العلامات (marks) هي اللي بتضمن إن العقدة اللي رتبتها k فيها على الأقل F<sub>k+2</sub> عقدة، فالارتفاع لوغاريتمي. <b>amortized O(1)</b> للـ decrease-key، وO(log n) للـ delete وextract-min.</p>
+<pre><code>/* Fig 12.36 and 12.37 */
+static void fh_cut(FHeap *h, FNode *x, FNode *par)
+{
+    if (par-&gt;child == x) par-&gt;child = (x-&gt;right == x) ? NULL : x-&gt;right;     /* Step 1 */
+    list_remove(x);
+    par-&gt;degree--;                                     /* Step 2 */
+    list_splice(h-&gt;min, x);                            /* Step 3 */
+    x-&gt;parent = NULL;                                  /* Step 4 */
+    x-&gt;mark = 0;                                       /* Step 5 */
+    h-&gt;cuts++;
+}
+static void fh_cascading_cut(FHeap *h, FNode *x)
+{
+    FNode *par = x-&gt;parent;
+    if (par) {
+        if (!x-&gt;mark) x-&gt;mark = 1;                     /* the first child lost: just remember it */
+        else { fh_cut(h, x, par); fh_cascading_cut(h, par); }    /* the second one: x leaves too, and so on upwards */
+    }
+}
+/* Fig 12.35 */
+static void fh_decrease(FHeap *h, FNode *x, int v)
+{
+    assert(v &lt;= x-&gt;key);
+    x-&gt;key = v;
+    FNode *par = x-&gt;parent;
+    if (par &amp;&amp; x-&gt;key &lt; par-&gt;key) { fh_cut(h, x, par); fh_cascading_cut(h, par); }
+    if (x-&gt;key &lt; h-&gt;min-&gt;key) h-&gt;min = x;
+}
+/* Fig 12.39 */
+static void fh_delete(FHeap *h, FNode *x)
+{
+    fh_decrease(h, x, INT_MIN);
+    FNode *r = fh_extract_min(h);
+    assert(r == x);
+    free(r);
+}</code></pre>
+<!--fig:ds23-fib-dec--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-end"><div style="text-align:center"><div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end"><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">9</text></svg><svg class="fsvg" viewBox="0 0 44 82" width="44" height="82" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="22.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">41</text><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">36</text></svg><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">19</text></svg><svg class="fsvg" viewBox="0 0 76 122" width="76" height="122" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="29.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><line x1="22.0" y1="68.0" x2="22.0" y2="90.0" class="edge"/><rect x="13.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="102.6" class="tc" text-anchor="middle" font-size="12">32</text><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">18</text><line x1="47.0" y1="28.0" x2="54.0" y2="50.0" class="edge"/><line x1="54.0" y1="68.0" x2="54.0" y2="90.0" class="edge"/><rect x="45.0" y="90.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="102.6" class="tc" text-anchor="middle" font-size="12">38</text><rect x="45.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="62.6" class="tc" text-anchor="middle" font-size="12">36</text><rect x="29.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="38.0" y="22.6" class="tc" text-anchor="middle" font-size="12">17</text></svg><svg class="fsvg" viewBox="0 0 76 82" width="76" height="82" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="29.0" y1="28.0" x2="22.0" y2="50.0" class="edge"/><rect x="13.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="62.6" class="tc" text-anchor="middle" font-size="12">19</text><line x1="47.0" y1="28.0" x2="54.0" y2="50.0" class="edge"/><rect x="45.0" y="50.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="54.0" y="62.6" class="tc" text-anchor="middle" font-size="12">18</text><rect x="29.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="38.0" y="22.6" class="tc" text-anchor="middle" font-size="12">16</text></svg><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">24</text></svg><svg class="fsvg" viewBox="0 0 44 42" width="44" height="42" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="13.0" y="10.0" width="18.0" height="18.0" rx="3" class="mnode"/><text x="22.0" y="22.6" class="tc" text-anchor="middle" font-size="12">27</text></svg></div><div style="font-size:.85em;opacity:.8">بعد decrease-key (Ex 12.10): 3 cuts متسلسلة</div></div></div><figcaption>الـ cascading cut: لو عقدة فقدت ابن تاني (اتعلّمت من قبل) تتقطع هي كمان وتتحط في قايمة الجذور.</figcaption></figure><!--/fig:ds23-fib-dec-->
+<pre><code>Fig 12.29 (before) : 4(54,36(41)) 18(32,27(39)) 24(44) 36 18(19(33))
+Example 12.8 after : 4(54,36(41)) 16 18(32,27(39)) 24(44) 36 18(19(33))
+Example 12.9 result: 16(54,17(36,19(33)),36(41)) 24(44) 18(32,27(39))
+Example 12.10 after : 9 36(41) 19 17(18(32),36(38)) 16(19,18) 24 27   (cuts: 3)
+Exercise 30 start   : 16(36,19(33),18) 36(41) 17(24(27(39),44),18)
+  decrease 33 -&gt; 9  : 9 36(41) 17(24(27(39),44),18) 16(36,19&#x27;,18)
+  insert 5          : 5 36(41) 17(24(27(39),44),18) 16(36,19&#x27;,18) 9
+  delete 19         : 5(9,36(41)) 16(36,17(24(27(39),44),18),18)
+2000 inserts, 1000 extract-min: 6 roots, largest degree 9 (log_phi 1000 = 14.4)
+fibheap: all checks passed</code></pre>
+<div class="oops"><b>أمثلة Thareja 12.9–12.10 وQ30</b>الأشكال الأصلية لهذه الأمثلة مقروءة جزئيًا. النتائج اللي فوق (Ex 12.8، 12.10 بـ 3 cuts، Q30: <code>5(9,36(41)) 16(36,17(24(27(39),44),18),18)</code>) مبنية على قراءتنا للأشكال ومتحقق منها بالـ invariants (ترتيب heap، والدرجات، والعلامات، وعدد العقد). في Ex 12.9 الكتاب بيقول إن الجذور النهائية 17 و16 و36، لكن قراءتنا طلعت <code>16(…) 24(44) 18(…)</code> بالـ invariants سليمة؛ فمش بنقول إننا طابقنا شكل الكتاب هناك، والخلاف مسجّل في COVERAGE.</div>
+<p>بعد 2000 إدخال و1000 extract-min: 6 جذور وأكبر درجة 9 (الحد log<sub>φ</sub>1000 = 14.4).</p>
+
+<h2>13) المقارنة النهائية</h2>
+<table class="comp-table">
+<tr><th>العملية</th><th>binary</th><th>leftist</th><th>skew</th><th>binomial</th><th>Fibonacci</th></tr>
+<tr><td>insert</td><td>O(log n) (متوسط ثابت تقريبًا)</td><td>O(log n)</td><td>O(log n) amortized</td><td>O(log n) (amortized O(1))</td><td>O(1)</td></tr>
+<tr><td>find-min</td><td>O(1)</td><td>O(1)</td><td>O(1)</td><td>O(log n)</td><td>O(1)</td></tr>
+<tr><td>delete-min</td><td>O(log n)</td><td>O(log n)</td><td>O(log n) amortized</td><td>O(log n)</td><td>O(log n) amortized</td></tr>
+<tr><td>merge/union</td><td>O(n)</td><td>O(log n)</td><td>O(log n) amortized</td><td>O(log n)</td><td>O(1)</td></tr>
+<tr><td>decrease-key</td><td>O(log n) (بالمكان)</td><td>O(log n)</td><td>—</td><td>O(log n)</td><td>O(1) amortized</td></tr>
+</table>
+<p>نصيحة عملية: الـ binary heap (أو d-heap) أسرع في الواقع لكل التطبيقات اللي ما فيهاش merge، لأن الـ array صديق للـ cache. الـ Fibonacci بيكسب نظريًا في Dijkstra/Prim (decrease-key كتير)، لكن ثوابته كبيرة.</p>
+<p>تطبيقات (Weiss 6.1، Thareja 12.1): جدولة العمليات في الـ OS، heapsort (<a href="#/heapsort">درس heapsort</a>)، الـ selection problem (تمرين 6.39 تحت)، Huffman (<a href="#/binary-trees">درس الأشجار الثنائية</a>)، Dijkstra وPrim (فصل الـ graphs).</p>
+<p><b>Weiss 6.39 (selection):</b> الخوارزمية A: <code>buildHeap</code> ثم k مرة deleteMin = <code>O(N + k log N)</code>. الخوارزمية B: heap بحجم k نحافظ فيه على الأكبر = <code>O(N log k)</code>. على N = 100000 وk = 10: A 200,310 مقارنة وB 200,251؛ وk = 50000: A 1,716,352 وB 1,134,255. فلما k صغيرة A أسرع نظريًا (O(N))، ولما k قريب من N/2 الاتنين O(N log N) وB بيكسب بالثابت.</p>
+
+<h2>14) تمرين سريع</h2>
+<div class="quiz"><p class="q">ليه بناء heap بطريقة Floyd خطي O(n) والإدخال واحد واحد O(n log n)؟</p>
+<button>لأن Floyd بيستخدم array أسرع</button>
+<button data-ok>لأن معظم العقد قريبة من الورق وبتنزل مستويات قليلة، بينما الإدخال المتكرر بيطلّع معظم العقد (اللي في آخر مستوى) لفوق</button>
+<button>لأن Floyd بيستخدم binary search</button>
+<p class="why">نصف العقد ورق (مفيش نزول)، وربع العقد بتنزل مستوى، وهكذا؛ المجموع Σ h·n/2<sup>h+1</sup> = O(n).</p></div>
+<div class="quiz"><p class="q">إدخال 1…7 في leftist heap بالترتيب بيدّي…</p>
+<button>شجرة مائلة لليمين</button>
+<button data-ok>شجرة كاملة perfect (1(3(4,5),2(6,7)))</button>
+<button>سلسلة على الشمال</button>
+<p class="why">كل مفتاح جديد أكبر من الجذر فبيندمج على المسار اليمين وبعدين الابنين بيتبدلوا لو الـ npl يستدعي.</p></div>
+<div class="quiz"><p class="q">binomial queue فيه 13 عنصر. كام شجرة وأي رتب؟</p>
+<button>13 شجرة</button>
+<button>شجرة واحدة B13</button>
+<button data-ok>3 أشجار: B3 وB2 وB0 (13 = 1101₂)</button>
+<p class="why">الـ bits المضاءة في الثنائي هي رتب الأشجار: 8 + 4 + 1.</p></div>
+<div class="quiz"><p class="q">متى بيستحق Fibonacci heap عن binary heap؟</p>
+<button>لما ما فيش decrease-key</button>
+<button data-ok>لما عدد decrease-key كبير جدًا (Dijkstra على graph كثيفة)</button>
+<button>دايمًا</button>
+<p class="why">decrease-key بـ O(1) amortized بيغيّر الحد الكلي، لكن ثوابته أكبر وbinary heap أسرع في أغلب الحالات العملية.</p></div>
+<div class="quiz"><p class="q">في min-max heap، أين يوجد أكبر عنصر؟</p>
+<button>في الجذر</button>
+<button data-ok>في واحد من ابني الجذر (a[2] أو a[3])</button>
+<button>في آخر خانة</button>
+<p class="why">الجذر على min level، وابناه على max level، فأكبر عنصر أحدهما (أو الجذر نفسه لو n=1).</p></div>

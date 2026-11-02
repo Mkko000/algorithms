@@ -1,0 +1,173 @@
+<p class="meta">المراجع: Thareja ف12 (12.1 binary heaps، 12.2 binomial heaps، 12.3 Fibonacci heaps) · Weiss ف6 (6.1–6.5 binary heap وd-heap، 6.6 leftist، 6.7 skew، 6.8 binomial queues، تمارين 6.1–6.40) · Pal &amp; Halder 6.x (priority queue بالـ heap) و8.x (Fig 8.23) · Bandyopadhyay &amp; Dey 10.2.8 (Fig 10.6–10.8). كل الكود في <code>src/23-heaps/</code> وكله بيتأكد بـ assert.</p>
+<p>الـ <b>priority queue</b> هيكل بيطلّع دايمًا أصغر (أو أكبر) عنصر. في دروس سابقة شفنا <a href="#/pq-advanced">الـ priority queue عند Sedgewick</a> و<a href="#/heapsort">heapsort</a> و<a href="#/stacks-queues-apps">الـ priority queue كقايمة في الباب 19</a>. الدرس ده بيغطي اللي الكتب التانية بتضيفه: <b>تحليل الـ heap بالتفصيل، d-heap، min-max heap، وعيلة الـ heaps القابلة للدمج</b> (leftist وskew وbinomial وFibonacci).</p>
+<div class="goal"><b>هدف الدرس:</b> تكتب binary heap من الصفر وتشرح ليه البناء بطريقة Floyd خطي، وتعمل merge لـ leftist وskew heaps بإيدك، وتفهم إن binomial queue هو «عدّاد ثنائي» من الأشجار، وتعرف ليه Fibonacci heap بيخلّي decrease-key رخيص.</div>
+
+<h2>1) المشكلة: أصغر عنصر بسرعة (Weiss 6، Thareja 12.1، P&amp;H 6.x)</h2>
+<p>العمليات: <code>insert</code> و<code>deleteMin</code> (وأحيانًا <code>findMin</code> و<code>decreaseKey</code> و<code>merge</code>). P&amp;H بتعرض التمثيلات التلاتة في Table 6.7:</p>
+<table class="comp-table">
+<tr><th>التمثيل</th><th>Insert</th><th>Peek</th><th>Remove</th></tr>
+<tr><td>array أو قايمة <b>غير مرتبة</b></td><td>O(1)</td><td>O(n)</td><td>O(n)</td></tr>
+<tr><td>array أو قايمة <b>مرتبة</b></td><td>O(n)</td><td>O(1)</td><td>O(1)</td></tr>
+<tr><td><b>heap</b></td><td>O(log n)</td><td>O(1)</td><td>O(log n)</td></tr>
+</table>
+<p>الجدول ده بيطلع من عدّ فعلي في <code>ex23_03</code> (n = 4096): مسح القايمة غير المرتبة 8,386,560 خانة، وإدخال في المرتبة 4,248,715 إزاحة، مقابل حوالي 12 خطوة لكل عملية في الـ heap.</p>
+<!--out:src/23-heaps/exercises/ex23_03_pph_bd_heaps.c:8-->
+
+<h2>2) تعريف الـ heap (Thareja 12.1، Weiss 6.3، P&amp;H Fig 8.23، B&amp;D 10.2.8)</h2>
+<p>الـ heap شجرة ثنائية <b>كاملة</b> (complete: كل المستويات ممتلية ما عدا الأخير وده بيتملي من الشمال) + <b>خاصية الترتيب</b>: في الـ min-heap كل عقدة ≤ ولادها (والـ max-heap العكس). الأقدمين بيسموها «partially ordered tree». Fig 8.23 في P&amp;H: (a) max-heap <code>14 12 7 10 9 6</code> و(b) min-heap <code>2 7 5 10 9 6</code>؛ البرنامج بيتأكد إن (a) مش min-heap و(b) مش max-heap.</p>
+<div class="tip"><b>ترتيب جزئي مش كلي</b>الأخوات ما ليهمش علاقة ببعض، فـ heap مش BST: ممكن 10 يبقى شمال 9. <code>ex23_01</code> Q28 بيعدّ بالقوة الغاشمة عدد الترتيبات اللي بتبقى heap وBST في نفس الوقت: 2 لـ n=1، و1 لـ n=2 (ترتيب واحد)، و<b>صفر لكل n من 3 لـ 7</b> (بيتعدّ لحد 7)، لأن في BST الشمال أصغر من الجذر والتاني أكبر، وفي الـ heap الجذر أصغر من الاتنين (أو أكبر منهم).</div>
+<p>الشكل الكامل بيخلّي التخزين في array من غير مؤشرات (أول خانة 1): الأب <code>i/2</code>، والأبناء <code>2i</code> و<code>2i+1</code>. و<b>الارتفاع ⌊log₂ n⌋</b> وعدد العقد في شجرة كاملة ارتفاعها h بين 2<sup>h</sup> و2<sup>h+1</sup>−1 (Weiss 6.6).</p>
+<!--fig:ds23-fig122--><!--/fig:ds23-fig122-->
+<p><b>أسئلة Thareja 21–24:</b> الشجرة <code>4 | 6 12 | 7 9 21 39 | 13 19 10</code> هي min-heap (مش max-heap)، وتمثيلها <code>4 6 12 7 9 21 39 13 19 10</code>. والـ array <code>45 27 36 18 16 21 23 10</code> فيها أب 10 هو 18 (الخانة 4)، وأب 21 هو 36، وأب 23 هو 36 (الخانة 7: ولاده كانوا هيبقوا في 14 و15 وهما بره n=8). كلها في <code>ex23_01</code>.</p>
+
+<h2>3) الإدخال (Thareja Fig 12.7، Example 12.1، P&amp;H Algorithm Insert)</h2>
+<p>نحط العنصر في أول خانة فاضية (الشجرة تفضل كاملة) وبعدين <b>نطلّعه</b> (percolate up / shift-up) طول ما هو أحسن من أبوه. أقصى حاجة = عمق الشجرة.</p>
+<!--code:src/23-heaps/binheap.c:bh-->
+<p>مثال Thareja 12.1: ندخّل 99 في max-heap بتاعة Fig 12.2 (<code>54 45 36 27 21 18 21 11</code>):</p>
+<!--fig:ds23-insert99--><!--/fig:ds23-insert99-->
+<p>P&amp;H بتكتب نفس الفكرة بدون swap: بتزحزح الأب لتحت وتحط العنصر مرة واحدة في الآخر (<code>Q[I] = Q[J]</code> في الحلقة ثم <code>Q[I] = ITEM</code>)، وده بيوفّر تلت التخصيصات؛ وهو بالظبط اللي بيتعمل في <code>ph_insert</code> في <code>ex23_03</code>. وWeiss 6.5 بيحط <b>نسخة من العنصر في الخانة 0 كحارس</b> فيتشال اختبار <code>pos &gt; 1</code> من الحلقة (<code>bh_insert_sentinel</code>)؛ اتجرّب على 2000 heap عشوائي وطلعت النتيجة نفس الإدخال العادي.</p>
+<!--code:src/23-heaps/binheap.c:bhsentinel-->
+<div class="tip"><b>متوسط التكلفة</b>أسوأ إدخال O(log n) (لو العنصر الأصغر في الكل). Weiss بيقول إن المتوسط 2.607 مقارنة. اتقاس في <code>ex23_02</code> على heaps (لحد 1000 مفتاح) متبنية بإدخالات عشوائية متتالية فطلع <b>2.238</b>؛ الإعدادين مش بالضرورة نفس التوزيع، فمش بنقول إن الرقمين متعارضين.</div>
+
+<h2>4) الحذف (Thareja Fig 12.10، Example 12.3، P&amp;H Remove وHeapify)</h2>
+<p>الجذر هو اللي بيتشال. نحط <b>آخر عنصر</b> مكانه (الشجرة تفضل كاملة) وننزّله (percolate down) باستبداله مع <b>أحسن ابن</b> لحد ما يبقى أحسن من ابنيه أو ورقة. P&amp;H بتسميها <code>Heapify(Q, 1)</code>. مثال 12.3: بنمسح 54 من <code>54 45 36 27 29 18 21 11</code> فتطلع <code>45 29 36 27 11 18 21</code>:</p>
+<!--fig:ds23-deleteroot--><!--/fig:ds23-deleteroot-->
+<div class="oops"><b>الخطوة 5 في كتاب Thareja</b>الخطوة 5 في Fig 12.10 بتقارن مع <code>HEAP[RIGHT]</code> حتى لو <code>RIGHT &gt; N</code> (عقدة بابن واحد). ده <b>بيشتغل في الكتاب</b> لأن الخانة N+1 لسه فيها قيمة LAST القديمة. اتجرّب: على 20000 heap و«الخانة القديمة محفوظة» ما فيش ولا اختلاف. لكن لو الخانة اتمسحت واتحطت مفاتيح سالبة، بيحصل خطأ في 3175 حالة (مثال: <code>-2 0 -2 -13</code> بدل الصح <code>-2 -8 -2 -13</code>). فكودنا بيختبر <code>left+1 &lt;= n</code> الأول ومش بيعتمد على الخانة القديمة. (في أول محاولة افتكرناها غلطة في الكتاب، وبعد الاختبار اتراجعنا.)</div>
+<p>P&amp;H Algorithm Remove: <code>Item = Q[1]; Q[1] = Q[N]; N = N-1; Heapify(Q,1)</code>، وبترجّع «Queue Underflow» لو N &lt; 1. اتنفّذت بالحرف في <code>ph_remove</code> واتجرّب على 7 عناصر: الإخراج <code>30 22 17 9 5 3 1</code> مرتّب تنازليًا، والمحاولة الثامنة بتطبع Underflow.</p>
+<div class="tip"><b>الحذف بتكلفة أقل (Weiss 6.13a)</b>بدل ما نقارن مع الابنين في كل مستوى (2 log N مقارنة)، ندوّر على المسار «أحسن ابن» بس (log N مقارنة)، وبعدين نعمل <b>binary search</b> على المسار ده لمكان LAST (log log N). اتقاس على 65536 مفتاح: <b>18.4</b> مقارنة للحذف بدل <b>29.3</b>.</div>
+
+<h2>5) بناء الـ heap من n عنصر (Thareja Ex 12.2، Weiss 6.3.4 وFig 6.14، P&amp;H، تمرين Weiss 6.2 وThareja Q29)</h2>
+<p>طريقتين:</p>
+<ol>
+<li><b>الإدخال واحد واحد</b> (P&amp;H بتسميها shift-up): n × O(log n) = O(n log n) في الأسوأ.</li>
+<li><b>Floyd</b> (Weiss buildHeap، P&amp;H shift-down): انسخ العناصر زي ما هي، وبعدين نزّل من <code>i = n/2</code> لـ <code>1</code>. <b>O(n)</b>.</li>
+</ol>
+<!--code:src/23-heaps/binheap.c:bhbuild-->
+<!--fig:ds23-build2--><!--/fig:ds23-build2-->
+<p><b>ليه Floyd خطي؟</b> العقدة في ارتفاع h بتتنزّل في أسوأ الأحوال h مستوى، وفي الشجرة الكاملة عدد العقد اللي ارتفاعها h حوالي n/2<sup>h+1</sup>. فالمجموع ≤ Σ h·n/2<sup>h+1</sup> = n · Σ h/2<sup>h+1</sup> = n. بالظبط: مجموع ارتفاعات كل العقد في شجرة كاملة ≤ n−1. وكل نزول مستوى = مقارنتين، فالحد الأعلى <b>&lt; 2n مقارنة</b> (Thareja Q29)؛ اتجرّب لكل n من 1 لـ 995.</p>
+<p>القياس في <code>ex23_01</code> (مفاتيح عشوائية، عدّ المقارنات):</p>
+<table class="comp-table">
+<tr><th>n</th><th>إدخال واحد واحد</th><th>Floyd</th></tr>
+<tr><td>100</td><td>480</td><td>190</td></tr><tr><td>400</td><td>2698</td><td>786</td></tr><tr><td>1600</td><td>13964</td><td>3182</td></tr><tr><td>3200</td><td>31117</td><td>6380</td></tr>
+</table>
+<p>وعلى n=200000 (Weiss 6.12): لو المدخل مرتب تصاعديًا الاتنين 199,999 مقارنة (مفيش حركة)؛ ولو معكوس: الإدخال 3,137,875 وFloyd 399,976؛ وعشوائي: 456,453 مقابل 376,556. يعني الفرق كبير لما المدخل «وحش».</p>
+<p><b>Weiss 6.7:</b> (a) Floyd بيستخدم على الأكتر 2N−2 مقارنة: اتجرّب على مدخلات عشوائية لكل N من 1 لـ 600. (b) كل الـ 40320 ترتيب لـ 8 عناصر (8!) اتبنى منها heap بـ <b>8 مقارنات بالظبط</b> وكل مرة النتيجة heap سليم وفيها نفس العناصر. (c) خوارزمية 13N/8 مسألة بحثية: مش متنفّذة وده مسجّل في COVERAGE.</p>
+
+<h2>6) عمليات تانية لما نعرف مكان العنصر (Weiss 6.3.3، Thareja Q22)</h2>
+<p>الـ heap مش بيدعم البحث عن مفتاح (O(n))، لكن لو معانا <b>المكان</b>: <code>decreaseKey</code> (percolate up) و<code>increaseKey</code> (percolate down) و<code>remove</code> (= decreaseKey بـ −∞ ثم deleteMin): كلها O(log n).</p>
+<!--code:src/23-heaps/binheap.c:bhops-->
+<p><b>Thareja Q22:</b> الشجرة <code>45 | 27 36 | 16 18 29 21 | 54</code> بعد إضافة 54 في آخرها بتتصلّح بـ percolate up لـ <code>54 45 36 27 18 29 21 16</code>.</p>
+<p><b>Q25</b> (أي تتابع binary heap؟): (a) max-heap، (b) مش heap، (c) هو min-heap وmax-heap في نفس الوقت (كل المفاتيح متساوية). <b>Q26/Q27</b>: <code>52 32 42 22 12 27 37 12 7</code> بعد 3 حذفات يشيل 52 و42 و37 ويبقى <code>32 22 27 7 12 12</code>، وبعد إضافة 35 و24 و10 للـ heap الأصلي بتبقى <code>52 35 42 22 32 27 37 12 7 12 24 10</code>.</p>
+
+<h2>7) d-heap (Weiss 6.14 و6.15)</h2>
+<p>كل عقدة لها d ابن. الارتفاع log<sub>d</sub> n فالإدخال أسرع (مستويات أقل)، لكن الحذف بيقارن مع d ابن في كل مستوى (d·log<sub>d</sub> n). المواقع (الترقيم من 1): <code>parent(i) = ⌊(i−2)/d⌋ + 1</code> و<code>child k of i = d(i−1) + 2 + k</code> للـ k = 0…d−1.</p>
+<!--code:src/23-heaps/binheap.c:dheap-->
+<p>الاختبار بيعمل d من 2 لـ 8، يتأكد من العلاقة بين الأب والأبناء، ويدخّل 700 رقم ويطلّعهم مرتبين. (<b>تصحيح:</b> أول نسخة كتبت <code>d(i−2)+2+k</code> وده غلط للخانة 1 واتكشف بالاختبار.)</p>
+<p><b>اختيار d (6.15):</b> لو عندنا M عملية إدخال/decreaseKey وN حذف، التكلفة ≈ <code>M log<sub>d</sub> N + N d log<sub>d</sub> N</code>. بالأرقام: N = 10<sup>6</sup>: لو M = N الأحسن d = 4، ولو M = 10N الأحسن d = 9، ولو M = 100N الأحسن d = 38. يعني كل ما الإدخالات أكتر قارن d. (ده السبب في إن Dijkstra على graph كثيفة بتستفيد من d كبير.)</p>
+<p>كمان: لو الـ heap مخزّن كعقد بمؤشرات (6.16) ندوّر على الموقع i بقراءة bits العدد i بعد أول 1 (0 شمال و1 يمين): O(log N)؛ اتأكد لكل i ≤ 1000.</p>
+
+<h2>8) Min-max heap (Weiss 6.18، Fig 6.58)</h2>
+<p>عايزين <code>deleteMin</code> و<code>deleteMax</code> في نفس الهيكل. نفس شكل الـ heap بس: مستويات العمق الزوجي (0، 2، …) <b>min levels</b> (العقدة أصغر من كل شجرتها الفرعية)، والفردي <b>max levels</b> (أكبر من كل شجرتها الفرعية). الـ min = <code>a[1]</code> والـ max = الأكبر بين <code>a[2]</code> و<code>a[3]</code>، والتلاتة O(1)، والإدخال والحذفين O(log N).</p>
+<!--fig:ds23-minmax--><!--/fig:ds23-minmax-->
+<!--code:src/23-heaps/minmax.c-->
+<!--out:src/23-heaps/minmax.c:4-->
+<p>النتيجة في Fig 6.58 بعد <code>deleteMin</code> و<code>deleteMax</code> اتقارنت مع الكتاب، وبعد كل عملية في الاختبار بنستدعي <code>mm_valid</code> وبنقارن بحل بالقوة الغاشمة.</p>
+
+<h2>9) Leftist heaps (Weiss 6.6، Fig 6.20–6.30، تمارين 6.19–6.25)</h2>
+<p>عايزين <b>merge</b> سريع. الـ binary heap بياخد O(n). الفكرة: شجرة heap-ordered (مش لازم كاملة)، لكن نخليها <b>مائلة للشمال</b> عشان المسار اليمين يبقى قصير.</p>
+<p><b>null path length:</b> <code>npl(x)</code> = طول أقصر مسار من x لعقدة فيها ابن فاضي. <code>npl(NULL) = −1</code>. <b>الشرط:</b> لكل عقدة <code>npl(left) ≥ npl(right)</code>. النتيجة: أقصر مسار لـ NULL هو المسار اليمين، وعقدة npl = r فيها على الأقل 2<sup>r+1</sup>−1 عقدة، فالمسار اليمين في heap بـ N عقدة <b>≤ ⌊log₂(N+1)⌋</b> (اتأكد بـ assert في كل اختبار).</p>
+<!--code:src/23-heaps/leftist.c:lnode-->
+<!--code:src/23-heaps/leftist.c:lmerge-->
+<p>الـ merge بينزل على المسار اليمين بس. لو h1 أصغر جذر: يتدمج h2 في ابنه اليمين، ولو الشرط اتكسر بنبدّل الابنين، ويتحدّث npl. الشكل ده الـ H1 وH2 اللي في Weiss (Fig 6.21) وخطوات الدمج (Fig 6.22–6.24):</p>
+<!--fig:ds23-leftist--><!--/fig:ds23-leftist-->
+<!--out:src/23-heaps/leftist.c:9-->
+<p><code>insert</code> = merge مع heap من عقدة واحدة، و<code>deleteMin</code> = merge للابنين بعد شيل الجذر؛ التكلفة O(log N) لأن المسارات اليمين لوغاريتمية. وفيه نسخة <b>تكرارية</b> من غير recursion (Fig 6.28 والنص بعده): مرحلة تدمج المسارين اليمين كأنهم قايمتين مرتبتين، ومرحلة ترجع من تحت تصلّح npl وتبدّل:</p>
+<!--code:src/23-heaps/leftist.c:literative-->
+<p><b>تمارين Weiss على الـ leftist:</b></p>
+<ul>
+<li><b>6.19:</b> الدمج للـ heaps في Fig 6.59 (H1 = <code>2(11(12(18,15),17),5(8(31)))</code> وH2 = <code>4(9(18,10),6(11(21)))</code>) ينتج <code>2(4(9(18,10),5(8(31),6(11(21)))),11(12(18,15),17))</code>. <i>(Fig 6.59 مقروء جزئيًا من الـ PDF؛ قراءتنا الأولى لـ H1 كسرت شرط الـ heap (17(15)) فاتصحّحت، والتحقق على الشروط مش على صورة الكتاب.)</i></li>
+<li><b>6.20 و6.21:</b> إدخال 1…15 بالترتيب بيدّي <code>1(2(7(8,9),6(10,11)),3(5(12,13),4(14,15)))</code>، وهي <b>perfect</b> لكل k = 1…7 (n = 2<sup>k</sup>−1). (افتراضنا الأول إنها مش هتبقى perfect طلع غلط، وعدّلنا الـ assert.)</li>
+<li><b>6.22:</b> ترتيب إدخال بيدّي أحسن شجرة (perfect على 7 مفاتيح): <code>1 2 3 4 5 6 7</code> وبتطلع <code>1(3(4,5),2(6,7))</code>.</li>
+<li><b>6.23 (decreaseKey في leftist):</b> سؤال نظري، <b>مش متنفّذ في الكود</b>. الاتجاه: محتاجين مؤشر للأب؛ نقطع عقدة x (ونحط مكانها merge لابنيها)، ونقلّل مفتاحها وندمجها من جديد. المشكلة إن إصلاح npl لأجداد x بيطلع لفوق ومسار الأجداد ممكن يكون طويل (شمال)، فمش بنادّعي حد O(log N) هنا؛ الإجابة اللي نقدر ندافع عنها «ممكن مع parent pointers لكن الضمان اللوغاريتمي محتاج برهان إضافي».</li>
+<li><b>6.24 (lazy deletion):</b> نعلّم العقد المحذوفة، ولما <code>findMin</code> يلاقي الجذر محذوف يعمل merge للابنين ويكمل. على 4000 عقدة، 300 معلّمة: findMin واحد شال 300 جذر ميت بـ 2855 خطوة دمج (الحد k log N = 3590). والحد O(k log(2N/k)) مثبت في النص.</li>
+<li><b>6.25 (buildHeap بـ queue):</b> نحط كل عنصر كـ heap لوحده في queue، ونكرر: خد اتنين، ادمجهم، ارجّع النتيجة آخر الطابور. بيتبنى بحوالي <b>2 خطوة دمج لكل عنصر</b> (N=65536: 132,244 خطوة = 2.02 لكل عنصر) في حين أن الإدخال المتكرر بيكبر مع log N (8.68 لكل عنصر).</li>
+<li><b>6.40:</b> نسخ/تحرير leftist heap بدون recursion عميق: لو بنيناه بإدخالات تنازلية (N=20000) الارتفاع 20000 (عمود فقري شمال)، لكن لو التحرير بيمشي يمين بس ويلف الشمال بحلقة فعمق الـ recursion = 2؛ ولو إدخالات تصاعدية (N=300000) الارتفاع 19. الحد: المسار اليمين ≤ log₂(N+1).</li>
+</ul>
+
+<h2>10) Skew heaps (Weiss 6.7، Fig 6.31–6.33، تمارين 6.26–6.29)</h2>
+<p>نفس الـ merge لكن <b>من غير npl</b>: بعد الدمج في الابن اليمين <b>نبدّل الابنين دايمًا</b>. مفيش ضمان على التكلفة في عملية واحدة (ممكن O(N))، لكن <b>amortized O(log N)</b>. مميزاته: كود أقصر، ومفيش حقل إضافي.</p>
+<!--code:src/23-heaps/leftist.c:skew-->
+<!--fig:ds23-skew--><!--/fig:ds23-skew-->
+<p><b>6.26:</b> دمج heaps الـ Fig 6.59 كـ skew يطلع <code>2(4(5(6(11(21)),8(31)),9(18,10)),11(12(18,15),17))</code>. <b>6.27/6.28:</b> إدخال 1…15 بالترتيب بيدّي <code>1(3(7(15,11),5(13,9)),2(6(14,10),4(12,8)))</code>، وكمان perfect لكل k ≤ 7. <b>6.29:</b> نفس حيلة الـ queue على skew بتدّي حوالي <b>2.6</b> خطوة لكل عنصر (2.56 → 2.63 لما N بيكبر): أعلى شوية من leftist (2.0) لكن لسه خطي.</p>
+<div class="tip"><b>أيهما أحسن؟</b>leftist: ضمان في الأسوأ، وبتحتاج npl. skew: أبسط وأسرع في الواقع غالبًا، وضمانه amortized، والمسار اليمين ممكن يبقى طويل (فالـ recursion ممكن تتعمّق: استخدم النسخة التكرارية في الإنتاج).</div>
+
+<h2>11) Binomial heaps / queues (Thareja 12.2، Weiss 6.8، تمارين 6.30–6.36)</h2>
+<p>كل الـ heaps اللي فاتت ما بتديش <code>insert</code> بـ O(1) في أسوأ حالة. الـ <b>binomial queue</b> هو «عدّاد ثنائي» من الأشجار:</p>
+<p><b>الشجرة binomial B<sub>k</sub></b> = شجرتين B<sub>k−1</sub> واحدة معلّقة تحت جذر التانية. فيها 2<sup>k</sup> عقدة، وجذرها له k ابن (B<sub>k−1</sub> … B<sub>0</sub>)، وعدد العقد على العمق d هو <b>C(k, d)</b> (ومن هنا الاسم binomial). (الكتاب Thareja في Table و T/F 6 بيطبع «2i» وده أكيد 2<sup>i</sup> اتحوّلت في الاستخراج؛ والـ T/F رقم 6 «Bi فيها 2i عقدة» مفتاحها False.)</p>
+<!--fig:ds23-btrees--><!--/fig:ds23-btrees-->
+<p>الـ heap = <b>مجموعة أشجار binomial، أقصى واحدة من كل رتبة k</b>، كل واحدة heap-ordered. فعدد العقد N بالثنائي يحدد الأشجار: N = 12 = 1100₂ يعني B<sub>3</sub> وB<sub>2</sub> (Fig 12.13: 8 + 4 عقد).</p>
+<!--fig:ds23-fig1213--><!--/fig:ds23-fig1213-->
+<!--code:src/23-heaps/binomial.c:bnode-->
+<p><b>دمج (Union) = جمع ثنائي مع carry:</b> ندمج قايمتين الجذور كأنهم مرتبين بالـ degree، وبعدين نمشي: لو فيه شجرتين بنفس الرتبة نربطهم (الجذر الأصغر يفضل جذر ويبقى التاني ابنه)، ويطلع «carry» بالرتبة اللي بعدها. Thareja بتسميها Link (Fig 12.17) وUnion (Fig 12.18)، وWeiss Fig 6.55.</p>
+<!--code:src/23-heaps/binomial.c:bunion-->
+<p><b>insert</b> = union مع heap من عقدة واحدة. <b>extract-min</b> (Thareja 12.21، Weiss Fig 6.56) = نشيل أصغر جذر؛ أبناؤه <code>B<sub>k−1</sub> … B<sub>0</sub></code> هم أصلاً binomial heap كامل (بعد عكس الترتيب) فنعمل union معاه ومع الباقي. و<b>decrease</b> بنطلّع القيمة بالتبديل مع الأب، و<b>delete</b> = decrease لـ −∞ ثم extract-min.</p>
+<!--code:src/23-heaps/binomial.c:bextract-->
+<p>سبع إدخالات متتالية 1…7 بتبيّن إن الشكل هو العدّاد الثنائي بالظبط:</p>
+<!--fig:ds23-bn-insert--><!--/fig:ds23-bn-insert-->
+<p><b>عدد الـ links:</b> N إدخالات بتعمل بالظبط <b>N − popcount(N)</b> link (كل link مقارنة واحدة)؛ لـ 7: 7 − 3 = 4 (مكتوب في الخرج). فالإدخال <b>amortized O(1)</b> (زي زيادة العدّاد)، لكن الأسوأ O(log N) لما carry يتسلسل. وهذا إجابة Weiss 6.33(a،b).</p>
+<!--fig:ds23-bn-extract--><!--/fig:ds23-bn-extract-->
+<!--out:src/23-heaps/binomial.c:12-->
+<p><b>Weiss 6.32:</b> دمج H1 = <code>13 23(24(65),51) 12(14(16(18),26),21(65),24)</code> وH2 = <code>4 15(18) 2(11(55),29)</code> بيدّي <code>4(15(18),13) 2(12(14(16(18),26),21(65),24),23(24(65),51),11(55),29)</code> (شجرتين: B<sub>1</sub>+B<sub>1</sub> → B<sub>2</sub>، وهكذا مع carry). <i>(Fig 6.60 مقروء جزئيًا، والـ check على قواعد الـ binomial/heap.)</i></p>
+<p><b>6.34/6.35:</b> الإدخال المباشر من غير استدعاء merge (<code>bq_insert_direct</code>) بيدّي نفس الـ queue بالظبط في 500 تجربة. والـ <b>early stop</b> (نوقف الحلقة لما الـ carry يخلص ومفيش حاجة تانية) بيخفّض متوسط عدد دورات الحلقة من 32 (ثابتة) لـ <b>2.13</b>. 6.35(b): «الصغير يندمج في الكبير» (5.9) أحسن من العكس (11.4). و6.36 (insert بـ O(1) أسوأ حالة بـ «عدّاد زائد») بنشرحه نظريًا فقط (مش مكتوب كود).</p>
+
+<h2>12) Fibonacci heaps (Thareja 12.3، Examples 12.8–12.10، Q30)</h2>
+<p>الفكرة: <b>نأجّل الشغل</b>. قايمة جذور (circular doubly linked) بدون قيود، والـ min بمؤشر. <code>insert</code> و<code>union</code> و<code>find-min</code> = O(1) <b>حقيقية</b> (Thareja Table 12.1 بتكتب find-min وcreate بـ O(n)؛ وده غلط طباعي واضح: الاتنين O(1)). وكل الشغل بيتعمل في <code>extract-min</code> بـ <b>consolidate</b>: نربط الجذور بنفس الرتبة (زي binomial) لحد ما رتب الجذور تبقى مختلفة. ودرجة أي عقدة في heap بـ n عقدة ≤ log<sub>φ</sub> n (φ = 1.618…).</p>
+<!--code:src/23-heaps/fibheap.c:fnode-->
+<!--fig:ds23-fib-insert--><!--/fig:ds23-fib-insert-->
+<!--code:src/23-heaps/fibheap.c:fextract-->
+<p><b>decrease-key:</b> بنقلّل القيمة، ولو بقت أصغر من الأب نقطع العقدة ونحطها في قايمة الجذور (cut). ولو الأب كان معلّم (فقد ابن قبل كده) يتقطع كمان، وهكذا للأعلى (<b>cascading cut</b>). العلامات (marks) هي اللي بتضمن إن العقدة اللي رتبتها k فيها على الأقل F<sub>k+2</sub> عقدة، فالارتفاع لوغاريتمي. <b>amortized O(1)</b> للـ decrease-key، وO(log n) للـ delete وextract-min.</p>
+<!--code:src/23-heaps/fibheap.c:fdecrease-->
+<!--fig:ds23-fib-dec--><!--/fig:ds23-fib-dec-->
+<!--out:src/23-heaps/fibheap.c:12-->
+<div class="oops"><b>أمثلة Thareja 12.9–12.10 وQ30</b>الأشكال الأصلية لهذه الأمثلة مقروءة جزئيًا. النتائج اللي فوق (Ex 12.8، 12.10 بـ 3 cuts، Q30: <code>5(9,36(41)) 16(36,17(24(27(39),44),18),18)</code>) مبنية على قراءتنا للأشكال ومتحقق منها بالـ invariants (ترتيب heap، والدرجات، والعلامات، وعدد العقد). في Ex 12.9 الكتاب بيقول إن الجذور النهائية 17 و16 و36، لكن قراءتنا طلعت <code>16(…) 24(44) 18(…)</code> بالـ invariants سليمة؛ فمش بنقول إننا طابقنا شكل الكتاب هناك، والخلاف مسجّل في COVERAGE.</div>
+<p>بعد 2000 إدخال و1000 extract-min: 6 جذور وأكبر درجة 9 (الحد log<sub>φ</sub>1000 = 14.4).</p>
+
+<h2>13) المقارنة النهائية</h2>
+<table class="comp-table">
+<tr><th>العملية</th><th>binary</th><th>leftist</th><th>skew</th><th>binomial</th><th>Fibonacci</th></tr>
+<tr><td>insert</td><td>O(log n) (متوسط ثابت تقريبًا)</td><td>O(log n)</td><td>O(log n) amortized</td><td>O(log n) (amortized O(1))</td><td>O(1)</td></tr>
+<tr><td>find-min</td><td>O(1)</td><td>O(1)</td><td>O(1)</td><td>O(log n)</td><td>O(1)</td></tr>
+<tr><td>delete-min</td><td>O(log n)</td><td>O(log n)</td><td>O(log n) amortized</td><td>O(log n)</td><td>O(log n) amortized</td></tr>
+<tr><td>merge/union</td><td>O(n)</td><td>O(log n)</td><td>O(log n) amortized</td><td>O(log n)</td><td>O(1)</td></tr>
+<tr><td>decrease-key</td><td>O(log n) (بالمكان)</td><td>O(log n)</td><td>—</td><td>O(log n)</td><td>O(1) amortized</td></tr>
+</table>
+<p>نصيحة عملية: الـ binary heap (أو d-heap) أسرع في الواقع لكل التطبيقات اللي ما فيهاش merge، لأن الـ array صديق للـ cache. الـ Fibonacci بيكسب نظريًا في Dijkstra/Prim (decrease-key كتير)، لكن ثوابته كبيرة.</p>
+<p>تطبيقات (Weiss 6.1، Thareja 12.1): جدولة العمليات في الـ OS، heapsort (<a href="#/heapsort">درس heapsort</a>)، الـ selection problem (تمرين 6.39 تحت)، Huffman (<a href="#/binary-trees">درس الأشجار الثنائية</a>)، Dijkstra وPrim (فصل الـ graphs).</p>
+<p><b>Weiss 6.39 (selection):</b> الخوارزمية A: <code>buildHeap</code> ثم k مرة deleteMin = <code>O(N + k log N)</code>. الخوارزمية B: heap بحجم k نحافظ فيه على الأكبر = <code>O(N log k)</code>. على N = 100000 وk = 10: A 200,310 مقارنة وB 200,251؛ وk = 50000: A 1,716,352 وB 1,134,255. فلما k صغيرة A أسرع نظريًا (O(N))، ولما k قريب من N/2 الاتنين O(N log N) وB بيكسب بالثابت.</p>
+
+<h2>14) تمرين سريع</h2>
+<div class="quiz"><p class="q">ليه بناء heap بطريقة Floyd خطي O(n) والإدخال واحد واحد O(n log n)؟</p>
+<button>لأن Floyd بيستخدم array أسرع</button>
+<button data-ok>لأن معظم العقد قريبة من الورق وبتنزل مستويات قليلة، بينما الإدخال المتكرر بيطلّع معظم العقد (اللي في آخر مستوى) لفوق</button>
+<button>لأن Floyd بيستخدم binary search</button>
+<p class="why">نصف العقد ورق (مفيش نزول)، وربع العقد بتنزل مستوى، وهكذا؛ المجموع Σ h·n/2<sup>h+1</sup> = O(n).</p></div>
+<div class="quiz"><p class="q">إدخال 1…7 في leftist heap بالترتيب بيدّي…</p>
+<button>شجرة مائلة لليمين</button>
+<button data-ok>شجرة كاملة perfect (1(3(4,5),2(6,7)))</button>
+<button>سلسلة على الشمال</button>
+<p class="why">كل مفتاح جديد أكبر من الجذر فبيندمج على المسار اليمين وبعدين الابنين بيتبدلوا لو الـ npl يستدعي.</p></div>
+<div class="quiz"><p class="q">binomial queue فيه 13 عنصر. كام شجرة وأي رتب؟</p>
+<button>13 شجرة</button>
+<button>شجرة واحدة B13</button>
+<button data-ok>3 أشجار: B3 وB2 وB0 (13 = 1101₂)</button>
+<p class="why">الـ bits المضاءة في الثنائي هي رتب الأشجار: 8 + 4 + 1.</p></div>
+<div class="quiz"><p class="q">متى بيستحق Fibonacci heap عن binary heap؟</p>
+<button>لما ما فيش decrease-key</button>
+<button data-ok>لما عدد decrease-key كبير جدًا (Dijkstra على graph كثيفة)</button>
+<button>دايمًا</button>
+<p class="why">decrease-key بـ O(1) amortized بيغيّر الحد الكلي، لكن ثوابته أكبر وbinary heap أسرع في أغلب الحالات العملية.</p></div>
+<div class="quiz"><p class="q">في min-max heap، أين يوجد أكبر عنصر؟</p>
+<button>في الجذر</button>
+<button data-ok>في واحد من ابني الجذر (a[2] أو a[3])</button>
+<button>في آخر خانة</button>
+<p class="why">الجذر على min level، وابناه على max level، فأكبر عنصر أحدهما (أو الجذر نفسه لو n=1).</p></div>

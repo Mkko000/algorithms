@@ -7,7 +7,8 @@ SRCDIRS = src/01-fundamentals src/02-analysis src/03-data-structures \
           src/04-adt src/05-recursion-trees src/06-sorting src/07-quicksort \
           src/08-mergesort src/09-heapsort src/10-radix-sort src/11-special-sorts \
           src/12-bst src/13-balanced-trees src/14-hashing src/15-tries \
-          src/16-external-search
+          src/16-external-search src/17-arrays-matrices src/18-linked-list-variants src/19-stacks-queues \
+          src/20-trees src/21-efficient-trees src/22-multiway-trees src/23-heaps
 
 SOURCES = $(foreach d,$(SRCDIRS),$(wildcard $(d)/*.c) $(wildcard $(d)/exercises/*.c))
 BINDIR  = bin

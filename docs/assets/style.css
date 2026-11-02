@@ -124,7 +124,8 @@ figure.fig figcaption,.steps figcaption{font-size:14.5px;color:var(--mute);margi
 .fsvg .node.hi,.fsvg circle.hi{fill:color-mix(in srgb,var(--acc) 40%,var(--card))}
 .fsvg circle.hi2{fill:color-mix(in srgb,var(--acc2) 40%,var(--card));stroke:var(--acc2)}
 .fsvg circle.dim{opacity:.4}
-.fsvg circle.rn{stroke:#ef4444;stroke-width:2.6}
+.fsvg circle.rn{fill:color-mix(in srgb,#ef4444 30%,var(--card));stroke:#ef4444;stroke-width:2.6}
+.fsvg circle.bk{stroke:var(--ink);stroke-width:3.4}
 .fsvg .edge{stroke:var(--mute);stroke-width:1.6}
 .fsvg .edge.red{stroke:#ef4444;stroke-width:4}
 .fsvg .edge.null{stroke-dasharray:3 3;opacity:.5}

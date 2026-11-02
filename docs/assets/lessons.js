@@ -70,6 +70,22 @@ window.COURSE = {
       { id: 'extendible',   file: '39-extendible-hashing.html', title: 'Extendible hashing والـ Perspective', min: 35 },
       { id: 'ex-ch16',      file: 'ex-16-external-searching.html', title: 'تمارين محلولة: الفصل 16', min: 40 }
     ]},
+    { title: 'هياكل بيانات إضافية: من كتب Weiss وThareja وLipschutz (الفصول 17–31)', lessons: [
+      { id: 'arrays-matrices', file: '41-arrays-matrices.html', title: 'Arrays والمصفوفات: العناوين والـ Sparse والمثلثية', min: 40 },
+      { id: 'ex-ch17', file: 'ex-17-arrays-matrices.html', title: 'تمارين محلولة: الفصل 17', min: 40 },
+      { id: 'linked-variants', file: '42-linked-variants.html', title: 'قوايم Header و Circular و Doubly و Cursor وكثيرات الحدود', min: 45 },
+      { id: 'ex-ch18', file: 'ex-18-linked-variants.html', title: 'تمارين محلولة: الفصل 18', min: 45 },
+      { id: 'stacks-queues-apps', file: '43-stacks-queues-apps.html', title: 'Stacks وQueues: التعبيرات والتطبيقات والـ call stack والـ deque', min: 50 },
+      { id: 'ex-ch19', file: 'ex-19-stacks-queues.html', title: 'تمارين محلولة: الفصل 19', min: 45 },
+      { id: 'binary-trees', file: '44-binary-trees.html', title: 'الشجر الثنائي: التمثيل والـ traversals وشجر التعبير وHuffman', min: 55 },
+      { id: 'ex-ch20', file: 'ex-20-trees.html', title: 'تمارين محلولة: الفصل 20', min: 45 },
+      { id: 'efficient-trees', file: '45-efficient-trees.html', title: 'BST وThreaded وAVL وRed-Black وSplay', min: 60 },
+      { id: 'ex-ch21', file: 'ex-21-efficient-trees.html', title: 'تمارين محلولة: الفصل 21', min: 55 },
+      { id: 'multiway-trees', file: '46-multiway-trees.html', title: 'الأشجار متعددة الفروع: M-way وB وB+ و2-3 وTrie', min: 70 },
+      { id: 'ex-ch22', file: 'ex-22-multiway.html', title: 'تمارين الفصل 22', min: 60 },
+      { id: 'heaps', file: '47-heaps.html', title: 'Heaps: binary وd-heap وleftist وbinomial وFibonacci', min: 60 },
+      { id: 'ex-ch23', file: 'ex-23-heaps.html', title: 'تمارين الفصل 23', min: 35 }
+    ]},
     { title: 'الخاتمة', lessons: [
       { id: 'practice',     file: '40-practice.html',           title: 'تختار إيه إمتى؟ ومشاريع تطبيقية', min: 30 }
     ]}

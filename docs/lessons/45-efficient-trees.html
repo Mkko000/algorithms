@@ -1,0 +1,655 @@
+<p class="meta">المراجع: Thareja ف10 (10.1 BST، 10.2 عملياتها، 10.3 threaded، 10.4 AVL، 10.5 red-black، 10.6 splay) · Weiss ف4 (4.3 BST بما فيه 4.3.6 الحالة المتوسطة، 4.4 AVL، 4.5 splay، 4.6 traversals، 12.2 red-black و11.5 تحليل splay) · Lipschutz ف7 (7.6–7.7 header nodes وthreads، 7.8–7.10 BST، 7.11–7.14 AVL) · Bandyopadhyay &amp; Dey ف12 (12.4–12.6) · Pal &amp; Halder ف8 (threaded، BST، heap، AVL، red-black)</p>
+<p>الدرس ده بيكمّل <a href="#/binary-trees">درس الشجر الثنائي</a> (الرقم 44 في الكورس): هنا الأشجار اللي بتتحسّن عشان البحث يفضل <b>O(log n)</b> دايمًا، أو بتسرّع الـ traversal، أو بتتأقلم مع نمط الاستعمال. ملاحظة تجنّب التكرار: Sedgewick ف12–13 شرحوا الـ BST بواجهة symbol-table (<a href="#/bst">BST</a> و<a href="#/bst-ops">الحذف والـ join</a>) وشرحوا <a href="#/balanced">splay بالنزول من فوق (top-down)</a> و<a href="#/rb-trees">2-3-4 والـ red-black</a>. هنا النسخة اللي في الكتب التانية: <b>كود المؤشرات المعتاد، الـ bottom-up، وحالات الكتاب بأسمائها</b> (LL/RR/LR/RL وR0/R1/R-1/L0/L1/L-1، وحالات الـ red-black، وzig/zig-zig/zig-zag) عشان تحل بيها أي سؤال من الكتب.</p>
+<div class="goal"><b>هدف الدرس:</b> تنفّذ كل عمليات الـ BST بإيدك، وتعرف ليه الـ BST العادي ممكن يبقى chain، وتصلّح ميزان AVL بالـ rotations الأربعة، وتتعامل مع حالات الـ red-black، وتعمل splay خطوة بخطوة، وتبني threaded tree. كل الكود في <code>src/21-efficient-trees/</code> فيه assert لكل نتيجة، والرسومات اللي بتوصّف نتايج بتتأكد في بايثون من نفس الأرقام اللي بيطلّعها برنامج C.</div>
+
+<h2>1) الـ BST: التعريف والعمليات (Thareja 10.1–10.2)</h2>
+<p><b>Binary search tree</b>: شجرة ثنائية فيها لكل عقدة N: كل المفاتيح في شمالها <b>أصغر</b> من مفتاحها، وكل اللي في يمينها <b>أكبر</b> (أو يساوي، في طريقة الكتاب اللي بتحط المكرر يمين). النتيجة المباشرة: <b>in-order traversal بيطلّع المفاتيح مرتبة</b>. البحث بيمشي من الجذر شمال/يمين زي binary search، وتكلفته = عمق العقدة.</p>
+<pre><code>static INode *bst_search(INode *t, int v)
+{
+    while (t &amp;&amp; t-&gt;key != v) t = v &lt; t-&gt;key ? t-&gt;l : t-&gt;r;
+    return t;
+}
+/* equal keys go to the right subtree (Thareja: &quot;else insert in the right sub-tree&quot;) */
+static INode *bst_insert(INode *t, int v)
+{
+    if (!t) return inode(v);
+    if (v &lt; t-&gt;key) t-&gt;l = bst_insert(t-&gt;l, v);
+    else            t-&gt;r = bst_insert(t-&gt;r, v);
+    return t;
+}
+static INode *bst_min(INode *t) { while (t &amp;&amp; t-&gt;l) t = t-&gt;l; return t; }   /* leftmost node  */
+static INode *bst_max(INode *t) { while (t &amp;&amp; t-&gt;r) t = t-&gt;r; return t; }   /* rightmost node */</code></pre>
+<h3>الحذف: ثلاث حالات</h3>
+<p>(1) <b>ورقة</b>: نشيلها. (2) <b>ابن واحد</b>: الابن بياخد مكان أبوه. (3) <b>ابنين</b>: نبدّل المفتاح بالـ <b>predecessor</b> (أكبر مفتاح في الشمال) أو الـ <b>successor</b> (أصغر مفتاح في اليمين) وبعدين نحذف العقدة اللي اتنقل منها (وهي بالضرورة حالة 1 أو 2، لأن أكبر عقدة في الشمال ملهاش ابن يمين). في الكود ده بنستعمل الـ predecessor عشان تتطابق نتايج تمارين الكتاب.</p>
+<!--fig:ds21-bstdel--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:26px;justify-content:center;align-items:flex-end"><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 212 190" width="212" height="190" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="118.0" y1="21.0" x2="46.0" y2="61.0" class="edge"/><line x1="46.0" y1="61.0" x2="22.0" y2="101.0" class="edge"/><line x1="46.0" y1="61.0" x2="94.0" y2="101.0" class="edge"/><line x1="94.0" y1="101.0" x2="70.0" y2="141.0" class="edge"/><line x1="118.0" y1="21.0" x2="166.0" y2="61.0" class="edge"/><line x1="166.0" y1="61.0" x2="142.0" y2="101.0" class="edge"/><line x1="166.0" y1="61.0" x2="190.0" y2="101.0" class="edge"/><circle cx="22.0" cy="101.0" r="11" class="node hi"/><text x="22.0" y="106.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="70.0" cy="141.0" r="11" class="node"/><text x="70.0" y="146.0" class="tn" text-anchor="middle" font-size="13">35</text><circle cx="94.0" cy="101.0" r="11" class="node"/><text x="94.0" y="106.0" class="tn" text-anchor="middle" font-size="13">40</text><circle cx="46.0" cy="61.0" r="11" class="node"/><text x="46.0" y="66.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="142.0" cy="101.0" r="11" class="node"/><text x="142.0" y="106.0" class="tn" text-anchor="middle" font-size="13">60</text><circle cx="190.0" cy="101.0" r="11" class="node"/><text x="190.0" y="106.0" class="tn" text-anchor="middle" font-size="13">80</text><circle cx="166.0" cy="61.0" r="11" class="node"/><text x="166.0" y="66.0" class="tn" text-anchor="middle" font-size="13">70</text><circle cx="118.0" cy="21.0" r="11" class="node"/><text x="118.0" y="26.0" class="tn" text-anchor="middle" font-size="13">50</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 188 190" width="188" height="190" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="94.0" y1="21.0" x2="22.0" y2="61.0" class="edge"/><line x1="22.0" y1="61.0" x2="70.0" y2="101.0" class="edge"/><line x1="70.0" y1="101.0" x2="46.0" y2="141.0" class="edge"/><line x1="94.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="118.0" y2="101.0" class="edge"/><line x1="142.0" y1="61.0" x2="166.0" y2="101.0" class="edge"/><circle cx="46.0" cy="141.0" r="11" class="node"/><text x="46.0" y="146.0" class="tn" text-anchor="middle" font-size="13">35</text><circle cx="70.0" cy="101.0" r="11" class="node"/><text x="70.0" y="106.0" class="tn" text-anchor="middle" font-size="13">40</text><circle cx="22.0" cy="61.0" r="11" class="node"/><text x="22.0" y="66.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="118.0" cy="101.0" r="11" class="node"/><text x="118.0" y="106.0" class="tn" text-anchor="middle" font-size="13">60</text><circle cx="166.0" cy="101.0" r="11" class="node"/><text x="166.0" y="106.0" class="tn" text-anchor="middle" font-size="13">80</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">70</text><circle cx="94.0" cy="21.0" r="11" class="node"/><text x="94.0" y="26.0" class="tn" text-anchor="middle" font-size="13">50</text></svg></div><div style="font-size:.85em;opacity:.8">الحالة 1: حذف 20 (ورقة)</div></div><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 212 190" width="212" height="190" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="118.0" y1="21.0" x2="46.0" y2="61.0" class="edge"/><line x1="46.0" y1="61.0" x2="22.0" y2="101.0" class="edge"/><line x1="46.0" y1="61.0" x2="94.0" y2="101.0" class="edge"/><line x1="94.0" y1="101.0" x2="70.0" y2="141.0" class="edge"/><line x1="118.0" y1="21.0" x2="166.0" y2="61.0" class="edge"/><line x1="166.0" y1="61.0" x2="142.0" y2="101.0" class="edge"/><line x1="166.0" y1="61.0" x2="190.0" y2="101.0" class="edge"/><circle cx="22.0" cy="101.0" r="11" class="node"/><text x="22.0" y="106.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="70.0" cy="141.0" r="11" class="node"/><text x="70.0" y="146.0" class="tn" text-anchor="middle" font-size="13">35</text><circle cx="94.0" cy="101.0" r="11" class="node hi"/><text x="94.0" y="106.0" class="tn" text-anchor="middle" font-size="13">40</text><circle cx="46.0" cy="61.0" r="11" class="node"/><text x="46.0" y="66.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="142.0" cy="101.0" r="11" class="node"/><text x="142.0" y="106.0" class="tn" text-anchor="middle" font-size="13">60</text><circle cx="190.0" cy="101.0" r="11" class="node"/><text x="190.0" y="106.0" class="tn" text-anchor="middle" font-size="13">80</text><circle cx="166.0" cy="61.0" r="11" class="node"/><text x="166.0" y="66.0" class="tn" text-anchor="middle" font-size="13">70</text><circle cx="118.0" cy="21.0" r="11" class="node"/><text x="118.0" y="26.0" class="tn" text-anchor="middle" font-size="13">50</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 188 150" width="188" height="150" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="94.0" y1="21.0" x2="46.0" y2="61.0" class="edge"/><line x1="46.0" y1="61.0" x2="22.0" y2="101.0" class="edge"/><line x1="46.0" y1="61.0" x2="70.0" y2="101.0" class="edge"/><line x1="94.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="118.0" y2="101.0" class="edge"/><line x1="142.0" y1="61.0" x2="166.0" y2="101.0" class="edge"/><circle cx="22.0" cy="101.0" r="11" class="node"/><text x="22.0" y="106.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="70.0" cy="101.0" r="11" class="node"/><text x="70.0" y="106.0" class="tn" text-anchor="middle" font-size="13">35</text><circle cx="46.0" cy="61.0" r="11" class="node"/><text x="46.0" y="66.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="118.0" cy="101.0" r="11" class="node"/><text x="118.0" y="106.0" class="tn" text-anchor="middle" font-size="13">60</text><circle cx="166.0" cy="101.0" r="11" class="node"/><text x="166.0" y="106.0" class="tn" text-anchor="middle" font-size="13">80</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">70</text><circle cx="94.0" cy="21.0" r="11" class="node"/><text x="94.0" y="26.0" class="tn" text-anchor="middle" font-size="13">50</text></svg></div><div style="font-size:.85em;opacity:.8">الحالة 2: حذف 40 (ابن واحد: 35 بيطلع مكانه)</div></div><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 212 190" width="212" height="190" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="118.0" y1="21.0" x2="46.0" y2="61.0" class="edge"/><line x1="46.0" y1="61.0" x2="22.0" y2="101.0" class="edge"/><line x1="46.0" y1="61.0" x2="94.0" y2="101.0" class="edge"/><line x1="94.0" y1="101.0" x2="70.0" y2="141.0" class="edge"/><line x1="118.0" y1="21.0" x2="166.0" y2="61.0" class="edge"/><line x1="166.0" y1="61.0" x2="142.0" y2="101.0" class="edge"/><line x1="166.0" y1="61.0" x2="190.0" y2="101.0" class="edge"/><circle cx="22.0" cy="101.0" r="11" class="node"/><text x="22.0" y="106.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="70.0" cy="141.0" r="11" class="node"/><text x="70.0" y="146.0" class="tn" text-anchor="middle" font-size="13">35</text><circle cx="94.0" cy="101.0" r="11" class="node"/><text x="94.0" y="106.0" class="tn" text-anchor="middle" font-size="13">40</text><circle cx="46.0" cy="61.0" r="11" class="node"/><text x="46.0" y="66.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="142.0" cy="101.0" r="11" class="node"/><text x="142.0" y="106.0" class="tn" text-anchor="middle" font-size="13">60</text><circle cx="190.0" cy="101.0" r="11" class="node"/><text x="190.0" y="106.0" class="tn" text-anchor="middle" font-size="13">80</text><circle cx="166.0" cy="61.0" r="11" class="node"/><text x="166.0" y="66.0" class="tn" text-anchor="middle" font-size="13">70</text><circle cx="118.0" cy="21.0" r="11" class="node hi"/><text x="118.0" y="26.0" class="tn" text-anchor="middle" font-size="13">50</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 188 150" width="188" height="150" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="94.0" y1="21.0" x2="46.0" y2="61.0" class="edge"/><line x1="46.0" y1="61.0" x2="22.0" y2="101.0" class="edge"/><line x1="46.0" y1="61.0" x2="70.0" y2="101.0" class="edge"/><line x1="94.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="118.0" y2="101.0" class="edge"/><line x1="142.0" y1="61.0" x2="166.0" y2="101.0" class="edge"/><circle cx="22.0" cy="101.0" r="11" class="node"/><text x="22.0" y="106.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="70.0" cy="101.0" r="11" class="node"/><text x="70.0" y="106.0" class="tn" text-anchor="middle" font-size="13">35</text><circle cx="46.0" cy="61.0" r="11" class="node"/><text x="46.0" y="66.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="118.0" cy="101.0" r="11" class="node"/><text x="118.0" y="106.0" class="tn" text-anchor="middle" font-size="13">60</text><circle cx="166.0" cy="101.0" r="11" class="node"/><text x="166.0" y="106.0" class="tn" text-anchor="middle" font-size="13">80</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">70</text><circle cx="94.0" cy="21.0" r="11" class="node"/><text x="94.0" y="26.0" class="tn" text-anchor="middle" font-size="13">40</text></svg></div><div style="font-size:.85em;opacity:.8">الحالة 3: حذف 50 (ابنين): نبدّله بـ predecessor = 40 (أكبر مفتاح في الشمال) ونحذف 40 من مكانه القديم</div></div></div><figcaption>الحالات التلاتة لحذف عقدة من BST (Thareja 10.1.4). الحالة 3 ممكن تستعمل الـ predecessor (زي هنا وزي RQ 12) أو الـ successor؛ الاتنين بيحافظوا على ترتيب الـ in-order.</figcaption></figure><!--/fig:ds21-bstdel-->
+<pre><code>/* Three cases (Thareja 10.2.3):
+     1. leaf            -&gt; just remove it
+     2. one child       -&gt; the child takes its place
+     3. two children    -&gt; copy the in-order PREDECESSOR (largest key of the left subtree) into the node,
+                           then delete that predecessor node (which has at most one child: case 1 or 2).
+   use_succ = 1 switches to the in-order SUCCESSOR (smallest key of the right subtree). */
+static INode *bst_delete(INode *t, int v, int use_succ)
+{
+    if (!t) return NULL;                                    /* not found: nothing to do */
+    if (v &lt; t-&gt;key) t-&gt;l = bst_delete(t-&gt;l, v, use_succ);
+    else if (v &gt; t-&gt;key) t-&gt;r = bst_delete(t-&gt;r, v, use_succ);
+    else if (t-&gt;l &amp;&amp; t-&gt;r) {                                /* case 3 */
+        if (use_succ) { INode *s = bst_min(t-&gt;r); t-&gt;key = s-&gt;key; t-&gt;r = bst_delete(t-&gt;r, s-&gt;key, use_succ); }
+        else          { INode *p = bst_max(t-&gt;l); t-&gt;key = p-&gt;key; t-&gt;l = bst_delete(t-&gt;l, p-&gt;key, use_succ); }
+    } else {                                                /* case 1 and 2 together */
+        INode *child = t-&gt;l ? t-&gt;l : t-&gt;r;
+        free(t);
+        return child;
+    }
+    return t;
+}</code></pre>
+<pre><code>static int bst_height(const INode *t)  { return iheight(t); }                    /* empty tree: 0, one node: 1 */
+static int bst_nodes(const INode *t)   { return isize(t); }
+static int bst_leaves(const INode *t)  { return !t ? 0 : (!t-&gt;l &amp;&amp; !t-&gt;r) ? 1 : bst_leaves(t-&gt;l) + bst_leaves(t-&gt;r); }
+static int bst_internal(const INode *t){ return bst_nodes(t) - bst_leaves(t); }
+/* external nodes = the NULL pointers = n + 1 for n nodes */
+static int bst_external(const INode *t){ return !t ? 1 : bst_external(t-&gt;l) + bst_external(t-&gt;r); }
+static INode *bst_mirror(INode *t)                       /* swap the children at every node */
+{
+    if (t) { INode *x = t-&gt;l; t-&gt;l = bst_mirror(t-&gt;r); t-&gt;r = bst_mirror(x); }
+    return t;
+}</code></pre>
+<h3>كام BST ممكن من نفس المفاتيح؟</h3>
+<p>نفس n مفتاح ممكن تدّي أشجار مختلفة حسب ترتيب الإدخال. عدد الأشكال الممكنة (من غير ما نهتم بترتيب الإدخال) = كاتالان C(n). مع {7, 9, 11}: <b>5</b> أشجار (Thareja Q19)، والكود بيولّدها كلها:</p>
+<pre><code>/* all distinct BSTs on the keys sorted in k[lo..hi]:  choose each key as root, combine every left shape
+   with every right shape.  Writes specs into out[]; returns how many. */
+static int all_bsts(const int *k, int lo, int hi, char out[][96])
+{
+    if (lo &gt; hi) { strcpy(out[0], &quot;.&quot;); return 1; }
+    int cnt = 0;
+    for (int r = lo; r &lt;= hi; r++) {
+        char L[16][96], R[16][96];
+        int a = all_bsts(k, lo, r - 1, L), b = all_bsts(k, r + 1, hi, R);
+        for (int i = 0; i &lt; a; i++)
+            for (int j = 0; j &lt; b; j++) {
+                if (L[i][0] == &#x27;.&#x27; &amp;&amp; R[j][0] == &#x27;.&#x27;) snprintf(out[cnt], 96, &quot;%d&quot;, k[r]);
+                else { snprintf(out[cnt], 96, &quot;%d(&quot;, k[r]); strcat(out[cnt], L[i]); strcat(out[cnt], &quot;,&quot;); strcat(out[cnt], R[j]); strcat(out[cnt], &quot;)&quot;); }
+                cnt++;
+            }
+    }
+    return cnt;
+}</code></pre>
+<p>الجذر 7: <code>7(.,9(.,11))</code> و<code>7(.,11(9,.))</code>. الجذر 9: <code>9(7,11)</code>. الجذر 11: <code>11(7(.,9),.)</code> و<code>11(9(7,.),.)</code>.</p>
+
+<h3>أداء الـ BST: لازم نقيس، مش نخمّن</h3>
+<p>الأداء كله يتوقف على <b>الارتفاع</b>. لو المفاتيح اتضافت <b>مرتبة</b> الشجرة بتبقى chain والبحث O(n): متوسط العمق (n−1)/2. لو الترتيب <b>عشوائي</b> المتوسط حوالي <b>1.39 log₂ n</b> (Weiss 4.3.6: العمق الداخلي المتوسط O(log n) والمتوسط 2 ln n ≈ 1.39 log₂ n). الكود بيقيس ده بالفعل:</p>
+<pre><code>static LN *ins(LN *t, int k, long *depth_acc, int d)     /* returns new root; adds the depth of a NEW node to *depth_acc */
+{
+    if (!t) { LN *n = calloc(1, sizeof *n); n-&gt;key = k; if (depth_acc) *depth_acc += d; return n; }
+    if (k &lt; t-&gt;key) t-&gt;l = ins(t-&gt;l, k, depth_acc, d + 1);
+    else if (k &gt; t-&gt;key) t-&gt;r = ins(t-&gt;r, k, depth_acc, d + 1);
+    else t-&gt;dead = 0;                                    /* lazy deletion: inserting a dead key revives it */
+    return t;
+}
+static void lfree(LN *t) { if (t) { lfree(t-&gt;l); lfree(t-&gt;r); free(t); } }
+static long internal_path(const LN *t, int d) { return t ? d + internal_path(t-&gt;l, d + 1) + internal_path(t-&gt;r, d + 1) : 0; }
+static int lcount(const LN *t) { return t ? 1 + lcount(t-&gt;l) + lcount(t-&gt;r) : 0; }
+static int lheight(const LN *t) { if (!t) return 0; int a = lheight(t-&gt;l), b = lheight(t-&gt;r); return 1 + (a &gt; b ? a : b); }</code></pre>
+<pre><code>   n   avg depth   1.39*log2(n)   sorted avg depth
+   256       8.48          11.12              127
+  1024      11.09          13.90              511
+  4096      13.55          16.68             2047
+ 16384      16.70          19.46             8191
+ 65536      19.17          22.24            32767
+bst_analysis: all tests passed</code></pre>
+<p>الصيغة الدقيقة للمتوسط (الجذر عمقه 0) هي 2(1+1/n)·Hₙ − 4 ≈ 11.03 لـ n = 1024، وده قريب من المقاس 11.09. و1.39·log₂ n = 13.9 هي القيمة التقريبية الكبيرة (بدون الحد الثابت −2.85). أما المدخلات المرتبة فبتدّي 511 = (n−1)/2 بالظبط.</p>
+<h3>الحذف الكسول (lazy deletion) — Weiss 4.3.6</h3>
+<p>لو الحذف نادر نحط علامة «محذوف» على العقدة بدل ما نشيلها. فائدته: بساطة، وإعادة الإدخال لنفس المفتاح مجانية. عيبه: الشجرة بتكبر بعقد ميتة، فنعمل <b>purge</b> (إعادة بناء) لما عدد الميتين يعدّي نصف الشجرة مثلًا.</p>
+<pre><code>static int lcontains(const LN *t, int k)
+{
+    while (t &amp;&amp; t-&gt;key != k) t = k &lt; t-&gt;key ? t-&gt;l : t-&gt;r;
+    return t &amp;&amp; !t-&gt;dead;                                /* found AND not marked deleted */
+}
+static int ldelete(LN *t, int k)                         /* O(depth), no relinking, no free */
+{
+    while (t &amp;&amp; t-&gt;key != k) t = k &lt; t-&gt;key ? t-&gt;l : t-&gt;r;
+    if (!t || t-&gt;dead) return 0;
+    t-&gt;dead = 1; return 1;
+}
+static int llive(const LN *t) { return t ? (!t-&gt;dead) + llive(t-&gt;l) + llive(t-&gt;r) : 0; }
+static void collect(const LN *t, int *a, int *n) { if (t) { collect(t-&gt;l, a, n); if (!t-&gt;dead) a[(*n)++] = t-&gt;key; collect(t-&gt;r, a, n); } }
+static LN *build_balanced(const int *a, int lo, int hi)  /* rebuild from the sorted live keys: purge the dead ones, height ~ log n */
+{
+    if (lo &gt; hi) return NULL;
+    int m = (lo + hi) / 2; LN *n = calloc(1, sizeof *n); n-&gt;key = a[m];
+    n-&gt;l = build_balanced(a, lo, m - 1); n-&gt;r = build_balanced(a, m + 1, hi);
+    return n;
+}</code></pre>
+
+<h2>2) الـ Threaded Binary Trees (Thareja 10.3، Lipschutz 7.6–7.7)</h2>
+<p>شجرة ثنائية بـ n عقدة فيها <b>n + 1 مؤشر NULL</b> (كل عقدة ليها مؤشرين: 2n مؤشر، منها n − 1 بتشاور على أبناء). بدل ما نسيبهم فاضيين نخلّيهم <b>threads</b> بتشاور على جيران الـ in-order: الـ NULL اليمين → الـ <b>successor</b> (one-way threading)، والـ NULL الشمال → الـ <b>predecessor</b> (two-way أو fully threaded). علامة (flag) لكل مؤشر بتقول «ابن» ولا «thread». الفايدة: traversal من غير stack ولا recursion.</p>
+<!--fig:ds21-thread--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-end"><div style="text-align:center"><svg class="fsvg" viewBox="0 0 500 306" width="500" height="306" role="img" aria-label="threaded" xmlns="http://www.w3.org/2000/svg"><line x1="230.0" y1="25.0" x2="150.0" y2="79.0" class="edge"/><line x1="150.0" y1="79.0" x2="70.0" y2="133.0" class="edge"/><line x1="70.0" y1="133.0" x2="30.0" y2="187.0" class="edge"/><line x1="70.0" y1="133.0" x2="110.0" y2="187.0" class="edge"/><line x1="150.0" y1="79.0" x2="190.0" y2="133.0" class="edge"/><line x1="230.0" y1="25.0" x2="390.0" y2="79.0" class="edge"/><line x1="390.0" y1="79.0" x2="310.0" y2="133.0" class="edge"/><line x1="310.0" y1="133.0" x2="270.0" y2="187.0" class="edge"/><line x1="310.0" y1="133.0" x2="350.0" y2="187.0" class="edge"/><line x1="390.0" y1="79.0" x2="430.0" y2="133.0" class="edge"/><line x1="430.0" y1="133.0" x2="470.0" y2="187.0" class="edge"/><circle cx="30.0" cy="187.0" r="15" class="node"/><text x="30.0" y="192.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="110.0" cy="187.0" r="15" class="node"/><text x="110.0" y="192.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="70.0" cy="133.0" r="15" class="node"/><text x="70.0" y="138.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="190.0" cy="133.0" r="15" class="node"/><text x="190.0" y="138.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="150.0" cy="79.0" r="15" class="node"/><text x="150.0" y="84.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="270.0" cy="187.0" r="15" class="node"/><text x="270.0" y="192.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="350.0" cy="187.0" r="15" class="node"/><text x="350.0" y="192.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="310.0" cy="133.0" r="15" class="node"/><text x="310.0" y="138.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="470.0" cy="187.0" r="15" class="node"/><text x="470.0" y="192.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="430.0" cy="133.0" r="15" class="node"/><text x="430.0" y="138.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="390.0" cy="79.0" r="15" class="node"/><text x="390.0" y="84.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="230.0" cy="25.0" r="15" class="node"/><text x="230.0" y="30.0" class="tn" text-anchor="middle" font-size="13">1</text><path d="M190.0,148.0 Q210.0,171.0 230.0,41.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M30.0,202.0 Q50.0,225.0 70.0,149.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M110.0,202.0 Q130.0,225.0 150.0,95.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M270.0,202.0 Q290.0,225.0 310.0,149.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M350.0,202.0 Q370.0,225.0 390.0,95.0" class="arr" style="fill:none" marker-end="url(#ah)"/></svg><div style="font-size:.85em;opacity:.8">one-way in-order: right threads بس</div></div><div style="text-align:center"><svg class="fsvg" viewBox="0 0 500 316" width="500" height="316" role="img" aria-label="threaded" xmlns="http://www.w3.org/2000/svg"><line x1="230.0" y1="25.0" x2="150.0" y2="79.0" class="edge"/><line x1="150.0" y1="79.0" x2="70.0" y2="133.0" class="edge"/><line x1="70.0" y1="133.0" x2="30.0" y2="187.0" class="edge"/><line x1="70.0" y1="133.0" x2="110.0" y2="187.0" class="edge"/><line x1="150.0" y1="79.0" x2="190.0" y2="133.0" class="edge"/><line x1="230.0" y1="25.0" x2="390.0" y2="79.0" class="edge"/><line x1="390.0" y1="79.0" x2="310.0" y2="133.0" class="edge"/><line x1="310.0" y1="133.0" x2="270.0" y2="187.0" class="edge"/><line x1="310.0" y1="133.0" x2="350.0" y2="187.0" class="edge"/><line x1="390.0" y1="79.0" x2="430.0" y2="133.0" class="edge"/><line x1="430.0" y1="133.0" x2="470.0" y2="187.0" class="edge"/><circle cx="30.0" cy="187.0" r="15" class="node"/><text x="30.0" y="192.0" class="tn" text-anchor="middle" font-size="13">8</text><circle cx="110.0" cy="187.0" r="15" class="node"/><text x="110.0" y="192.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="70.0" cy="133.0" r="15" class="node"/><text x="70.0" y="138.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="190.0" cy="133.0" r="15" class="node"/><text x="190.0" y="138.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="150.0" cy="79.0" r="15" class="node"/><text x="150.0" y="84.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="270.0" cy="187.0" r="15" class="node"/><text x="270.0" y="192.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="350.0" cy="187.0" r="15" class="node"/><text x="350.0" y="192.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="310.0" cy="133.0" r="15" class="node"/><text x="310.0" y="138.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="470.0" cy="187.0" r="15" class="node"/><text x="470.0" y="192.0" class="tn" text-anchor="middle" font-size="13">12</text><circle cx="430.0" cy="133.0" r="15" class="node"/><text x="430.0" y="138.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="390.0" cy="79.0" r="15" class="node"/><text x="390.0" y="84.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="230.0" cy="25.0" r="15" class="node"/><text x="230.0" y="30.0" class="tn" text-anchor="middle" font-size="13">1</text><path d="M194.0,148.0 Q216.0,167.0 234.0,41.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M34.0,202.0 Q56.0,221.0 74.0,149.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M114.0,202.0 Q136.0,221.0 154.0,95.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M274.0,202.0 Q296.0,221.0 314.0,149.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M354.0,202.0 Q376.0,221.0 394.0,95.0" class="arr" style="fill:none" marker-end="url(#ah)"/><path d="M186.0,148.0 Q164.0,185.0 146.0,95.0" class="arr hi" style="fill:none" stroke-dasharray="4 3" marker-end="url(#ah)"/><path d="M426.0,148.0 Q404.0,185.0 386.0,95.0" class="arr hi" style="fill:none" stroke-dasharray="4 3" marker-end="url(#ah)"/><path d="M106.0,202.0 Q84.0,239.0 66.0,149.0" class="arr hi" style="fill:none" stroke-dasharray="4 3" marker-end="url(#ah)"/><path d="M266.0,202.0 Q244.0,239.0 226.0,41.0" class="arr hi" style="fill:none" stroke-dasharray="4 3" marker-end="url(#ah)"/><path d="M346.0,202.0 Q324.0,239.0 306.0,149.0" class="arr hi" style="fill:none" stroke-dasharray="4 3" marker-end="url(#ah)"/><path d="M466.0,202.0 Q444.0,239.0 426.0,149.0" class="arr hi" style="fill:none" stroke-dasharray="4 3" marker-end="url(#ah)"/></svg><div style="font-size:.85em;opacity:.8">two-way in-order: right + left threads</div></div></div><figcaption>الـ threading لشجرة Thareja (Q16). الخطوط الصلبة (<b>right threads</b>) بتشاور على الـ in-order successor، والمتقطعة (<b>left threads</b>) على الـ predecessor. in-order = 8 4 9 2 5 1 10 6 11 3 7 12: الـ right thread لأي عقدة من غير ابن يمين هو العقدة اللي بعدها في السلسلة دي (5→1، 8→4، 9→2، 10→6، 11→3)، والـ left thread هو اللي قبلها (5→2، 7→3، 9→4، 10→1، 11→6، 12→7). العقدة 8 ملهاش predecessor والعقدة 12 ملهاش successor فخانتهم NULL.</figcaption></figure><!--/fig:ds21-thread-->
+<pre><code>typedef struct {
+    int l[N], r[N];                 /* LEFT, RIGHT: node number, or -1 for NULL                    */
+    int lth[N], rth[N];             /* 1 if that pointer is a thread, 0 if it is a real child       */
+    int root, n;                    /* ROOT and number of nodes (node numbers are 1..n)             */
+} TA;
+
+static void ta_from(TA *a, const INode *t)       /* node number = key (the figures use 1..12) */
+{
+    if (!t) return;
+    if (t-&gt;key &gt; a-&gt;n) a-&gt;n = t-&gt;key;
+    a-&gt;l[t-&gt;key] = t-&gt;l ? t-&gt;l-&gt;key : -1;
+    a-&gt;r[t-&gt;key] = t-&gt;r ? t-&gt;r-&gt;key : -1;
+    ta_from(a, t-&gt;l); ta_from(a, t-&gt;r);
+}
+static void ta_init(TA *a, const INode *t)
+{
+    memset(a, 0, sizeof *a);
+    for (int i = 0; i &lt; N; i++) a-&gt;l[i] = a-&gt;r[i] = -1;
+    a-&gt;root = t-&gt;key; ta_from(a, t);
+}
+static void order_in(const TA *a, int x, int *o, int *k)  { if (x == -1) return; order_in(a, a-&gt;l[x], o, k); o[(*k)++] = x; order_in(a, a-&gt;r[x], o, k); }
+static void order_pre(const TA *a, int x, int *o, int *k) { if (x == -1) return; o[(*k)++] = x; order_pre(a, a-&gt;l[x], o, k); order_pre(a, a-&gt;r[x], o, k); }
+
+/* one-way in-order: every NULL right pointer becomes a thread to the in-order successor */
+static void thread_one_way_in(TA *a)
+{
+    int o[N], k = 0; order_in(a, a-&gt;root, o, &amp;k);
+    for (int i = 0; i &lt; k; i++)
+        if (a-&gt;r[o[i]] == -1 &amp;&amp; i + 1 &lt; k) { a-&gt;r[o[i]] = o[i + 1]; a-&gt;rth[o[i]] = 1; }
+}
+/* one-way pre-order: NULL right pointers point to the PRE-order successor */
+static void thread_one_way_pre(TA *a)
+{
+    int o[N], k = 0; order_pre(a, a-&gt;root, o, &amp;k);
+    for (int i = 0; i &lt; k; i++)
+        if (a-&gt;r[o[i]] == -1 &amp;&amp; i + 1 &lt; k) { a-&gt;r[o[i]] = o[i + 1]; a-&gt;rth[o[i]] = 1; }
+}
+/* two-way in-order: NULL left pointers point to the predecessor as well */
+static void thread_two_way_in(TA *a)
+{
+    thread_one_way_in(a);
+    int o[N], k = 0; TA tmp = *a; for (int i = 0; i &lt; N; i++) if (tmp.rth[i]) tmp.r[i] = -1;
+    order_in(&amp;tmp, a-&gt;root, o, &amp;k);
+    for (int i = 0; i &lt; k; i++)
+        if (a-&gt;l[o[i]] == -1 &amp;&amp; i &gt; 0) { a-&gt;l[o[i]] = o[i - 1]; a-&gt;lth[o[i]] = 1; }
+}
+/* walk without a stack or recursion */
+static int walk_in_one_way(const TA *a, int *out)
+{
+    int k = 0, x = a-&gt;root;
+    while (a-&gt;l[x] != -1 &amp;&amp; !a-&gt;lth[x]) x = a-&gt;l[x];              /* leftmost node */
+    while (x != -1) {
+        out[k++] = x;
+        if (a-&gt;rth[x]) x = a-&gt;r[x];                               /* thread: successor in one step   */
+        else {                                                     /* real child: leftmost of right   */
+            x = a-&gt;r[x];
+            while (x != -1 &amp;&amp; a-&gt;l[x] != -1 &amp;&amp; !a-&gt;lth[x]) x = a-&gt;l[x];
+        }
+    }
+    return k;
+}
+static int walk_pre_one_way(const TA *a, int *out)
+{
+    int k = 0, x = a-&gt;root;
+    while (x != -1) {
+        out[k++] = x;
+        x = (a-&gt;l[x] != -1 &amp;&amp; !a-&gt;lth[x]) ? a-&gt;l[x] : a-&gt;r[x];    /* left child if any, else right/thread */
+    }
+    return k;
+}</code></pre>
+<pre><code>one-way in-order threading (T = thread)
+  node LEFT RIGHT
+     1    2     3
+     2    4     5
+     3    6     7
+     4    8     9
+     5   -1    1T
+     6   10    11
+     7   -1    12
+     8   -1    4T
+     9   -1    2T
+    10   -1    6T
+    11   -1    3T
+    12   -1    -1
+one-way pre-order threading
+  node LEFT RIGHT
+     1    2     3
+     2    4     5
+     3    6     7
+     4    8     9
+     5   -1    3T
+     6   10    11
+     7   -1    12
+     8   -1    9T
+     9   -1    5T
+    10   -1   11T
+    11   -1    7T
+    12   -1    -1
+two-way in-order threading
+  node LEFT RIGHT
+     1    2     3
+     2    4     5
+     3    6     7
+     4    8     9
+     5   2T    1T
+     6   10    11
+     7   3T    12
+     8   -1    4T
+     9   4T    2T
+    10   1T    6T
+    11   6T    3T
+    12   7T    -1
+threaded BST in-order, no stack: 20 30 35 40 45 50 60 65 70 80
+threaded: all tests passed</code></pre>
+<p>اللي فوق هو جدول Thareja Q16 بالظبط (الـ <code>T</code> بجوار الرقم = thread). لاحظ إن الـ pre-order threading بيشاور على جيران الـ <b>pre-order</b> (5 → 3 مثلًا) مش الـ in-order.</p>
+<h3>النسخة بالمؤشرات مع Header node</h3>
+<p>Lipschutz 7.6: بنضيف عقدة <b>header</b> بتخلّي الـ thread الشمال للعقدة الأولى والـ thread اليمين للعقدة الأخيرة يشاوروا عليها، فمفيش NULL استثناء في أي مكان والـ traversal بيقف لما نرجع للـ header.</p>
+<pre><code>/* Lipschutz&#x27;s layout: a HEADER node H. H.left -&gt; root, H.right -&gt; H (itself). The root&#x27;s tree is
+   threaded so that the leftmost node&#x27;s left thread and the rightmost node&#x27;s right thread both point to H.
+   An empty tree is H with H.left -&gt; H (a thread). */
+typedef struct TN {
+    int key;
+    struct TN *l, *r;
+    int lth, rth;                   /* 1 = thread, 0 = child */
+} TN;
+
+static TN *th_new(void)
+{
+    TN *h = malloc(sizeof *h);
+    h-&gt;key = 0; h-&gt;l = h; h-&gt;r = h; h-&gt;lth = 1; h-&gt;rth = 0;
+    return h;
+}
+static TN *th_succ(const TN *p)                 /* in-order successor */
+{
+    TN *s = p-&gt;r;
+    if (!p-&gt;rth) while (!s-&gt;lth) s = s-&gt;l;     /* real right child: go to its leftmost */
+    return s;
+}
+static TN *th_pred(const TN *p)                 /* in-order predecessor (mirror image) */
+{
+    TN *s = p-&gt;l;
+    if (!p-&gt;lth) while (!s-&gt;rth) s = s-&gt;r;
+    return s;
+}
+/* BST insert (duplicates ignored). New leaf inherits the thread it is replacing. */
+static int th_insert(TN *h, int key)
+{
+    TN *n = malloc(sizeof *n); n-&gt;key = key; n-&gt;lth = n-&gt;rth = 1;
+    if (h-&gt;lth) {                               /* empty tree */
+        n-&gt;l = h; n-&gt;r = h; h-&gt;l = n; h-&gt;lth = 0;
+        return 1;
+    }
+    TN *p = h-&gt;l;
+    for (;;) {
+        if (key == p-&gt;key) { free(n); return 0; }
+        if (key &lt; p-&gt;key) {
+            if (p-&gt;lth) { n-&gt;l = p-&gt;l; n-&gt;r = p; p-&gt;l = n; p-&gt;lth = 0; return 1; }
+            p = p-&gt;l;
+        } else {
+            if (p-&gt;rth) { n-&gt;r = p-&gt;r; n-&gt;l = p; p-&gt;r = n; p-&gt;rth = 0; return 1; }
+            p = p-&gt;r;
+        }
+    }
+}
+static void th_inorder(const TN *h, int *out, int *k)
+{
+    *k = 0;
+    for (const TN *p = th_succ(h); p != h; p = th_succ(p)) out[(*k)++] = p-&gt;key;   /* H&#x27;s &quot;successor&quot; is the first node */
+}
+static void th_reverse(const TN *h, int *out, int *k)
+{
+    *k = 0;
+    for (const TN *p = th_pred(h); p != h; p = th_pred(p)) out[(*k)++] = p-&gt;key;
+}
+static void th_free(TN *h)
+{
+    TN *p = th_succ(h);
+    while (p != h) { TN *nx = th_succ(p); free(p); p = nx; }
+    free(h);
+}</code></pre>
+<div class="tip"><b>تكلفة الـ threads</b>الإدخال بقى أعقد (لازم نحدّث الـ threads بتاعة الجيران)، بس الـ traversal O(n) بـ O(1) مساحة: وده بالظبط نفس فكرة Morris في الدرس السابق، لكن هنا الـ links دايمة بدل المؤقتة.</div>
+
+<h2>3) الـ AVL Trees (Thareja 10.4، Weiss 4.4، Lipschutz 7.11–7.14)</h2>
+<p>شجرة BST بحيث <b>فرق ارتفاع الشمال واليمين ≤ 1 عند كل عقدة</b>. <b>Balance factor</b> BF = ارتفاع الشمال − ارتفاع اليمين (تعريف Thareja، Weiss بيستعمله بالعكس أحيانًا) ∈ {−1, 0, +1}. الارتفاع O(log n): لو S(h) أقل عدد عقد لـ AVL بارتفاع h فـ <b>S(h) = S(h−1) + S(h−2) + 1</b> (شجرة بشمال من h−1 ويمين h−2، زي فيبوناتشي) فبيطلع S(h) = 1, 2, 4, 7, 12, 20, 33, 54 ... وبالتالي h ≤ 1.44 log₂(n+2) − 1.33. الكود بيتأكد من الأرقام دي بالحساب وبالبناء.</p>
+<!--fig:ds21-rot--><figure class="fig"><div style="display:flex;flex-wrap:wrap;gap:28px;justify-content:center;align-items:flex-end"><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 152 168" width="152" height="168" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="120.0" y1="34.0" x2="76.0" y2="76.0" class="edge"/><line x1="76.0" y1="76.0" x2="32.0" y2="118.0" class="edge"/><circle cx="32.0" cy="118.0" r="12" class="node"/><text x="32.0" y="123.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="76.0" cy="76.0" r="12" class="node"/><text x="76.0" y="81.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="120.0" cy="34.0" r="12" class="node hi"/><text x="120.0" y="39.0" class="tn" text-anchor="middle" font-size="13">30</text><text x="120.0" y="18.0" class="note" text-anchor="middle" font-size="11">critical</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 152 114" width="152" height="114" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="76.0" y1="22.0" x2="32.0" y2="64.0" class="edge"/><line x1="76.0" y1="22.0" x2="120.0" y2="64.0" class="edge"/><circle cx="32.0" cy="64.0" r="12" class="node"/><text x="32.0" y="69.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="120.0" cy="64.0" r="12" class="node"/><text x="120.0" y="69.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="76.0" cy="22.0" r="12" class="node"/><text x="76.0" y="27.0" class="tn" text-anchor="middle" font-size="13">20</text></svg></div><div style="font-size:.85em;opacity:.8">LL: إدخال في شمال شمال → <b>rotation يمين</b></div></div><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 152 168" width="152" height="168" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="32.0" y1="34.0" x2="76.0" y2="76.0" class="edge"/><line x1="76.0" y1="76.0" x2="120.0" y2="118.0" class="edge"/><circle cx="120.0" cy="118.0" r="12" class="node"/><text x="120.0" y="123.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="76.0" cy="76.0" r="12" class="node"/><text x="76.0" y="81.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="32.0" cy="34.0" r="12" class="node hi"/><text x="32.0" y="39.0" class="tn" text-anchor="middle" font-size="13">10</text><text x="32.0" y="18.0" class="note" text-anchor="middle" font-size="11">critical</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 152 114" width="152" height="114" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="76.0" y1="22.0" x2="32.0" y2="64.0" class="edge"/><line x1="76.0" y1="22.0" x2="120.0" y2="64.0" class="edge"/><circle cx="32.0" cy="64.0" r="12" class="node"/><text x="32.0" y="69.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="120.0" cy="64.0" r="12" class="node"/><text x="120.0" y="69.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="76.0" cy="22.0" r="12" class="node"/><text x="76.0" y="27.0" class="tn" text-anchor="middle" font-size="13">20</text></svg></div><div style="font-size:.85em;opacity:.8">RR: إدخال في يمين يمين → <b>rotation شمال</b></div></div><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 152 168" width="152" height="168" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="120.0" y1="34.0" x2="32.0" y2="76.0" class="edge"/><line x1="32.0" y1="76.0" x2="76.0" y2="118.0" class="edge"/><circle cx="76.0" cy="118.0" r="12" class="node"/><text x="76.0" y="123.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="32.0" cy="76.0" r="12" class="node"/><text x="32.0" y="81.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="120.0" cy="34.0" r="12" class="node hi"/><text x="120.0" y="39.0" class="tn" text-anchor="middle" font-size="13">30</text><text x="120.0" y="18.0" class="note" text-anchor="middle" font-size="11">critical</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 152 114" width="152" height="114" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="76.0" y1="22.0" x2="32.0" y2="64.0" class="edge"/><line x1="76.0" y1="22.0" x2="120.0" y2="64.0" class="edge"/><circle cx="32.0" cy="64.0" r="12" class="node"/><text x="32.0" y="69.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="120.0" cy="64.0" r="12" class="node"/><text x="120.0" y="69.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="76.0" cy="22.0" r="12" class="node"/><text x="76.0" y="27.0" class="tn" text-anchor="middle" font-size="13">20</text></svg></div><div style="font-size:.85em;opacity:.8">LR: شمال ثم يمين → <b>rotation شمال على الابن ثم يمين</b></div></div><div style="text-align:center"><div style="display:flex;flex-wrap:nowrap;align-items:center;gap:8px"><svg class="fsvg" viewBox="0 0 152 168" width="152" height="168" role="img" aria-label="قبل" xmlns="http://www.w3.org/2000/svg"><line x1="32.0" y1="34.0" x2="120.0" y2="76.0" class="edge"/><line x1="120.0" y1="76.0" x2="76.0" y2="118.0" class="edge"/><circle cx="76.0" cy="118.0" r="12" class="node"/><text x="76.0" y="123.0" class="tn" text-anchor="middle" font-size="13">20</text><circle cx="120.0" cy="76.0" r="12" class="node"/><text x="120.0" y="81.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="32.0" cy="34.0" r="12" class="node hi"/><text x="32.0" y="39.0" class="tn" text-anchor="middle" font-size="13">10</text><text x="32.0" y="18.0" class="note" text-anchor="middle" font-size="11">critical</text></svg><span style="font-size:1.7em;opacity:.8">⟸</span><svg class="fsvg" viewBox="0 0 152 114" width="152" height="114" role="img" aria-label="بعد" xmlns="http://www.w3.org/2000/svg"><line x1="76.0" y1="22.0" x2="32.0" y2="64.0" class="edge"/><line x1="76.0" y1="22.0" x2="120.0" y2="64.0" class="edge"/><circle cx="32.0" cy="64.0" r="12" class="node"/><text x="32.0" y="69.0" class="tn" text-anchor="middle" font-size="13">10</text><circle cx="120.0" cy="64.0" r="12" class="node"/><text x="120.0" y="69.0" class="tn" text-anchor="middle" font-size="13">30</text><circle cx="76.0" cy="22.0" r="12" class="node"/><text x="76.0" y="27.0" class="tn" text-anchor="middle" font-size="13">20</text></svg></div><div style="font-size:.85em;opacity:.8">RL: يمين ثم شمال → <b>rotation يمين على الابن ثم شمال</b></div></div></div><figcaption>الـ <b>critical node</b> هو أقرب جد للعقدة الجديدة اللي balance factor بتاعه بقى ±2. في الأربع حالات الجذر الجديد هو العقدة الوسطى (20) والترتيب in-order ما اتغيرش: 10 20 30.</figcaption></figure><!--/fig:ds21-rot-->
+<h3>الإدخال والـ rotations الأربعة</h3>
+<p>بنضيف عادي زي BST، وبعدين بنطلع لفوق في الطريق لحد أول عقدة (critical node) |BF| = 2. نوع الاختلال بيحدّد العلاج:</p>
+<table class="comp-table">
+<tr><th>الحالة</th><th>متى</th><th>العلاج</th></tr>
+<tr><td><b>LL</b></td><td>BF = +2 وابن الشمال BF ≥ 0 (إدخال شمال-شمال)</td><td>rotation يمين واحدة على الـ critical</td></tr>
+<tr><td><b>RR</b></td><td>BF = −2 وابن اليمين BF ≤ 0</td><td>rotation شمال واحدة</td></tr>
+<tr><td><b>LR</b></td><td>BF = +2 وابن الشمال BF = −1</td><td>شمال على الابن، ثم يمين على الـ critical</td></tr>
+<tr><td><b>RL</b></td><td>BF = −2 وابن اليمين BF = +1</td><td>يمين على الابن، ثم شمال على الـ critical</td></tr>
+</table>
+<pre><code>static int H(const INode *n) { return n ? n-&gt;h : 0; }
+static int BF(const INode *n) { return n ? H(n-&gt;l) - H(n-&gt;r) : 0; }
+static void upd(INode *n) { int a = H(n-&gt;l), b = H(n-&gt;r); n-&gt;h = 1 + (a &gt; b ? a : b); }
+
+/*        y                x
+         / \              / \
+        x   C    --&gt;     A   y        rotate RIGHT at y  (x = y-&gt;l)
+       / \                  / \
+      A   B                B   C                                                          */
+static INode *rot_right(INode *y)
+{
+    INode *x = y-&gt;l;
+    y-&gt;l = x-&gt;r; x-&gt;r = y;
+    upd(y); upd(x);
+    return x;
+}
+static INode *rot_left(INode *x)              /* mirror image */
+{
+    INode *y = x-&gt;r;
+    x-&gt;r = y-&gt;l; y-&gt;l = x;
+    upd(x); upd(y);
+    return y;
+}
+/* restore the AVL property at n (its subtrees are already AVL). `del` = 0 insert, 1 = deleted from
+   the left subtree, 2 = deleted from the right subtree (only used for the log names). */
+static INode *rebalance(INode *n, int del)
+{
+    upd(n);
+    int bf = BF(n);
+    if (bf &gt; 1) {                                           /* left heavy */
+        int cb = BF(n-&gt;l);
+        if (del == 2) logr(cb == 0 ? &quot;R0&quot; : cb == 1 ? &quot;R1&quot; : &quot;R-1&quot;, n-&gt;key);
+        else if (!del) logr(cb &gt;= 0 ? &quot;LL&quot; : &quot;LR&quot;, n-&gt;key);
+        if (cb &lt; 0) n-&gt;l = rot_left(n-&gt;l);
+        return rot_right(n);
+    }
+    if (bf &lt; -1) {                                          /* right heavy */
+        int cb = BF(n-&gt;r);
+        if (del == 1) logr(cb == 0 ? &quot;L0&quot; : cb == -1 ? &quot;L-1&quot; : &quot;L1&quot;, n-&gt;key);
+        else if (!del) logr(cb &lt;= 0 ? &quot;RR&quot; : &quot;RL&quot;, n-&gt;key);
+        if (cb &gt; 0) n-&gt;r = rot_right(n-&gt;r);
+        return rot_left(n);
+    }
+    return n;
+}</code></pre>
+<pre><code>static INode *avl_insert(INode *t, int v)
+{
+    if (!t) return inode(v);
+    if (v &lt; t-&gt;key) t-&gt;l = avl_insert(t-&gt;l, v);
+    else if (v &gt; t-&gt;key) t-&gt;r = avl_insert(t-&gt;r, v);
+    else return t;                                          /* duplicates ignored */
+    return rebalance(t, 0);
+}</code></pre>
+<p>في الإدخال <b>rotation واحدة (أو double) بتكفي دايمًا</b> لإصلاح الشجرة كلها، لأن بعد الإصلاح الارتفاع بيرجع زي ما كان قبل الإدخال. مثال Thareja Q18: ابني AVL من <code>16, 27, 9, 11, 36, 54, 81, 63, 72</code>. الخطوات (الـ rotations الثلاثة: RR على 27 ثم RL على 54 ثم RR على 36):</p>
+<!--fig:ds21-avl18--><div class="steps"><figure class="frame"><svg class="fsvg" viewBox="0 0 48 74" width="48" height="74" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><circle cx="24.0" cy="22.0" r="12" class="node hi"/><text x="24.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>16</b> (التوازن سليم، مفيش rotation).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 76 118" width="76" height="118" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="24.0" y1="22.0" x2="52.0" y2="66.0" class="edge"/><circle cx="52.0" cy="66.0" r="12" class="node hi"/><text x="52.0" y="71.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="24.0" cy="22.0" r="12" class="node"/><text x="24.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>27</b> (التوازن سليم، مفيش rotation).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 104 118" width="104" height="118" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="52.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="52.0" y1="22.0" x2="80.0" y2="66.0" class="edge"/><circle cx="24.0" cy="66.0" r="12" class="node hi"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="80.0" cy="66.0" r="12" class="node"/><text x="80.0" y="71.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="52.0" cy="22.0" r="12" class="node"/><text x="52.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>9</b> (التوازن سليم، مفيش rotation).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 132 162" width="132" height="162" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="80.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="24.0" y1="66.0" x2="52.0" y2="110.0" class="edge"/><line x1="80.0" y1="22.0" x2="108.0" y2="66.0" class="edge"/><circle cx="52.0" cy="110.0" r="12" class="node hi"/><text x="52.0" y="115.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="24.0" cy="66.0" r="12" class="node"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="108.0" cy="66.0" r="12" class="node"/><text x="108.0" y="71.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="80.0" cy="22.0" r="12" class="node"/><text x="80.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>11</b> (التوازن سليم، مفيش rotation).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 160 162" width="160" height="162" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="80.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="24.0" y1="66.0" x2="52.0" y2="110.0" class="edge"/><line x1="80.0" y1="22.0" x2="108.0" y2="66.0" class="edge"/><line x1="108.0" y1="66.0" x2="136.0" y2="110.0" class="edge"/><circle cx="52.0" cy="110.0" r="12" class="node"/><text x="52.0" y="115.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="24.0" cy="66.0" r="12" class="node"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="136.0" cy="110.0" r="12" class="node hi"/><text x="136.0" y="115.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="108.0" cy="66.0" r="12" class="node"/><text x="108.0" y="71.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="80.0" cy="22.0" r="12" class="node"/><text x="80.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>36</b> (التوازن سليم، مفيش rotation).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 188 162" width="188" height="162" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="80.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="24.0" y1="66.0" x2="52.0" y2="110.0" class="edge"/><line x1="80.0" y1="22.0" x2="136.0" y2="66.0" class="edge"/><line x1="136.0" y1="66.0" x2="108.0" y2="110.0" class="edge"/><line x1="136.0" y1="66.0" x2="164.0" y2="110.0" class="edge"/><circle cx="52.0" cy="110.0" r="12" class="node"/><text x="52.0" y="115.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="24.0" cy="66.0" r="12" class="node"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="108.0" cy="110.0" r="12" class="node"/><text x="108.0" y="115.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="164.0" cy="110.0" r="12" class="node hi"/><text x="164.0" y="115.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="136.0" cy="66.0" r="12" class="node"/><text x="136.0" y="71.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="80.0" cy="22.0" r="12" class="node"/><text x="80.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>54</b> فحصل عدم توازن وصلحناه بـ <b>RR@27</b>.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 216 206" width="216" height="206" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="80.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="24.0" y1="66.0" x2="52.0" y2="110.0" class="edge"/><line x1="80.0" y1="22.0" x2="136.0" y2="66.0" class="edge"/><line x1="136.0" y1="66.0" x2="108.0" y2="110.0" class="edge"/><line x1="136.0" y1="66.0" x2="164.0" y2="110.0" class="edge"/><line x1="164.0" y1="110.0" x2="192.0" y2="154.0" class="edge"/><circle cx="52.0" cy="110.0" r="12" class="node"/><text x="52.0" y="115.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="24.0" cy="66.0" r="12" class="node"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="108.0" cy="110.0" r="12" class="node"/><text x="108.0" y="115.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="192.0" cy="154.0" r="12" class="node hi"/><text x="192.0" y="159.0" class="tn" text-anchor="middle" font-size="13">81</text><circle cx="164.0" cy="110.0" r="12" class="node"/><text x="164.0" y="115.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="136.0" cy="66.0" r="12" class="node"/><text x="136.0" y="71.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="80.0" cy="22.0" r="12" class="node"/><text x="80.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>81</b> (التوازن سليم، مفيش rotation).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 244 206" width="244" height="206" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="80.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="24.0" y1="66.0" x2="52.0" y2="110.0" class="edge"/><line x1="80.0" y1="22.0" x2="136.0" y2="66.0" class="edge"/><line x1="136.0" y1="66.0" x2="108.0" y2="110.0" class="edge"/><line x1="136.0" y1="66.0" x2="192.0" y2="110.0" class="edge"/><line x1="192.0" y1="110.0" x2="164.0" y2="154.0" class="edge"/><line x1="192.0" y1="110.0" x2="220.0" y2="154.0" class="edge"/><circle cx="52.0" cy="110.0" r="12" class="node"/><text x="52.0" y="115.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="24.0" cy="66.0" r="12" class="node"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="108.0" cy="110.0" r="12" class="node"/><text x="108.0" y="115.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="164.0" cy="154.0" r="12" class="node"/><text x="164.0" y="159.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="220.0" cy="154.0" r="12" class="node"/><text x="220.0" y="159.0" class="tn" text-anchor="middle" font-size="13">81</text><circle cx="192.0" cy="110.0" r="12" class="node hi"/><text x="192.0" y="115.0" class="tn" text-anchor="middle" font-size="13">63</text><circle cx="136.0" cy="66.0" r="12" class="node"/><text x="136.0" y="71.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="80.0" cy="22.0" r="12" class="node"/><text x="80.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>63</b> فحصل عدم توازن وصلحناه بـ <b>RL@54</b>.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 272 206" width="272" height="206" role="img" aria-label="AVL" xmlns="http://www.w3.org/2000/svg"><line x1="80.0" y1="22.0" x2="24.0" y2="66.0" class="edge"/><line x1="24.0" y1="66.0" x2="52.0" y2="110.0" class="edge"/><line x1="80.0" y1="22.0" x2="192.0" y2="66.0" class="edge"/><line x1="192.0" y1="66.0" x2="136.0" y2="110.0" class="edge"/><line x1="136.0" y1="110.0" x2="108.0" y2="154.0" class="edge"/><line x1="136.0" y1="110.0" x2="164.0" y2="154.0" class="edge"/><line x1="192.0" y1="66.0" x2="248.0" y2="110.0" class="edge"/><line x1="248.0" y1="110.0" x2="220.0" y2="154.0" class="edge"/><circle cx="52.0" cy="110.0" r="12" class="node"/><text x="52.0" y="115.0" class="tn" text-anchor="middle" font-size="13">11</text><circle cx="24.0" cy="66.0" r="12" class="node"/><text x="24.0" y="71.0" class="tn" text-anchor="middle" font-size="13">9</text><circle cx="108.0" cy="154.0" r="12" class="node"/><text x="108.0" y="159.0" class="tn" text-anchor="middle" font-size="13">27</text><circle cx="164.0" cy="154.0" r="12" class="node"/><text x="164.0" y="159.0" class="tn" text-anchor="middle" font-size="13">54</text><circle cx="136.0" cy="110.0" r="12" class="node"/><text x="136.0" y="115.0" class="tn" text-anchor="middle" font-size="13">36</text><circle cx="220.0" cy="154.0" r="12" class="node hi"/><text x="220.0" y="159.0" class="tn" text-anchor="middle" font-size="13">72</text><circle cx="248.0" cy="110.0" r="12" class="node"/><text x="248.0" y="115.0" class="tn" text-anchor="middle" font-size="13">81</text><circle cx="192.0" cy="66.0" r="12" class="node"/><text x="192.0" y="71.0" class="tn" text-anchor="middle" font-size="13">63</text><circle cx="80.0" cy="22.0" r="12" class="node"/><text x="80.0" y="27.0" class="tn" text-anchor="middle" font-size="13">16</text></svg><figcaption>أدخلنا <b>72</b> فحصل عدم توازن وصلحناه بـ <b>RR@36</b>.</figcaption></figure></div><!--/fig:ds21-avl18-->
+<h3>الحذف: أسماء الكتاب R0 / R1 / R−1 / L0 / L1 / L−1</h3>
+<p>بنحذف كـ BST، وبعدين بنطلع لفوق. لو الحذف من <b>اليمين</b> للـ critical node A فالأخ هو B (ابن A الشمال): اسم الحالة R + BF(B). لو من <b>الشمال</b> فـ L + BF(B) (B ابن A اليمين). <b>R0 / L0</b>: rotation واحدة وارتفاع الشجرة الفرعية <b>مابيقلش</b> (فبنقف). <b>R1 / L1</b>: rotation واحدة وبعدها الارتفاع <b>بيقل</b> فبنكمّل نشوف الأجداد. <b>R−1 / L−1</b>: double rotation. على عكس الإدخال، الحذف ممكن يحتاج rotation على كل مستوى لحد الجذر (O(log n) rotation).</p>
+<pre><code>static INode *avl_delete(INode *t, int v)
+{
+    if (!t) return NULL;
+    int side = 0;
+    if (v &lt; t-&gt;key) { t-&gt;l = avl_delete(t-&gt;l, v); side = 1; }
+    else if (v &gt; t-&gt;key) { t-&gt;r = avl_delete(t-&gt;r, v); side = 2; }
+    else if (t-&gt;l &amp;&amp; t-&gt;r) {                                /* two children: predecessor replaces it */
+        INode *p = t-&gt;l; while (p-&gt;r) p = p-&gt;r;
+        t-&gt;key = p-&gt;key;
+        t-&gt;l = avl_delete(t-&gt;l, p-&gt;key); side = 1;
+    } else {
+        INode *c = t-&gt;l ? t-&gt;l : t-&gt;r;
+        free(t);
+        return c;
+    }
+    return rebalance(t, side);
+}</code></pre>
+<pre><code>Q18 final tree: 16(9(.,11),63(36(27,54),81(72,.)))
+  rotations: RR@27 RL@54 RR@36
+Q13 start (key(BF)): 45(-1) 36(+0) 63(-1) 27(+0) 39(+0) 54(+0) 72(+1) 70(+0)
+  after inserts : 45(27(18(15(1,.),25(19,26)),36(29,39)),63(54,72(70,81)))
+  rotations     : LL@36 RR@19
+  after deletes : 45(27(25(18(.,19),26),36(29,.)),72(54(.,70),81))
+  rotations     : L0@54 L0@18
+minimum nodes for AVL height 1..8: 1 2 4 7 12 20 33 54 
+avl: all tests passed</code></pre>
+<div class="oops"><b>تفصيلة في تمرين Q13</b>لما نحذف 63 (له ابنين) وبنستعمل الـ predecessor فالمفتاح اللي بيتنقل هو 54 مش 63، فالـ rotation بتتسجّل على العقدة اللي اتغيّرت بعد الاستبدال. ده اللي بيفسّر ليه الـ log بيقول L0@54. لو استعملنا الـ successor ممكن تطلع شجرة نهائية مختلفة (وكلاها AVL صحيح)، فخد بالك من الطريقة اللي السؤال بيطلبها.</div>
+
+<h2>4) الـ Red-Black Trees (Thareja 10.5، Weiss 12.2)</h2>
+<p>BST كل عقدة فيها لون (أحمر/أسود)، والقواعد الأربعة: (1) الجذر <b>أسود</b>. (2) كل الـ NIL leaves (الأطراف الخارجية) <b>سوداء</b>. (3) العقدة الحمراء <b>ملهاش ابن أحمر</b> (مفيش حمرتين ورا بعض). (4) كل المسارات من أي عقدة لأي NIL تحتها فيها <b>نفس عدد السواد</b> (black-height). النتيجة: أطول مسار ≤ 2× أقصر مسار، فالارتفاع ≤ <b>2 log₂(n+1)</b>. أبسط من AVL في الحذف والإدخال (ثابت عدد rotations: حد أقصى 2 للإدخال و3 للحذف) والتوازن أقل صرامة.</p>
+<pre><code>static RB NILNODE = { 0, BLACK, &amp;NILNODE, &amp;NILNODE, &amp;NILNODE };   /* ONE shared black sentinel */
+#define NIL (&amp;NILNODE)
+
+typedef struct { RB *root; char log[256]; } RBT;
+
+static void rlog(RBT *t, const char *s)
+{
+    if (strlen(t-&gt;log) + strlen(s) + 2 &lt; sizeof t-&gt;log) { if (t-&gt;log[0]) strcat(t-&gt;log, &quot; &quot;); strcat(t-&gt;log, s); }
+}
+static void rot_left(RBT *t, RB *x)
+{
+    RB *y = x-&gt;r;
+    x-&gt;r = y-&gt;l; if (y-&gt;l != NIL) y-&gt;l-&gt;p = x;
+    y-&gt;p = x-&gt;p;
+    if (x-&gt;p == NIL) t-&gt;root = y; else if (x == x-&gt;p-&gt;l) x-&gt;p-&gt;l = y; else x-&gt;p-&gt;r = y;
+    y-&gt;l = x; x-&gt;p = y;
+}
+static void rot_right(RBT *t, RB *y)
+{
+    RB *x = y-&gt;l;
+    y-&gt;l = x-&gt;r; if (x-&gt;r != NIL) x-&gt;r-&gt;p = y;
+    x-&gt;p = y-&gt;p;
+    if (y-&gt;p == NIL) t-&gt;root = x; else if (y == y-&gt;p-&gt;l) y-&gt;p-&gt;l = x; else y-&gt;p-&gt;r = x;
+    x-&gt;r = y; y-&gt;p = x;
+}</code></pre>
+<h3>الإدخال: العقدة الجديدة حمراء، والعلاج بيتحدد بالـ uncle</h3>
+<table class="comp-table">
+<tr><th>الحالة</th><th>الـ uncle</th><th>الفعل</th></tr>
+<tr><td><b>I1</b></td><td>أحمر</td><td>لوّن الأب والـ uncle أسود والجد أحمر، وكمّل من الجد (ممكن المشكلة تطلع لفوق)</td></tr>
+<tr><td><b>I2</b> (triangle)</td><td>أسود، والعقدة ابن «داخلي»</td><td>rotation على الأب فتتحول لـ I3</td></tr>
+<tr><td><b>I3</b> (line)</td><td>أسود، والعقدة ابن «خارجي»</td><td>الأب أسود والجد أحمر، rotation على الجد، وبكده خلصنا</td></tr>
+</table>
+<pre><code>static void insert_fix(RBT *t, RB *z)
+{
+    while (z-&gt;p-&gt;color == RED) {                       /* parent red =&gt; grandparent exists and is black */
+        RB *g = z-&gt;p-&gt;p;
+        if (z-&gt;p == g-&gt;l) {
+            RB *u = g-&gt;r;                              /* the uncle */
+            if (u-&gt;color == RED) {                     /* case 1: recolour and move up */
+                z-&gt;p-&gt;color = BLACK; u-&gt;color = BLACK; g-&gt;color = RED; rlog(t, &quot;I1&quot;);
+                z = g;
+            } else {
+                if (z == z-&gt;p-&gt;r) { z = z-&gt;p; rot_left(t, z); rlog(t, &quot;I2&quot;); }   /* case 2: triangle -&gt; line */
+                z-&gt;p-&gt;color = BLACK; g-&gt;color = RED; rot_right(t, g); rlog(t, &quot;I3&quot;); /* case 3 */
+            }
+        } else {                                       /* mirror image */
+            RB *u = g-&gt;l;
+            if (u-&gt;color == RED) {
+                z-&gt;p-&gt;color = BLACK; u-&gt;color = BLACK; g-&gt;color = RED; rlog(t, &quot;I1&quot;);
+                z = g;
+            } else {
+                if (z == z-&gt;p-&gt;l) { z = z-&gt;p; rot_right(t, z); rlog(t, &quot;I2&quot;); }
+                z-&gt;p-&gt;color = BLACK; g-&gt;color = RED; rot_left(t, g); rlog(t, &quot;I3&quot;);
+            }
+        }
+    }
+    t-&gt;root-&gt;color = BLACK;                            /* rule 1 */
+}
+static int rb_insert(RBT *t, int key)
+{
+    RB *y = NIL, *x = t-&gt;root;
+    while (x != NIL) { y = x; if (key == x-&gt;key) return 0; x = key &lt; x-&gt;key ? x-&gt;l : x-&gt;r; }
+    RB *z = malloc(sizeof *z);
+    z-&gt;key = key; z-&gt;color = RED; z-&gt;l = z-&gt;r = NIL; z-&gt;p = y;
+    if (y == NIL) t-&gt;root = z; else if (key &lt; y-&gt;key) y-&gt;l = z; else y-&gt;r = z;
+    insert_fix(t, z);
+    return 1;
+}</code></pre>
+<!--fig:ds21-rb7--><div class="steps"><figure class="frame"><svg class="fsvg" viewBox="0 0 50 76" width="50" height="76" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><circle cx="25.0" cy="23.0" r="13" class="node bk"/><text x="25.0" y="28.0" class="tn" text-anchor="middle" font-size="13">1</text></svg><figcaption>أدخلنا <b>1</b> (جذر أسود)</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 80 122" width="80" height="122" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><line x1="25.0" y1="23.0" x2="55.0" y2="69.0" class="edge red"/><circle cx="55.0" cy="69.0" r="13" class="node rn"/><text x="55.0" y="74.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="25.0" cy="23.0" r="13" class="node bk"/><text x="25.0" y="28.0" class="tn" text-anchor="middle" font-size="13">1</text></svg><figcaption>أدخلنا <b>2</b> (الأب أسود: مفيش مشكلة)</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 110 122" width="110" height="122" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><line x1="55.0" y1="23.0" x2="25.0" y2="69.0" class="edge red"/><line x1="55.0" y1="23.0" x2="85.0" y2="69.0" class="edge red"/><circle cx="25.0" cy="69.0" r="13" class="node rn"/><text x="25.0" y="74.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="85.0" cy="69.0" r="13" class="node rn"/><text x="85.0" y="74.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="55.0" cy="23.0" r="13" class="node bk"/><text x="55.0" y="28.0" class="tn" text-anchor="middle" font-size="13">2</text></svg><figcaption>أدخلنا <b>3</b> وصلّحنا بالحالات: <b>I3</b></figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 140 168" width="140" height="168" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><line x1="55.0" y1="23.0" x2="25.0" y2="69.0" class="edge"/><line x1="55.0" y1="23.0" x2="85.0" y2="69.0" class="edge"/><line x1="85.0" y1="69.0" x2="115.0" y2="115.0" class="edge red"/><circle cx="25.0" cy="69.0" r="13" class="node bk"/><text x="25.0" y="74.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="115.0" cy="115.0" r="13" class="node rn"/><text x="115.0" y="120.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="85.0" cy="69.0" r="13" class="node bk"/><text x="85.0" y="74.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="55.0" cy="23.0" r="13" class="node bk"/><text x="55.0" y="28.0" class="tn" text-anchor="middle" font-size="13">2</text></svg><figcaption>أدخلنا <b>4</b> وصلّحنا بالحالات: <b>I1</b></figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 170 168" width="170" height="168" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><line x1="55.0" y1="23.0" x2="25.0" y2="69.0" class="edge"/><line x1="55.0" y1="23.0" x2="115.0" y2="69.0" class="edge"/><line x1="115.0" y1="69.0" x2="85.0" y2="115.0" class="edge red"/><line x1="115.0" y1="69.0" x2="145.0" y2="115.0" class="edge red"/><circle cx="25.0" cy="69.0" r="13" class="node bk"/><text x="25.0" y="74.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="85.0" cy="115.0" r="13" class="node rn"/><text x="85.0" y="120.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="145.0" cy="115.0" r="13" class="node rn"/><text x="145.0" y="120.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="115.0" cy="69.0" r="13" class="node bk"/><text x="115.0" y="74.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="55.0" cy="23.0" r="13" class="node bk"/><text x="55.0" y="28.0" class="tn" text-anchor="middle" font-size="13">2</text></svg><figcaption>أدخلنا <b>5</b> وصلّحنا بالحالات: <b>I3</b></figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 200 214" width="200" height="214" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><line x1="55.0" y1="23.0" x2="25.0" y2="69.0" class="edge"/><line x1="55.0" y1="23.0" x2="115.0" y2="69.0" class="edge red"/><line x1="115.0" y1="69.0" x2="85.0" y2="115.0" class="edge"/><line x1="115.0" y1="69.0" x2="145.0" y2="115.0" class="edge"/><line x1="145.0" y1="115.0" x2="175.0" y2="161.0" class="edge red"/><circle cx="25.0" cy="69.0" r="13" class="node bk"/><text x="25.0" y="74.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="85.0" cy="115.0" r="13" class="node bk"/><text x="85.0" y="120.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="175.0" cy="161.0" r="13" class="node rn"/><text x="175.0" y="166.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="145.0" cy="115.0" r="13" class="node bk"/><text x="145.0" y="120.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="115.0" cy="69.0" r="13" class="node rn"/><text x="115.0" y="74.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="55.0" cy="23.0" r="13" class="node bk"/><text x="55.0" y="28.0" class="tn" text-anchor="middle" font-size="13">2</text></svg><figcaption>أدخلنا <b>6</b> وصلّحنا بالحالات: <b>I1</b></figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 230 214" width="230" height="214" role="img" aria-label="red-black" xmlns="http://www.w3.org/2000/svg"><line x1="55.0" y1="23.0" x2="25.0" y2="69.0" class="edge"/><line x1="55.0" y1="23.0" x2="115.0" y2="69.0" class="edge red"/><line x1="115.0" y1="69.0" x2="85.0" y2="115.0" class="edge"/><line x1="115.0" y1="69.0" x2="175.0" y2="115.0" class="edge"/><line x1="175.0" y1="115.0" x2="145.0" y2="161.0" class="edge red"/><line x1="175.0" y1="115.0" x2="205.0" y2="161.0" class="edge red"/><circle cx="25.0" cy="69.0" r="13" class="node bk"/><text x="25.0" y="74.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="85.0" cy="115.0" r="13" class="node bk"/><text x="85.0" y="120.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="145.0" cy="161.0" r="13" class="node rn"/><text x="145.0" y="166.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="205.0" cy="161.0" r="13" class="node rn"/><text x="205.0" y="166.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="175.0" cy="115.0" r="13" class="node bk"/><text x="175.0" y="120.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="115.0" cy="69.0" r="13" class="node rn"/><text x="115.0" y="74.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="55.0" cy="23.0" r="13" class="node bk"/><text x="55.0" y="28.0" class="tn" text-anchor="middle" font-size="13">2</text></svg><figcaption>أدخلنا <b>7</b> وصلّحنا بالحالات: <b>I3</b></figcaption></figure></div><!--/fig:ds21-rb7-->
+<p>(الدواير السودا سُمك حلقتها زايد، الحمرا بلون أحمر وحافتها للأب أحمر.) إدخال 1..7 بالترتيب: الناتج <code>2b(1b,4r(3b,6b(5r,7r)))</code> وارتفاعه 4، في حين الـ BST العادي كان هيبقى chain بارتفاع 7. وبـ 1000 مفتاح مرتب الارتفاع الحقيقي 17 (الحد 20).</p>
+<h3>الحذف: الـ «extra black»</h3>
+<p>حذف عقدة <b>حمراء</b> مفيهوش مشكلة. حذف <b>سودا</b> بيخلّي مكانها «سواد زايد» بيتحرك لفوق بـ 4 حالات حسب أخ العقدة w: <b>D1</b> الأخ أحمر (نلوّنه ونعمل rotation فتتحول لحالة تانية). <b>D2</b> الأخ أسود وابناه سود (نلوّن الأخ أحمر ونصعّد المشكلة للأب). <b>D3</b> الأخ أسود وابنه «القريب» أحمر (rotation تحوّلها لـ D4). <b>D4</b> الأخ أسود وابنه «البعيد» أحمر (rotation وخلصنا).</p>
+<pre><code>static void transplant(RBT *t, RB *u, RB *v)
+{
+    if (u-&gt;p == NIL) t-&gt;root = v; else if (u == u-&gt;p-&gt;l) u-&gt;p-&gt;l = v; else u-&gt;p-&gt;r = v;
+    v-&gt;p = u-&gt;p;                                       /* legal even when v is NIL: we need NIL-&gt;p below */
+}
+static void delete_fix(RBT *t, RB *x)                  /* x carries an &quot;extra black&quot; */
+{
+    while (x != t-&gt;root &amp;&amp; x-&gt;color == BLACK) {
+        if (x == x-&gt;p-&gt;l) {
+            RB *w = x-&gt;p-&gt;r;                           /* sibling */
+            if (w-&gt;color == RED) {                     /* case 1: red sibling -&gt; make it black */
+                w-&gt;color = BLACK; x-&gt;p-&gt;color = RED; rot_left(t, x-&gt;p); w = x-&gt;p-&gt;r; rlog(t, &quot;D1&quot;);
+            }
+            if (w-&gt;l-&gt;color == BLACK &amp;&amp; w-&gt;r-&gt;color == BLACK) {   /* case 2: push the extra black up */
+                w-&gt;color = RED; x = x-&gt;p; rlog(t, &quot;D2&quot;);
+            } else {
+                if (w-&gt;r-&gt;color == BLACK) {            /* case 3: near child red -&gt; rotate to case 4 */
+                    w-&gt;l-&gt;color = BLACK; w-&gt;color = RED; rot_right(t, w); w = x-&gt;p-&gt;r; rlog(t, &quot;D3&quot;);
+                }
+                w-&gt;color = x-&gt;p-&gt;color; x-&gt;p-&gt;color = BLACK; w-&gt;r-&gt;color = BLACK;   /* case 4: far child red */
+                rot_left(t, x-&gt;p); rlog(t, &quot;D4&quot;);
+                x = t-&gt;root;
+            }
+        } else {                                       /* mirror image */
+            RB *w = x-&gt;p-&gt;l;
+            if (w-&gt;color == RED) { w-&gt;color = BLACK; x-&gt;p-&gt;color = RED; rot_right(t, x-&gt;p); w = x-&gt;p-&gt;l; rlog(t, &quot;D1&quot;); }
+            if (w-&gt;r-&gt;color == BLACK &amp;&amp; w-&gt;l-&gt;color == BLACK) { w-&gt;color = RED; x = x-&gt;p; rlog(t, &quot;D2&quot;); }
+            else {
+                if (w-&gt;l-&gt;color == BLACK) { w-&gt;r-&gt;color = BLACK; w-&gt;color = RED; rot_left(t, w); w = x-&gt;p-&gt;l; rlog(t, &quot;D3&quot;); }
+                w-&gt;color = x-&gt;p-&gt;color; x-&gt;p-&gt;color = BLACK; w-&gt;l-&gt;color = BLACK;
+                rot_right(t, x-&gt;p); rlog(t, &quot;D4&quot;);
+                x = t-&gt;root;
+            }
+        }
+    }
+    x-&gt;color = BLACK;
+}
+static RB *rb_find(RB *x, int key) { while (x != NIL &amp;&amp; x-&gt;key != key) x = key &lt; x-&gt;key ? x-&gt;l : x-&gt;r; return x; }
+static int rb_delete(RBT *t, int key)
+{
+    RB *z = rb_find(t-&gt;root, key);
+    if (z == NIL) return 0;
+    RB *y = z, *x; int ycol = y-&gt;color;
+    if (z-&gt;l == NIL) { x = z-&gt;r; transplant(t, z, z-&gt;r); }
+    else if (z-&gt;r == NIL) { x = z-&gt;l; transplant(t, z, z-&gt;l); }
+    else {                                             /* two children: use the in-order successor */
+        y = z-&gt;r; while (y-&gt;l != NIL) y = y-&gt;l;
+        ycol = y-&gt;color; x = y-&gt;r;
+        if (y-&gt;p == z) x-&gt;p = y;
+        else { transplant(t, y, y-&gt;r); y-&gt;r = z-&gt;r; y-&gt;r-&gt;p = y; }
+        transplant(t, z, y);
+        y-&gt;l = z-&gt;l; y-&gt;l-&gt;p = y; y-&gt;color = z-&gt;color;
+    }
+    free(z);
+    if (ycol == BLACK) delete_fix(t, x);               /* only a removed BLACK node breaks rule 4 */
+    return 1;
+}</code></pre>
+<pre><code>insert 1..7   : 2b(1b,4r(3b,6b(5r,7r)))
+  cases       : I3 I1 I3 I1 I3
+insert 10 18 7 15 16 30 25 40 60 2 1 70:
+  16b(10b(2b(1r,7r),15b),25b(18b,40r(30b,60b(.,70r))))
+  cases: I1 I2 I3 I1 I2 I3 I1 I3 I3 I3 I1 I1
+delete 18 7 1 60:
+  16b(10b(2b,15b),40b(25b(.,30r),70b))
+  cases: D1 D2
+1000 sorted inserts: height = 17 (bound 2*log2(1001) = 20)
+rbtree: all tests passed</code></pre>
+<div class="tip"><b>مين أحسن: AVL ولا red-black؟</b>AVL أكتر توازنًا (ارتفاع ≤ 1.44 log n مقابل 2 log n) فالبحث أسرع شوية، بس بيحتاج حتى O(log n) rotations في الحذف. Red-black عدد rotations عنده ثابت تقريبًا فمناسب لأعباء الإدخال/الحذف الكتير (ولهذا بتستعمله المكتبات: std::map وjava.util.TreeMap).</div>
+
+<h2>5) الـ Splay Trees (Thareja 10.6، Weiss 4.5 وتحليلها في 11.5)</h2>
+<p>شجرة BST <b>من غير أي معلومة توازن</b> (لا ارتفاع ولا لون): كل مرة بنوصل لعقدة (بحث/إدخال/حذف) بنرفعها للـ <b>جذر</b> بسلسلة خطوات splay. الفكرة: اللي اتستخدم قريب غالبًا هيتستخدم تاني. العملية الواحدة ممكن تبقى O(n)، لكن <b>amortised</b> O(log n) لكل عملية (تحليل Weiss 11.5 بالـ potential function Σ log size).</p>
+<table class="comp-table">
+<tr><th>الخطوة</th><th>متى</th><th>الفعل</th></tr>
+<tr><td><b>zig</b></td><td>الأب P هو الجذر</td><td>rotation واحدة على P</td></tr>
+<tr><td><b>zig-zig</b></td><td>N وP الاتنين شمال (أو الاتنين يمين)</td><td>rotate الجد G <b>الأول</b> ثم P</td></tr>
+<tr><td><b>zig-zag</b></td><td>N شمال وP يمين (أو العكس)</td><td>rotate P ثم G (زي AVL double)</td></tr>
+</table>
+<pre><code>static void slog(ST *t, const char *s) { if (strlen(t-&gt;log) + strlen(s) + 2 &lt; sizeof t-&gt;log) { if (t-&gt;log[0]) strcat(t-&gt;log, &quot; &quot;); strcat(t-&gt;log, s); } }
+
+static void rotate_up(ST *t, SN *x)           /* rotate x above its parent (right rotation if x is a left child) */
+{
+    SN *p = x-&gt;p, *g = p-&gt;p;
+    if (x == p-&gt;l) { p-&gt;l = x-&gt;r; if (x-&gt;r) x-&gt;r-&gt;p = p; x-&gt;r = p; }
+    else           { p-&gt;r = x-&gt;l; if (x-&gt;l) x-&gt;l-&gt;p = p; x-&gt;l = p; }
+    p-&gt;p = x; x-&gt;p = g;
+    if (!g) t-&gt;root = x; else if (g-&gt;l == p) g-&gt;l = x; else g-&gt;r = x;
+}
+static void splay(ST *t, SN *x)
+{
+    while (x-&gt;p) {
+        SN *p = x-&gt;p, *g = p-&gt;p;
+        if (!g) { rotate_up(t, x); slog(t, &quot;zig&quot;); }                           /* P is the root */
+        else if ((g-&gt;l == p) == (p-&gt;l == x)) { rotate_up(t, p); rotate_up(t, x); slog(t, &quot;zigzig&quot;); }   /* same side */
+        else { rotate_up(t, x); rotate_up(t, x); slog(t, &quot;zigzag&quot;); }          /* opposite sides */
+    }
+}</code></pre>
+<pre><code>static SN *s_new(int k, SN *p) { SN *n = malloc(sizeof *n); n-&gt;key = k; n-&gt;l = n-&gt;r = NULL; n-&gt;p = p; return n; }
+
+static int s_insert(ST *t, int k)            /* ordinary BST insert, then splay the new node */
+{
+    SN *y = NULL, *x = t-&gt;root;
+    while (x) { y = x; if (k == x-&gt;key) { splay(t, x); return 0; } x = k &lt; x-&gt;key ? x-&gt;l : x-&gt;r; }
+    SN *z = s_new(k, y);
+    if (!y) t-&gt;root = z; else if (k &lt; y-&gt;key) y-&gt;l = z; else y-&gt;r = z;
+    splay(t, z);
+    return 1;
+}
+static SN *s_search(ST *t, int k)            /* a search ALSO restructures: found node (or last node on the path) goes to the root */
+{
+    SN *x = t-&gt;root, *last = NULL;
+    while (x) { last = x; if (k == x-&gt;key) { splay(t, x); return x; } x = k &lt; x-&gt;key ? x-&gt;l : x-&gt;r; }
+    if (last) splay(t, last);
+    return NULL;
+}
+static int s_delete(ST *t, int k)
+{
+    if (!s_search(t, k) || t-&gt;root-&gt;key != k) return 0;
+    SN *z = t-&gt;root, *L = z-&gt;l, *R = z-&gt;r;
+    if (L) L-&gt;p = NULL;
+    if (R) R-&gt;p = NULL;
+    free(z);
+    if (!L) { t-&gt;root = R; return 1; }
+    t-&gt;root = L;                              /* splay the MAXIMUM of the left tree to its root: it then has no right child */
+    SN *m = L; while (m-&gt;r) m = m-&gt;r;
+    splay(t, m);
+    m-&gt;r = R; if (R) R-&gt;p = m;
+    return 1;
+}</code></pre>
+<!--fig:ds21-splay--><div class="steps"><figure class="frame"><svg class="fsvg" viewBox="0 0 188 310" width="188" height="310" role="img" aria-label="chain" xmlns="http://www.w3.org/2000/svg"><line x1="166.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="118.0" y2="101.0" class="edge"/><line x1="118.0" y1="101.0" x2="94.0" y2="141.0" class="edge"/><line x1="94.0" y1="141.0" x2="70.0" y2="181.0" class="edge"/><line x1="70.0" y1="181.0" x2="46.0" y2="221.0" class="edge"/><line x1="46.0" y1="221.0" x2="22.0" y2="261.0" class="edge"/><circle cx="22.0" cy="261.0" r="11" class="node hi"/><text x="22.0" y="266.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="46.0" cy="221.0" r="11" class="node"/><text x="46.0" y="226.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="70.0" cy="181.0" r="11" class="node"/><text x="70.0" y="186.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="94.0" cy="141.0" r="11" class="node"/><text x="94.0" y="146.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="118.0" cy="101.0" r="11" class="node"/><text x="118.0" y="106.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="166.0" cy="21.0" r="11" class="node"/><text x="166.0" y="26.0" class="tn" text-anchor="middle" font-size="13">7</text></svg><figcaption>الحالة الابتدائية بعد إدخال 1..7 (كل إدخال بيعمل splay للمفتاح الجديد للجذر فبيطلع chain شمالي): عمق 1 = 6.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 188 310" width="188" height="310" role="img" aria-label="splay" xmlns="http://www.w3.org/2000/svg"><line x1="166.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="118.0" y2="101.0" class="edge"/><line x1="118.0" y1="101.0" x2="94.0" y2="141.0" class="edge"/><line x1="94.0" y1="141.0" x2="22.0" y2="181.0" class="edge"/><line x1="22.0" y1="181.0" x2="46.0" y2="221.0" class="edge"/><line x1="46.0" y1="221.0" x2="70.0" y2="261.0" class="edge"/><circle cx="70.0" cy="261.0" r="11" class="node"/><text x="70.0" y="266.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="46.0" cy="221.0" r="11" class="node"/><text x="46.0" y="226.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="22.0" cy="181.0" r="11" class="node hi"/><text x="22.0" y="186.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="94.0" cy="141.0" r="11" class="node"/><text x="94.0" y="146.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="118.0" cy="101.0" r="11" class="node"/><text x="118.0" y="106.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="166.0" cy="21.0" r="11" class="node"/><text x="166.0" y="26.0" class="tn" text-anchor="middle" font-size="13">7</text></svg><figcaption>search(1): بعد الخطوة <b>zig-zig</b> المفتاح 1 أقرب للجذر.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 188 270" width="188" height="270" role="img" aria-label="splay" xmlns="http://www.w3.org/2000/svg"><line x1="166.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="22.0" y2="101.0" class="edge"/><line x1="22.0" y1="101.0" x2="94.0" y2="141.0" class="edge"/><line x1="94.0" y1="141.0" x2="46.0" y2="181.0" class="edge"/><line x1="46.0" y1="181.0" x2="70.0" y2="221.0" class="edge"/><line x1="94.0" y1="141.0" x2="118.0" y2="181.0" class="edge"/><circle cx="70.0" cy="221.0" r="11" class="node"/><text x="70.0" y="226.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="46.0" cy="181.0" r="11" class="node"/><text x="46.0" y="186.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="118.0" cy="181.0" r="11" class="node"/><text x="118.0" y="186.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="94.0" cy="141.0" r="11" class="node"/><text x="94.0" y="146.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="22.0" cy="101.0" r="11" class="node hi"/><text x="22.0" y="106.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="166.0" cy="21.0" r="11" class="node"/><text x="166.0" y="26.0" class="tn" text-anchor="middle" font-size="13">7</text></svg><figcaption>search(1): بعد الخطوة <b>zig-zig</b> المفتاح 1 أقرب للجذر.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 188 230" width="188" height="230" role="img" aria-label="splay" xmlns="http://www.w3.org/2000/svg"><line x1="22.0" y1="21.0" x2="142.0" y2="61.0" class="edge"/><line x1="142.0" y1="61.0" x2="94.0" y2="101.0" class="edge"/><line x1="94.0" y1="101.0" x2="46.0" y2="141.0" class="edge"/><line x1="46.0" y1="141.0" x2="70.0" y2="181.0" class="edge"/><line x1="94.0" y1="101.0" x2="118.0" y2="141.0" class="edge"/><line x1="142.0" y1="61.0" x2="166.0" y2="101.0" class="edge"/><circle cx="70.0" cy="181.0" r="11" class="node"/><text x="70.0" y="186.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="46.0" cy="141.0" r="11" class="node"/><text x="46.0" y="146.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="118.0" cy="141.0" r="11" class="node"/><text x="118.0" y="146.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="94.0" cy="101.0" r="11" class="node"/><text x="94.0" y="106.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="166.0" cy="101.0" r="11" class="node"/><text x="166.0" y="106.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="142.0" cy="61.0" r="11" class="node"/><text x="142.0" y="66.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="22.0" cy="21.0" r="11" class="node hi"/><text x="22.0" y="26.0" class="tn" text-anchor="middle" font-size="13">1</text></svg><figcaption>search(1): بعد الخطوة <b>zig-zig</b> المفتاح 1 أقرب للجذر.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 188 230" width="188" height="230" role="img" aria-label="splay" xmlns="http://www.w3.org/2000/svg"><line x1="22.0" y1="21.0" x2="46.0" y2="61.0" class="edge"/><line x1="46.0" y1="61.0" x2="94.0" y2="101.0" class="edge"/><line x1="94.0" y1="101.0" x2="70.0" y2="141.0" class="edge"/><line x1="94.0" y1="101.0" x2="142.0" y2="141.0" class="edge"/><line x1="142.0" y1="141.0" x2="118.0" y2="181.0" class="edge"/><line x1="142.0" y1="141.0" x2="166.0" y2="181.0" class="edge"/><circle cx="70.0" cy="141.0" r="11" class="node"/><text x="70.0" y="146.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="118.0" cy="181.0" r="11" class="node"/><text x="118.0" y="186.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="166.0" cy="181.0" r="11" class="node"/><text x="166.0" y="186.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="142.0" cy="141.0" r="11" class="node"/><text x="142.0" y="146.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="94.0" cy="101.0" r="11" class="node"/><text x="94.0" y="106.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="46.0" cy="61.0" r="11" class="node hi"/><text x="46.0" y="66.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="22.0" cy="21.0" r="11" class="node"/><text x="22.0" y="26.0" class="tn" text-anchor="middle" font-size="13">1</text></svg><figcaption>search(2): بعد الخطوة <b>zig-zig</b> المفتاح 2 أقرب للجذر.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 188 190" width="188" height="190" role="img" aria-label="splay" xmlns="http://www.w3.org/2000/svg"><line x1="46.0" y1="21.0" x2="22.0" y2="61.0" class="edge"/><line x1="46.0" y1="21.0" x2="94.0" y2="61.0" class="edge"/><line x1="94.0" y1="61.0" x2="70.0" y2="101.0" class="edge"/><line x1="94.0" y1="61.0" x2="142.0" y2="101.0" class="edge"/><line x1="142.0" y1="101.0" x2="118.0" y2="141.0" class="edge"/><line x1="142.0" y1="101.0" x2="166.0" y2="141.0" class="edge"/><circle cx="22.0" cy="61.0" r="11" class="node"/><text x="22.0" y="66.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="70.0" cy="101.0" r="11" class="node"/><text x="70.0" y="106.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="118.0" cy="141.0" r="11" class="node"/><text x="118.0" y="146.0" class="tn" text-anchor="middle" font-size="13">5</text><circle cx="166.0" cy="141.0" r="11" class="node"/><text x="166.0" y="146.0" class="tn" text-anchor="middle" font-size="13">7</text><circle cx="142.0" cy="101.0" r="11" class="node"/><text x="142.0" y="106.0" class="tn" text-anchor="middle" font-size="13">6</text><circle cx="94.0" cy="61.0" r="11" class="node"/><text x="94.0" y="66.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="46.0" cy="21.0" r="11" class="node hi"/><text x="46.0" y="26.0" class="tn" text-anchor="middle" font-size="13">2</text></svg><figcaption>search(2): بعد الخطوة <b>zig</b> المفتاح 2 أقرب للجذر.</figcaption></figure></div><!--/fig:ds21-splay-->
+<div class="oops"><b>ليه الترتيب في zig-zig مهم؟</b>لو دورنا P الأول ثم N (بدل G ثم P) هنكون عملنا «rotation بسيطة مكررة» بترفع N من غير ما تقلل عمق الباقي، فمسار chain طويل مابيتقصّرش للنص، والـ amortised O(log n) بتضيع (ممكن ترجع O(n) لكل عملية). بعد search(1) على الـ chain المثال فوق، الارتفاع نزل من 7 لـ 5 وبعد search(2) لـ 4: كل splay بيقصّر المسار للنص تقريبًا.</div>
+<pre><code>after inserting 1..7  : 7(6(5(4(3(2(1,.),.),.),.),.),.)
+after search(1)       : 1(.,6(4(2(.,3),5),7))
+  steps: zigzig zigzig zigzig
+after search(2)       : 2(1,4(3,6(5,7)))
+  steps: zigzig zig
+tree after 7 inserts   : 80(70(60(40(20(.,30),50),.),.),.)
+search(40) -&gt; root=40, steps: zigzig zig
+  40(20(.,30),80(60(50,70),.))
+splay: all tests passed</code></pre>
+<div class="tip"><b>الـ splay مقابل الباقي</b>مناسب لما فيه locality (cache، تعرّض حديث). عيبه: كل <b>قراءة</b> بتعدّل الشجرة (مش آمنة للقراءة المتزامنة)، وممكن عملية واحدة تبقى بطيئة. ميزته: أبسط كود من AVL وred-black ومفيش مساحة زيادة.</div>
+
+<h2>6) مقارنة سريعة</h2>
+<table class="comp-table">
+<tr><th></th><th>البحث (أسوأ حالة)</th><th>إدخال/حذف</th><th>مساحة زيادة</th><th>تستعمله في</th></tr>
+<tr><td>BST عادي</td><td>O(n)</td><td>O(n)</td><td>—</td><td>بيانات عشوائية صغيرة</td></tr>
+<tr><td>Threaded</td><td>O(n)</td><td>أعقد من BST</td><td>flag لكل مؤشر</td><td>traversal كتير من غير stack</td></tr>
+<tr><td>AVL</td><td>O(log n) (≤ 1.44 log n)</td><td>O(log n)، حذف: rotation لكل مستوى</td><td>ارتفاع أو BF</td><td>بحث كتير، تعديل أقل</td></tr>
+<tr><td>Red-black</td><td>O(log n) (≤ 2 log n)</td><td>O(log n)، rotations ثابتة</td><td>بت لون</td><td>مكتبات عامة (map/set)</td></tr>
+<tr><td>Splay</td><td>O(n) لعملية، O(log n) amortised</td><td>amortised O(log n)</td><td>—</td><td>locality، caches</td></tr>
+</table>
+
+<div class="quiz"><p class="q">شجرة AVL بارتفاع 5 (عدد العقد في أقل شجرة AVL بالارتفاع ده)؟</p>
+<button>16</button>
+<button data-ok>12</button>
+<button>20</button>
+<p class="why">S(1)=1، S(2)=2، S(3)=4، S(4)=7، S(5)=7+4+1=12.</p></div>
+<div class="quiz"><p class="q">أدخلنا 10، 30، 20 بالترتيب في AVL فاضي. أي حالة وإيه الجذر الناتج؟</p>
+<button>RR والجذر 30</button>
+<button data-ok>RL والجذر 20</button>
+<button>LR والجذر 20</button>
+<p class="why">30 يمين 10، 20 شمال 30: يمين ثم شمال = RL. rotation يمين على 30 ثم شمال على 10 فالجذر 20.</p></div>
+<div class="quiz"><p class="q">عقدة جديدة حمراء أبوها أحمر وعمّها (uncle) أحمر. إيه الفعل؟</p>
+<button>rotation على الجد</button>
+<button data-ok>تلوين الأب والعم أسود والجد أحمر وإكمال من الجد</button>
+<button>نحذف الأب</button>
+<p class="why">حالة I1: مفيش rotation أصلًا، وبس recolour. المشكلة ممكن تطلع للجد لو أبوه أحمر.</p></div>
+<div class="quiz"><p class="q">في الـ zig-zig، بنعمل rotation على أنهي عقدة الأول؟</p>
+<button>الأب P</button>
+<button data-ok>الجد G</button>
+<button>العقدة N</button>
+<p class="why">G الأول ثم P. العكس بيخلّي الـ amortised bound تضيع.</p></div>
+<div class="quiz"><p class="q">threaded tree بـ 12 عقدة: كام مؤشر NULL كان فيها قبل ما نعمل threading؟</p>
+<button>12</button>
+<button data-ok>13</button>
+<button>11</button>
+<p class="why">n + 1 = 13: عدد المؤشرات 2n = 24 والأبناء n − 1 = 11 فالباقي 13.</p></div>

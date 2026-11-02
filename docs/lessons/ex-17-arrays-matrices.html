@@ -1,0 +1,210 @@
+<p class="meta">تمارين محلولة · الفصل 17 (Arrays and Matrices) · Thareja ف3: Review Questions 1–15 + Programming Exercises 1–25 + الأسئلة المتعددة والصح/الغلط والفراغات</p>
+<p>كل برنامج هنا اتكتب واتجرّب بـ <code>assert</code> على بيانات حقيقية في <code>src/17-arrays-matrices/exercises/ex17_01_arrays_matrices.c</code>. الشرح بيركّز على <b>ليه</b> الحل شغّال، والأخطاء الشائعة، وبعد الحل بتلاقي أسئلة الاختيار والصح/الغلط كلها بإجاباتها.</p>
+<div class="goal"><b>هدف الدرس:</b> تحل أي سؤال عناوين من غير ما تحفظ — بس تفتكر إن row-major بيضرب الصف في عدد الأعمدة — وتكتب عمليات المصفوفات بالـ pointers والـ indices بثقة.</div>
+<a data-src="src/17-arrays-matrices/exercises/ex17_01_arrays_matrices.c"></a>
+
+<div class="exs">
+<h3>أسئلة المراجعة 1–7 و 10–12 (نظرية)</h3>
+<div class="sol"><b>الإجابات المختصرة</b>
+<p><b>1)</b> الـ array مجموعة عناصر من نفس النوع تحت اسم واحد بتتوصّل لها بـ index. محتاجينها عشان نتجنّب 1000 متغير منفصل ونقدر نلف بحلقة. <b>2)</b> عناصر ورا بعض في الذاكرة، عنوان العنصر i = Base + w·i. <b>3)</b> C بتعتبر المصفوفة 2-D «array من arrays»، وبتخزّنها row-major: صف ورا صف. <b>4)</b> تمثّل جداول (علامات طلبة × مواد) وصور (بكسلات) ومصفوفات رياضية وبيانات 3-D. <b>5-7)</b> الـ sparse matrix أغلبها أصفار، فتخزينها كمصفوفة عادية مضيّع ذاكرة ووقت؛ بنخزّن غير الصفري بس (triplets أو قوايم مترابطة) أو بمعادلة لو ليها شكل ثابت — شوف الدرس.</p>
+<p><b>6)</b> <code>a[i][j]</code> ≡ <code>*(*(a+i)+j)</code>. وهنا <code>a+i</code> بيتخطّى <b>صف كامل</b> (<code>int (*p)[C]</code> = pointer لـ array من C عناصر). <b>10)</b> اسم الـ array بيتحوّل لـ pointer لأول عنصر، و <code>a[i]</code> ≡ <code>*(a+i)</code>، والفرق الوحيد إن <code>sizeof(a)</code> بيدّي حجم الـ array كلها مش حجم pointer، وإن الاسم مش بيتغيّر (<code>a++</code> غلط). <b>11)</b> array of pointers: <code>char *names[3]</code> — كل خانة pointer، فتقدر تشاور على سلاسل بأطوال مختلفة (ragged). <b>12)</b> بنمرّر الاسم (يعني العنوان) + الحجم، فالدالة بتعدّل الـ array الأصلية.</p></div>
+
+<h3>سؤال 15: initializers أقل أو أكتر من الحجم</h3>
+<div class="sol"><b>الحل</b><p>(a) أقل: باقي العناصر بتتصفّر (<code>int a[5] = {1,2};</code> → 1 2 0 0 0) — وده كمان حل لتصفير المصفوفة كلها بـ <code>= {0}</code>. (b) أكتر: في C ده <b>constraint violation</b> — gcc بيطلّع <code>warning: excess elements in array initializer</code> ويتجاهل الزيادة (وفي C++ ده error).</p></div>
+
+<h3>أسئلة 8 و9 و13: حساب العناوين</h3>
+<div class="think"><b>بنفكّر إزاي</b>اكتب المعادلة الأول وبعدين عوّض: row-major <code>Base + w·(i·C + j)</code> و column-major <code>Base + w·(j·R + i)</code>. في كل سؤال بنعرف R وC من تعريف المصفوفة.</div>
+<div class="sol"><b>الحل</b><p><b>سؤال 8:</b> 1000 + 2·35 = <b>1070</b>.<br><b>سؤال 9:</b> <code>Marks[10][5]</code> → C=5: 2000 + 2·(8·5 + 5) = <b>2090</b>. <i>تنبيه:</i> العمود 5 برّه الحدود (0..4)، فالعنوان ده هو في الحقيقة <code>Marks[9][0]</code>. المعادلة بتحسب، بس القراءة من هناك مش آمنة.<br><b>سؤال 13:</b> <code>arr[10][10]</code> column-major: R=10، فـ 1000 + 2·(5·10 + 8) = <b>1116</b>.</p></div>
+
+<h3>سؤال 14: الإزاحة في إدخال وحذف أسماء</h3>
+<pre><code>/* ---- RQ 14: names array, insert &quot;Andrew&quot;, delete &quot;Esha&quot; ---- */
+static int moves_insert(int n, int pos) { return n - pos; }
+static int moves_delete(int n, int pos) { return n - pos - 1; }
+</code></pre>
+<div class="sol"><b>الحل</b><p>الـ array فيها 7 أسماء (Adam, Charles, Dicken, Esha, Georgia, Hillary, Mishael). <b>Andrew</b> ترتيبه أبجديًا بعد Adam (pos=1)، فكل اللي من Charles لآخر الأسماء بيتحرّك: 7−1 = <b>6</b> → الاختيار (iv). حذف <b>Esha</b> (index 3): بيتحرّك اللي بعده: 7−3−1 = <b>3</b> → (i).</p></div>
+
+<h3>تمرين 1: إحصائيات علامات 20 طالب في 5 مواد</h3>
+<pre><code>/* ---- PE 1: marks[20][5] statistics ---- */
+static void marks_stats(int m[][5], int rows, double subj_avg[5], double stud_avg[], int *below50)
+{
+    *below50 = 0;
+    for (int j = 0; j &lt; 5; j++) { double s = 0; for (int i = 0; i &lt; rows; i++) s += m[i][j]; subj_avg[j] = s / rows; }
+    for (int i = 0; i &lt; rows; i++) {
+        double s = 0; for (int j = 0; j &lt; 5; j++) s += m[i][j];
+        stud_avg[i] = s / 5; if (stud_avg[i] &lt; 50) (*below50)++;
+    }
+}
+</code></pre>
+<div class="think"><b>بنفكّر إزاي</b>متوسط المادة = مجموع <b>عمود</b> ÷ عدد الطلبة، ومتوسط الطالب = مجموع <b>صف</b> ÷ 5. الفخ: القسمة الصحيحة. لازم <code>double</code> قبل القسمة.</div>
+<div class="sol"><b>الحل</b><p>الدالة فوق بتحسب الأربعة (c) بيتحسب بنفس لفّة المتوسط (متوسط الطالب &lt; 50). (d) عرض الدرجات حلقتين متداخلتين. على بيانات الاختبار الناتج: <code>PE1: subject avgs 52.5 45.0 51.2 52.5 55.0; below-50 students = 2</code> (الطالبين صفوفهم 2 و4).</p></div>
+
+<h3>تمرين 2: كل الأزواج اللي مجموعها 50</h3>
+<pre><code>/* ---- PE 2: pairs whose sum is 50, sort + two pointers O(n log n) ---- */
+static int cmp_int(const void *a, const void *b) { return (*(const int *)a &gt; *(const int *)b) - (*(const int *)a &lt; *(const int *)b); }
+static int pairs_sum(int a[], int n, int target, int out[][2])
+{
+    qsort(a, n, sizeof(int), cmp_int);
+    int i = 0, j = n - 1, c = 0;
+    while (i &lt; j) {
+        int s = a[i] + a[j];
+        if (s == target) { out[c][0] = a[i]; out[c][1] = a[j]; c++; i++; j--; }
+        else if (s &lt; target) i++; else j--;
+    }
+    return c;
+}
+</code></pre>
+<div class="think"><b>بنفكّر إزاي</b>الطريقة الساذجة حلقتين = O(n²) لـ n=100. لو رتّبنا الأول، نمشي بمؤشرين من الطرفين: لو المجموع أصغر نحرّك الشمال، لو أكبر نحرّك اليمين. O(n log n) للترتيب + O(n) للمرور.</div>
+<div class="sol"><b>الحل</b><p>على المصفوفة <code>{10,40,25,30,20,15,35,0,50}</code>: الأزواج (0,50) (10,40) (15,35) (20,30) — أربعة بس، و25 معندهوش شريك (لأن ما فيش 25 تانية). الحل ده بيفترض قيم مش متكررة؛ لو متكررة تحتاج عدّاد لكل قيمة.</p></div>
+
+<h3>تمارين 3–10</h3>
+<pre><code>/* ---- PE 3: swap 2nd with 2nd-last; PE 4: sum of squares ---- */
+static void swap_second(int a[], int n) { int t = a[1]; a[1] = a[n - 2]; a[n - 2] = t; }
+static long sum_squares(const int a[], int n) { long s = 0; for (int i = 0; i &lt; n; i++) s += (long)a[i] * a[i]; return s; }
+</code></pre>
+<pre><code>/* ---- PE 5-6-7-8-9-10: 2-D array tasks (pointers where asked) ---- */
+static void sum_mean(int a[][N], int r, int c, long *sum, double *mean)
+{ *sum = 0; for (int i = 0; i &lt; r; i++) for (int j = 0; j &lt; c; j++) *sum += a[i][j]; *mean = (double)*sum / (r * c); }
+static long main_diag_ptr(int (*a)[N], int n) { long s = 0; for (int i = 0; i &lt; n; i++) s += *(*(a + i) + i); return s; }
+static void add_ptr(int (*a)[3], int (*b)[3], int (*c)[3])
+{ for (int i = 0; i &lt; 3; i++) for (int j = 0; j &lt; 3; j++) *(*(c + i) + j) = *(*(a + i) + j) + *(*(b + i) + j); }
+static long prod_above_diag(int a[][N], int n) { long p = 1; for (int i = 0; i &lt; n; i++) for (int j = i + 1; j &lt; n; j++) p *= a[i][j]; return p; }
+static int count_nonzero(int a[][N], int r, int c) { int k = 0; for (int i = 0; i &lt; r; i++) for (int j = 0; j &lt; c; j++) k += a[i][j] != 0; return k; }
+</code></pre>
+<div class="sol"><b>ملاحظات</b><p><b>3:</b> تبديل a[1] مع a[n−2] (لازم n ≥ 4 وإلا هما نفس العنصر). <b>4:</b> مجموع المربعات بـ <code>long</code> لأن <code>int</code> بيطفح بسرعة. <b>5:</b> mean = sum ÷ (r·c) بالـ double. <b>6:</b> قراءة وعرض مصفوفة بدوال: بنمرّر <code>int a[][N]</code> — لازم نكتب البُعد التاني عشان المترجم يعرف يحسب <code>i·N + j</code>. <b>7:</b> <code>*(*(a+i)+i)</code> بالـ pointers. <b>8:</b> جمع 3×3 بـ <code>int (*a)[3]</code>. <b>9:</b> حاصل ضرب الفوق-قطر <code>j &gt; i</code> (ابدأ بـ 1 مش 0). <b>10:</b> عدّاد <code>a[i][j] != 0</code>.</p></div>
+
+<h3>تمرين 11: فصل الزوجي والفردي</h3>
+<pre><code>/* ---- PE 11: split odd / even ---- */
+static void split_odd_even(int a[][N], int r, int c, int odd[], int *no, int even[], int *ne)
+{ *no = *ne = 0; for (int i = 0; i &lt; r; i++) for (int j = 0; j &lt; c; j++) { if (a[i][j] &amp; 1) odd[(*no)++] = a[i][j]; else even[(*ne)++] = a[i][j]; } }
+</code></pre>
+<div class="sol"><b>الحل</b><p><code>x &amp; 1</code> أسرع طريقة تعرف بيها الفردي (وبتشتغل صح للسالب في تمثيل two's complement، عكس <code>x % 2 == 1</code> اللي بترجّع −1 للسالب الفردي).</p></div>
+
+<h3>تمرين 12: دمج مصفوفتين float وعرضهم بالعكس</h3>
+<pre><code>/* ---- PE 12: merge two float arrays, print reversed ---- */
+static int merge_rev(const float a[], int n, const float b[], int m, float out[])
+{ int k = 0; for (int i = 0; i &lt; n; i++) out[k++] = a[i]; for (int j = 0; j &lt; m; j++) out[k++] = b[j];
+  for (int i = 0, j = k - 1; i &lt; j; i++, j--) { float t = out[i]; out[i] = out[j]; out[j] = t; } return k; }
+</code></pre>
+<h3>تمرين 13: تبديل ثاني أكبر وثاني أصغر بالـ pointers</h3>
+<pre><code>/* ---- PE 13: swap 2nd biggest and 2nd smallest using pointers ---- */
+static void swap_second_big_small(int *a, int n)
+{
+    int *max1 = a, *max2 = NULL, *min1 = a, *min2 = NULL;
+    for (int *p = a + 1; p &lt; a + n; p++) {            /* distinct values assumed */
+        if (*p &gt; *max1) { max2 = max1; max1 = p; } else if (!max2 || *p &gt; *max2) max2 = p;
+        if (*p &lt; *min1) { min2 = min1; min1 = p; } else if (!min2 || *p &lt; *min2) min2 = p;
+    }
+    int t = *max2; *max2 = *min2; *min2 = t;
+}
+</code></pre>
+<div class="think"><b>بنفكّر إزاي</b>مسح واحد بنحتفظ فيه بـ <b>pointer</b> لأكبر اتنين وأصغر اتنين (مش قيم) — فبعدها نبدّل القيم بـ <code>*max2</code> و<code>*min2</code> من غير بحث تاني. الفخ: لما يظهر عنصر جديد أكبر، الأكبر القديم بيبقى هو التاني.</div>
+<h3>تمرين 14: مصفوفات p×q×r</h3>
+<pre><code>/* ---- PE 14: p x q x r arrays: sum, transpose (swap the last two subscripts), &quot;product&quot; ----
+ * Product of 3-D arrays is not standard; we multiply each p-slice as a q x r by r x q? Here we
+ * take the batch product of slice k of A (q x r) with slice k of B^T (r x q).           */
+#define P3 2
+#define Q3 2
+#define R3 3
+static void add3(int a[P3][Q3][R3], int b[P3][Q3][R3], int c[P3][Q3][R3])
+{ for (int i = 0; i &lt; P3; i++) for (int j = 0; j &lt; Q3; j++) for (int k = 0; k &lt; R3; k++) c[i][j][k] = a[i][j][k] + b[i][j][k]; }
+static void transpose3(int a[P3][Q3][R3], int t[P3][R3][Q3])
+{ for (int i = 0; i &lt; P3; i++) for (int j = 0; j &lt; Q3; j++) for (int k = 0; k &lt; R3; k++) t[i][k][j] = a[i][j][k]; }
+static void batch_product(int a[P3][Q3][R3], int b[P3][Q3][R3], int c[P3][Q3][Q3])
+{
+    int bt[P3][R3][Q3]; transpose3(b, bt);
+    for (int s = 0; s &lt; P3; s++) for (int i = 0; i &lt; Q3; i++) for (int j = 0; j &lt; Q3; j++) {
+        int v = 0; for (int k = 0; k &lt; R3; k++) v += a[s][i][k] * bt[s][k][j]; c[s][i][j] = v; }
+}
+</code></pre>
+<div class="sol"><b>الحل</b><p>الجمع: عنصر بعنصر. الـ transpose لمصفوفة 3-D بنبدّل آخر index‑ين (<code>t[i][k][j] = a[i][j][k]</code>) لكل شريحة. «الضرب» في الكتاب غير معرّف لـ 3-D، فاخترنا التفسير المعتاد: ضرب شريحة شريحة (batch) لـ A (q×r) في B<sup>T</sup> (r×q) فيطلع q×q لكل شريحة.</p></div>
+
+<h3>تمارين 15–20: القطر والمثلثات والتماثل</h3>
+<pre><code>/* ---- PE 15-17: diagonal, above, below sums ---- */
+static long diag_sum(int a[][N], int n)  { long s = 0; for (int i = 0; i &lt; n; i++) s += a[i][i]; return s; }
+static long above_sum(int a[][N], int n) { long s = 0; for (int i = 0; i &lt; n; i++) for (int j = i + 1; j &lt; n; j++) s += a[i][j]; return s; }
+static long below_sum(int a[][N], int n) { long s = 0; for (int i = 0; i &lt; n; i++) for (int j = 0; j &lt; i; j++) s += a[i][j]; return s; }
+</code></pre>
+<pre><code>/* ---- PE 18-20: triangular and symmetric tests ---- */
+static int isUpperTriangular(int a[][N], int n) { for (int i = 0; i &lt; n; i++) for (int j = 0; j &lt; i; j++) if (a[i][j]) return 0; return 1; }
+static int isLowerTriangular(int a[][N], int n) { for (int i = 0; i &lt; n; i++) for (int j = i + 1; j &lt; n; j++) if (a[i][j]) return 0; return 1; }
+static int isSymmetric(int a[][N], int n)       { for (int i = 0; i &lt; n; i++) for (int j = 0; j &lt; i; j++) if (a[i][j] != a[j][i]) return 0; return 1; }
+</code></pre>
+<div class="oops"><b>تصحيح تلميحة في الكتاب</b>تلميح Thareja بيقول «upper triangular لو A<sub>ij</sub> = 0 و i &gt; j» — ده معناه «<b>لكل</b> i&gt;j يبقى A<sub>ij</sub> = 0». يعني كل اللي <b>تحت</b> القطر أصفار. والكود بيختبر <code>j &lt; i</code> بالظبط كده.</div>
+<h3>تمرين 21–25</h3>
+<pre><code>/* ---- PE 21: XA + YB ---- */
+static void lincomb(int x, int a[][N], int y, int b[][N], int c[][N])
+{ for (int i = 0; i &lt; N; i++) for (int j = 0; j &lt; N; j++) c[i][j] = x * a[i][j] + y * b[i][j]; }
+</code></pre>
+<pre><code>/* ---- PE 22: pointer to a 2D array ---- */
+static void ptr_to_2d(void)
+{
+    int a[2][3] = {{1, 2, 3}, {4, 5, 6}};
+    int (*p)[3] = a;                                  /* pointer to an array of 3 ints */
+    assert(p[1][2] == 6 &amp;&amp; *(*(p + 1) + 2) == 6 &amp;&amp; (*p)[1] == 2);
+    assert((char *)(p + 1) - (char *)p == 3 * (long)sizeof(int));   /* p+1 skips a whole ROW */
+}
+</code></pre>
+<div class="sol"><b>تمرين 22</b><p><code>int (*p)[3] = a;</code> الأقواس ضرورية: بدونها <code>int *p[3]</code> = array من 3 pointers. <code>p+1</code> بيقفز 3·sizeof(int) بايت = صف كامل، والـ assert في الكود بيثبّت ده.</p></div>
+<pre><code>/* ---- PE 23: digits of a number ---- */
+static int digits(long x, int d[])
+{
+    if (x &lt; 0) x = -x;
+    int tmp[20], k = 0;
+    do { tmp[k++] = (int)(x % 10); x /= 10; } while (x);
+    for (int i = 0; i &lt; k; i++) d[i] = tmp[k - 1 - i];
+    return k;
+}
+</code></pre>
+<pre><code>/* ---- PE 24: delete ALL duplicates (keep first occurrence), unsorted input, O(n^2) ---- */
+static int dedup(int a[], int n)
+{
+    int w = 0;
+    for (int r = 0; r &lt; n; r++) {
+        int dup = 0;
+        for (int k = 0; k &lt; w; k++) if (a[k] == a[r]) { dup = 1; break; }
+        if (!dup) a[w++] = a[r];
+    }
+    return w;
+}
+</code></pre>
+<div class="think"><b>بنفكّر إزاي</b>الحذف «بالإزاحة» لكل تكرار O(n²) وبيعدّل n مرات. طريقة <b>write-index</b>: مؤشر قراءة r ومؤشر كتابة w؛ بنكتب العنصر بس لو ما ظهرش قبل كده في <code>a[0..w)</code>. مرور واحد على القراءة، والمقارنة جوه الجزء المكتوب بس.</div>
+<pre><code>/* ---- PE 25: insert in a float array at a position ---- */
+static int finsert(float a[], int n, int cap, int pos, float v)
+{ if (n &gt;= cap || pos &lt; 0 || pos &gt; n) return -1; memmove(a + pos + 1, a + pos, (n - pos) * sizeof a[0]); a[pos] = v; return n + 1; }
+</code></pre>
+<div class="sol"><b>تمرين 25</b><p>نفس إدخال الدرس بـ <code>memmove</code> (مهم: <code>memmove</code> مش <code>memcpy</code> لأن المنطقتين متداخلتين). بنتأكد إن <code>n &lt; cap</code> و<code>0 ≤ pos ≤ n</code>.</p></div>
+
+<h3>تشغيل ملف التمارين</h3>
+<pre><code>RQ8=1070  RQ9=2090  RQ13=1116
+RQ14: insert Andrew moves 6 names, delete Esha moves 3 names
+PE1: subject avgs 52.5 45.0 51.2 52.5 55.0; below-50 students = 2
+PE2: 4 pairs sum to 50: (0,50) (10,40) (15,35) (20,30)
+ex17_01: all 25 programming exercises + review questions verified</code></pre>
+</div>
+
+<div class="exs">
+<h3>الأسئلة المتعددة (Multiple-choice)</h3>
+<div class="sol"><table class="comp-table">
+<tr><th>#</th><th>الإجابة</th><th>ليه</th></tr>
+<tr><td>1</td><td>الكتاب: (b) 2؛ دلوقتي <b>4</b></td><td><code>sizeof(int)</code> = 2 على Turbo C القديم، و4 على أي نظام حديث. الإجابة الأدق إنها <code>sizeof(int)</code> وملهاش علاقة بالـ index.</td></tr>
+<tr><td>2</td><td>(b) 7</td><td>arr[3] هو الرابع: 1,3,5,<b>7</b>.</td></tr>
+<tr><td>3</td><td>(d) 400</td><td>50 × sizeof(double)=8.</td></tr>
+<tr><td>4</td><td>(b) 50</td><td>index من 0 لـ 49.</td></tr>
+<tr><td>5</td><td>(b) 25</td><td>5×5.</td></tr>
+<tr><td>6</td><td>(d) الكل</td><td><code>*(arr+i)</code> ≡ <code>*(i+arr)</code> ≡ <code>arr[i]</code> (الجمع تبادلي، فحتى <code>i[arr]</code> شغّالة!).</td></tr>
+</table></div>
+<h3>صح أو غلط</h3>
+<div class="sol"><table class="comp-table">
+<tr><th>#</th><th>الإجابة</th><th>#</th><th>الإجابة</th></tr>
+<tr><td>1</td><td>صح</td><td>9</td><td>غلط — عنوان <b>أول</b> عنصر</td></tr>
+<tr><td>2</td><td>صح</td><td>10</td><td>صح</td></tr>
+<tr><td>3</td><td>صح</td><td>11</td><td>صح</td></tr>
+<tr><td>4</td><td>غلط — متتالية</td><td>12</td><td>غلط — بيتمرّر العنوان</td></tr>
+<tr><td>5</td><td>غلط — دي <b>أول</b> index</td><td>13</td><td>غلط — نفس النوع</td></tr>
+<tr><td>6</td><td>صح</td><td>14</td><td>غلط — مفيش حد أقصى (غير حدود الذاكرة)</td></tr>
+<tr><td>7</td><td>صح</td><td>15</td><td>صح</td></tr>
+<tr><td>8</td><td>صح</td><td></td><td></td></tr>
+</table></div>
+<h3>املا الفراغ</h3>
+<div class="sol"><p>1) subscript (index) · 2) متتالية (consecutive) · 3) n · 4) pointer ثابت لأول عنصر · 5) النوع، الاسم، الحجم · 6) base address · 7) العناصر · 8) array of arrays · 9) integer · 10) الـ <b>رابع</b> (index 3).</p></div>
+</div>
