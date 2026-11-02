@@ -9,3 +9,5 @@ tools/*.png
 tools/*.html
 !tools/*.py
 __pycache__/
+!tools/ds_src/
+!tools/ds_src/*.html

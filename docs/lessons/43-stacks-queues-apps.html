@@ -1,0 +1,598 @@
+<p class="meta">المراجع: Thareja ف7 (7.1–7.5: stack، infix/postfix/prefix، recursion، Hanoi) وف8 (8.1–8.5: queue، circular، deque، priority، multiple queues) · Lipschutz ف6 (6.1–6.15: stacks، arithmetic expressions، quicksort بالـ stack، recursion، Ackermann، Fibonacci، Hanoi، queues، deques، priority queues) · Weiss ف3 (3.3 Stack ADT: balancing symbols، postfix، infix→postfix، function calls؛ 3.4 Queue ADT) · Bandyopadhyay &amp; Dey ف6–7 · Pal &amp; Halder ف6–7</p>
+<p>الـ stack والـ queue الأساسيين اتشرحوا قبل كده في <a href="#/adt">درس 08</a> و<a href="#/queues-adt">درس 09</a> (الـ ADT والتنفيذ بالـ array والـ list). والريكيرشن في <a href="#/recursion">درس 11</a>. الدرس ده بيغطّي <b>اللي كل الكتب التانية بتقوله وماكانش موجود</b>: تحويل التعبيرات (infix / postfix / prefix) وتقييمها، التطبيقات الكلاسيكية للـ stack، محاكاة الـ call stack بإيدك، الـ queue الدايرية بتلات طرق، الـ deque بنوعيه، والـ priority queue بطريقتين.</p>
+<div class="goal"><b>هدف الدرس:</b> تقدر تحوّل أي تعبير بين الأشكال التلاتة بالخوارزمية (مش بالحفظ)، تبني stack من queue وعكسه، تفهم ليه الريكيرشن = stack، وتفرّق بين الفاضية والممتلئة في queue دايرية. كل الكود في <code>src/19-stacks-queues/</code> متجرَّب بـ AddressSanitizer، وبعضه متقارن بـ 5000 تعبير عشوائي أو 20000 عملية عشوائية ضد نموذج مرجعي.</div>
+
+<h2>1) التعبيرات الحسابية: infix وpostfix وprefix</h2>
+<p>الكتابة اللي إحنا متعودين عليها <b>infix</b>: العملية بين المعاملين <code>A + B</code>، وعشان نفهمها محتاجين أولويات وأقواس. <b>Postfix</b> (Reverse Polish، RPN): العملية بعد المعاملين <code>A B +</code>. <b>Prefix</b> (Polish): قبلهم <code>+ A B</code>. السر: في الشكلين دول <b>مفيش أقواس ومفيش أولويات</b>، الترتيب وحده بيحدد المعنى. وده ليه تطبيق كبير: المترجمات (compilers) بتحوّل infix لـ postfix، والحاسبات اللي بالـ stack (HP RPN) بتقيّم postfix مباشرة.</p>
+<table class="comp-table">
+<tr><th>infix</th><th>postfix</th><th>prefix</th></tr>
+<tr><td><code>A + B * C</code></td><td><code>A B C * +</code></td><td><code>+ A * B C</code></td></tr>
+<tr><td><code>(A + B) * C</code></td><td><code>A B + C *</code></td><td><code>* + A B C</code></td></tr>
+<tr><td><code>A - B - C</code></td><td><code>A B - C -</code></td><td><code>- - A B C</code></td></tr>
+<tr><td><code>A ^ B ^ C</code></td><td><code>A B C ^ ^</code></td><td><code>^ A ^ B C</code></td></tr>
+</table>
+<div class="tip"><b>الأولوية والـ associativity</b>الترتيب: <code>^</code> (أعلى، وبتتجمّع من اليمين: <code>2^3^2 = 2^9</code>) ثم <code>* / %</code> ثم <code>+ -</code> (الاتنين من الشمال: <code>8-3-2 = 3</code> مش 7). تجاهل الـ associativity هو أشهر غلطة في حلول التمارين.</div>
+
+<h2>2) infix → postfix بالـ stack (shunting-yard)</h2>
+<p>الفكرة: المعاملات (<code>A</code>، <code>10</code>) بتروح للـ output على طول. العمليات بتستنى على stack لحد ما يجي عملية <b>أضعف</b> (أو مساوية لو شمالية) تقولها «معاملاتك اكتملت». القوس المفتوح بيتحط، وعند القوس المقفول بنفرّغ لحد المفتوح. وفي الآخر نفرّغ الباقي.</p>
+<!--fig:ds-shunting--><div class="steps"><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>—</td><th>الـ stack (من الأسفل)</th><td>·</td><th>الـ output</th><td>·</td></tr></table><figcaption>التعبير: <code>A + B * C − D</code>. الـ stack بيشيل العمليات اللي مستنية، والـ output بيطلع الـ postfix.</figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>A</td><th>الـ stack (من الأسفل)</th><td>·</td><th>الـ output</th><td>A</td></tr></table><figcaption>معامل: يروح للـ output على طول.</figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>+</td><th>الـ stack (من الأسفل)</th><td>+</td><th>الـ output</th><td>A</td></tr></table><figcaption><code>+</code> أولويتها أعلى من اللي على القمة، فتستنى فوقها (ما اتشالش حاجة).. </figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>B</td><th>الـ stack (من الأسفل)</th><td>+</td><th>الـ output</th><td>A B</td></tr></table><figcaption>معامل: output.</figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>*</td><th>الـ stack (من الأسفل)</th><td>+ *</td><th>الـ output</th><td>A B</td></tr></table><figcaption><code>*</code> أولويتها أعلى من اللي على القمة، فتستنى فوقها (ما اتشالش حاجة).. </figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>C</td><th>الـ stack (من الأسفل)</th><td>+ *</td><th>الـ output</th><td>A B C</td></tr></table><figcaption>معامل: output.</figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>-</td><th>الـ stack (من الأسفل)</th><td>-</td><th>الـ output</th><td>A B C * +</td></tr></table><figcaption><code>-</code> أولويتها أقل من أو تساوي اللي على القمة (* +)، فاللي على القمة يخرج للـ output الأول.. </figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>D</td><th>الـ stack (من الأسفل)</th><td>-</td><th>الـ output</th><td>A B C * + D</td></tr></table><figcaption>معامل: output.</figcaption></figure><figure class="frame"><table class="comp-table"><tr><th>قرأنا</th><td>نهاية</td><th>الـ stack (من الأسفل)</th><td>·</td><th>الـ output</th><td>A B C * + D -</td></tr></table><figcaption>خلصت التوكنز: نفرّغ الـ stack كله للـ output. النتيجة: <b>A B C * + D -</b></figcaption></figure></div><!--/fig:ds-shunting-->
+<pre><code>typedef struct { char t[MAXT][TLEN]; int n; } toks;
+
+/* split &quot;(A-B)+C*10&quot; into  ( A - B ) + C * 10   returns -1 on a bad character or overflow */
+static int tokenize(const char *s, toks *o)
+{
+    o-&gt;n = 0;
+    for (; *s; ) {
+        if (isspace((unsigned char)*s)) { s++; continue; }
+        if (o-&gt;n &gt;= MAXT) return -1;
+        if (isalnum((unsigned char)*s)) {
+            int k = 0;
+            while (isalnum((unsigned char)*s)) { if (k &lt; TLEN - 1) o-&gt;t[o-&gt;n][k++] = *s; s++; }
+            o-&gt;t[o-&gt;n][k] = 0;
+        } else if (strchr(&quot;+-*/%^()&quot;, *s)) { o-&gt;t[o-&gt;n][0] = *s++; o-&gt;t[o-&gt;n][1] = 0; }
+        else return -1;
+        o-&gt;n++;
+    }
+    return o-&gt;n;
+}
+static int is_op(const char *t)    { return t[1] == 0 &amp;&amp; strchr(&quot;+-*/%^&quot;, t[0]) != NULL; }
+static int prec(char c)            { return c == &#x27;^&#x27; ? 3 : (c == &#x27;*&#x27; || c == &#x27;/&#x27; || c == &#x27;%&#x27;) ? 2 : 1; }
+static int right_assoc(char c)     { return c == &#x27;^&#x27;; }
+static void join(const toks *t, char *out, size_t cap)
+{
+    out[0] = 0;
+    for (int i = 0; i &lt; t-&gt;n; i++) { if (i) strncat(out, &quot; &quot;, cap - strlen(out) - 1); strncat(out, t-&gt;t[i], cap - strlen(out) - 1); }
+}</code></pre>
+<pre><code>/* shunting-yard. An operator waits on the stack until an operator of LOWER precedence
+   (or equal, for left-associative ones) arrives and tells it &quot;your operands are complete&quot;. */
+static int to_postfix(const toks *in, toks *out)
+{
+    char stack[MAXT]; int sp = 0; out-&gt;n = 0;
+    for (int i = 0; i &lt; in-&gt;n; i++) {
+        const char *t = in-&gt;t[i];
+        if (t[0] == &#x27;(&#x27; ) stack[sp++] = &#x27;(&#x27;;
+        else if (t[0] == &#x27;)&#x27;) {
+            while (sp &amp;&amp; stack[sp - 1] != &#x27;(&#x27;) { out-&gt;t[out-&gt;n][0] = stack[--sp]; out-&gt;t[out-&gt;n++][1] = 0; }
+            if (!sp) return -1;                              /* unmatched &#x27;)&#x27; */
+            sp--;                                            /* discard &#x27;(&#x27; */
+        } else if (is_op(t)) {
+            char c = t[0];
+            while (sp &amp;&amp; stack[sp - 1] != &#x27;(&#x27; &amp;&amp;
+                   (prec(stack[sp - 1]) &gt; prec(c) || (prec(stack[sp - 1]) == prec(c) &amp;&amp; !right_assoc(c)))) {
+                out-&gt;t[out-&gt;n][0] = stack[--sp]; out-&gt;t[out-&gt;n++][1] = 0;
+            }
+            stack[sp++] = c;
+        } else { strcpy(out-&gt;t[out-&gt;n++], t); }              /* operand goes straight to the output */
+    }
+    while (sp) { if (stack[sp - 1] == &#x27;(&#x27;) return -1; out-&gt;t[out-&gt;n][0] = stack[--sp]; out-&gt;t[out-&gt;n++][1] = 0; }
+    return out-&gt;n;
+}</code></pre>
+<div class="oops"><b>الشرط اللي بيتغلط فيه</b>الـ <code>while</code> بتفرّغ لو <code>prec(top) &gt; prec(c)</code> <b>أو</b> المساواة مع <code>c</code> شمالية. لو كتبت <code>&gt;=</code> بس، الـ <code>^</code> بتبقى شمالية غلط: <code>A^B^C</code> تطلع <code>A B ^ C ^</code> بدل <code>A B C ^ ^</code>. الاختبار في البرنامج بيمسك ده.</div>
+
+<h2>3) infix → prefix: بطريقتين</h2>
+<p><b>الطريقة 1 (عكس + shunting + عكس):</b> اعكس التعبير وبدّل الأقواس، طبّق نفس الخوارزمية بس بـ <b>عكس شرط الـ associativity</b> (لأن بعد العكس العمليات الشمالية بقت بتتجمّع من الناحية التانية)، وبعدين اعكس الناتج. <b>الطريقة 2:</b> حوّل لـ postfix وبعدين من postfix لـ prefix بـ stack من <b>النصوص</b>: لكل عملية خد آخر نصّين x وy، وادفع <code>op x y</code>. نفس الطريقة بتديك infix مقوّس كامل: <code>(x op y)</code>. وتحويل prefix → infix بنفس الـ stack بس بنقرأ من اليمين لليسار.</p>
+<pre><code>/* method 1: reverse + swap parentheses + shunting-yard with the associativity test FLIPPED
+   (because after reversing, left-associative operators group from the other side) */
+static int to_prefix_reverse(const toks *in, toks *out)
+{
+    toks rev; rev.n = in-&gt;n;
+    for (int i = 0; i &lt; in-&gt;n; i++) {
+        const char *t = in-&gt;t[in-&gt;n - 1 - i];
+        strcpy(rev.t[i], t);
+        if (t[0] == &#x27;(&#x27;) strcpy(rev.t[i], &quot;)&quot;); else if (t[0] == &#x27;)&#x27;) strcpy(rev.t[i], &quot;(&quot;);
+    }
+    char stack[MAXT]; int sp = 0; toks tmp; tmp.n = 0;
+    for (int i = 0; i &lt; rev.n; i++) {
+        const char *t = rev.t[i];
+        if (t[0] == &#x27;(&#x27; &amp;&amp; t[1] == 0) stack[sp++] = &#x27;(&#x27;;
+        else if (t[0] == &#x27;)&#x27; &amp;&amp; t[1] == 0) {
+            while (sp &amp;&amp; stack[sp - 1] != &#x27;(&#x27;) { tmp.t[tmp.n][0] = stack[--sp]; tmp.t[tmp.n++][1] = 0; }
+            if (!sp) return -1;
+            sp--;
+        } else if (is_op(t)) {
+            char c = t[0];
+            while (sp &amp;&amp; stack[sp - 1] != &#x27;(&#x27; &amp;&amp;
+                   (prec(stack[sp - 1]) &gt; prec(c) || (prec(stack[sp - 1]) == prec(c) &amp;&amp; right_assoc(c)))) {
+                tmp.t[tmp.n][0] = stack[--sp]; tmp.t[tmp.n++][1] = 0;
+            }
+            stack[sp++] = c;
+        } else strcpy(tmp.t[tmp.n++], t);
+    }
+    while (sp) { if (stack[sp - 1] == &#x27;(&#x27;) return -1; tmp.t[tmp.n][0] = stack[--sp]; tmp.t[tmp.n++][1] = 0; }
+    out-&gt;n = tmp.n;
+    for (int i = 0; i &lt; tmp.n; i++) strcpy(out-&gt;t[i], tmp.t[tmp.n - 1 - i]);
+    return out-&gt;n;
+}
+
+/* concatenate NULL-terminated pieces into a fresh heap string (nothing can be truncated) */
+static char *catv(const char *first, ...)
+{
+    va_list ap; size_t len = 0;
+    va_start(ap, first);
+    for (const char *p = first; p; p = va_arg(ap, const char *)) len += strlen(p);
+    va_end(ap);
+    char *s = malloc(len + 1), *w = s;
+    if (!s) { perror(&quot;malloc&quot;); exit(1); }
+    va_start(ap, first);
+    for (const char *p = first; p; p = va_arg(ap, const char *)) { size_t k = strlen(p); memcpy(w, p, k); w += k; }
+    va_end(ap);
+    *w = 0;
+    return s;
+}
+/* One stack-of-strings routine for the three string conversions:
+     mode 0  postfix -&gt; prefix           &quot;op left right&quot;
+     mode 1  postfix -&gt; infix            &quot;(left op right)&quot;
+     mode 2  prefix  -&gt; infix            same, but scan right to left
+   returns a heap string (caller frees) or NULL if the input is malformed. */
+static char *convert(const toks *pf, int mode)
+{
+    char *st[MAXT]; int sp = 0;
+    for (int k = 0; k &lt; pf-&gt;n; k++) {
+        const char *t = pf-&gt;t[mode == 2 ? pf-&gt;n - 1 - k : k];
+        if (!is_op(t)) { st[sp++] = catv(t, NULL); continue; }
+        if (sp &lt; 2) { while (sp) free(st[--sp]); return NULL; }
+        char *y = st[--sp], *x = st[--sp];
+        char *left = mode == 2 ? y : x, *right = mode == 2 ? x : y;   /* scanning backwards: first pop = LEFT */
+        st[sp++] = mode == 0 ? catv(t, &quot; &quot;, left, &quot; &quot;, right, NULL)
+                             : catv(&quot;(&quot;, left, &quot; &quot;, t, &quot; &quot;, right, &quot;)&quot;, NULL);
+        free(x); free(y);
+    }
+    if (sp != 1) { while (sp) free(st[--sp]); return NULL; }
+    return st[0];
+}</code></pre>
+<p>دالة <code>convert</code> الواحدة بتغطّي التلات تحويلات (mode 0: postfix→prefix، 1: postfix→infix، 2: prefix→infix). هي بتبني نصوص على الـ heap بـ <code>catv</code> عشان ما نحطش حجم ثابت يقطع التعبير.</p>
+
+<h2>4) تقييم postfix وprefix</h2>
+<p>قراءة من الشمال: معامل → push. عملية → pop اتنين (<b>الأول اللي بيطلع هو المعامل اليمين</b>)، طبّق، push النتيجة. في الآخر لازم يفضل عنصر واحد بالظبط (غير كده التعبير غلط). ممكن نقيّم prefix بنفس الطريقة لو قرينا من اليمين (وساعتها أول pop هو اليسار).</p>
+<pre><code>static double apply(char op, double a, double b)
+{
+    switch (op) {
+    case &#x27;+&#x27;: return a + b;  case &#x27;-&#x27;: return a - b;
+    case &#x27;*&#x27;: return a * b;  case &#x27;/&#x27;: return a / b;
+    case &#x27;%&#x27;: return fmod(a, b);
+    default:  return pow(a, b);
+    }
+}
+/* postfix: scan LEFT to RIGHT. operand -&gt; push; operator -&gt; pop b, pop a, push a op b */
+static int eval_postfix(const toks *pf, double *res)
+{
+    double st[MAXT]; int sp = 0;
+    for (int i = 0; i &lt; pf-&gt;n; i++) {
+        const char *t = pf-&gt;t[i];
+        if (is_op(t)) { if (sp &lt; 2) return -1; double b = st[--sp], a = st[--sp]; st[sp++] = apply(t[0], a, b); }
+        else st[sp++] = atof(t);
+    }
+    if (sp != 1) return -1;
+    *res = st[0]; return 0;
+}
+/* prefix: scan RIGHT to LEFT. the first operand popped is the LEFT operand: a op b */
+static int eval_prefix(const toks *pf, double *res)
+{
+    double st[MAXT]; int sp = 0;
+    for (int i = pf-&gt;n - 1; i &gt;= 0; i--) {
+        const char *t = pf-&gt;t[i];
+        if (is_op(t)) { if (sp &lt; 2) return -1; double a = st[--sp], b = st[--sp]; st[sp++] = apply(t[0], a, b); }
+        else st[sp++] = atof(t);
+    }
+    if (sp != 1) return -1;
+    *res = st[0]; return 0;
+}</code></pre>
+<pre><code>infix   (A - B) + C * D / E - C
+  postfix: A B - C D * E / + C -
+  prefix : - + - A B / * C D E C
+  full ( ): (((A - B) + ((C * D) / E)) - C)
+infix   A * (B + C) / D ^ E ^ F
+  postfix: A B C + * D E F ^ ^ /
+  prefix : / * A + B C ^ D ^ E F
+  full ( ): ((A * (B + C)) / (D ^ (E ^ F)))
+infix   10 + ((7 - 5) + 10) / 2
+  postfix: 10 7 5 - 10 + 2 / +
+  prefix : + 10 / + - 7 5 10 2
+  full ( ): (10 + (((7 - 5) + 10) / 2))
+  value  : 16
+5000 random expressions: postfix == prefix == oracle (4880 finite values compared)</code></pre>
+<p>البرنامج مش بس بيطبع أمثلة: بيولّد <b>5000 تعبير عشوائي</b>، ويحوّله لـ postfix وprefix، ويقيّمهم، ويقارن بمحلّل recursive-descent مستقل (oracle) يحسب القيمة من الـ infix مباشرة. اتطابقوا كلهم (4880 قيمة محدودة قورنت؛ الباقي قسمة على صفر).</p>
+
+<h2>5) الأقواس المتوازنة (balancing symbols)</h2>
+<p>أبسط تطبيق للـ stack وبيظهر في كل compiler. كل فاتح بيدفع مقفوله المتوقع، وكل مقفول لازم يطابق القمة. الأخطاء التلاتة: مقفول زيادة (stack فاضي)، مقفول غلط (القمة مش هو)، وفاتح ماتقفلش (stack مش فاضي في الآخر). الدالة بترجع <b>مكان أول غلطة</b> مش بس صح/غلط.</p>
+<pre><code>/* ( [ { push their closer; a closer must match the top. returns -1 if balanced,
+   otherwise the 0-based index of the first offending character. */
+static int check_brackets(const char *s)
+{
+    char st[256]; int sp = 0;
+    for (int i = 0; s[i]; i++) {
+        char c = s[i];
+        if (c == &#x27;(&#x27;) st[sp++] = &#x27;)&#x27;;
+        else if (c == &#x27;[&#x27;) st[sp++] = &#x27;]&#x27;;
+        else if (c == &#x27;{&#x27;) st[sp++] = &#x27;}&#x27;;
+        else if (c == &#x27;)&#x27; || c == &#x27;]&#x27; || c == &#x27;}&#x27;) {
+            if (sp == 0 || st[--sp] != c) return i;      /* underflow, or mismatched pair */
+        }
+    }
+    return sp == 0 ? -1 : (int)strlen(s);               /* leftover openers: error &quot;at the end&quot; */
+}</code></pre>
+
+<h2>6) أكتر من stack في array واحدة</h2>
+<p>لو عندك stackين وكل واحد محجوز له نص المصفوفة، واحد منهم ممكن يفيض والتاني فاضي نص مساحته. الحل: واحد يبدأ من الأول (topA) والتاني من الآخر (topB) ويكبروا لبعض. الـ overflow بس لما <code>topA + 1 == topB</code>: يعني المصفوفة كلها اتملت فعلًا. (للـ queues الحل بيبقى بالـ circular أو بتقسيم ديناميكي لأن الـ queue بتتحرك للأمام.)</p>
+<!--fig:ds-two-stacks--><div class="steps"><figure class="frame"><svg class="fsvg" viewBox="0 0 460 102" width="460" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><rect x="291.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="310.0" y="32.2" class="tc" text-anchor="middle" font-size="13">6</text><rect x="331.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="350.0" y="32.2" class="tc" text-anchor="middle" font-size="13">7</text><rect x="371.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="390.0" y="32.2" class="tc" text-anchor="middle" font-size="13">8</text><rect x="411.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="430.0" y="32.2" class="tc" text-anchor="middle" font-size="13">9</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text></svg><figcaption>مصفوفة واحدة سعتها 10. المكدّس A هيبدأ من الشمال (topA = −1) والمكدّس B من اليمين (topB = 10).</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 460 102" width="460" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><rect x="291.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="310.0" y="32.2" class="tc" text-anchor="middle" font-size="13">6</text><rect x="331.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="350.0" y="32.2" class="tc" text-anchor="middle" font-size="13">7</text><rect x="371.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="390.0" y="32.2" class="tc" text-anchor="middle" font-size="13">8</text><rect x="411.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="430.0" y="32.2" class="tc" text-anchor="middle" font-size="13">9</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">8</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="371.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="390.0" y="78.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="411.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="430.0" y="78.2" class="tc" text-anchor="middle" font-size="13">7</text></svg><figcaption>دفعنا 3 و8 و1 في A و7 و4 في B. كل واحد بيكبر ناحية التاني.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 460 102" width="460" height="102" role="img" aria-label="" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><text x="44.0" y="32.2" class="lab" text-anchor="end" font-size="12">index</text><rect x="51.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="70.0" y="32.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="91.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="110.0" y="32.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="131.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="150.0" y="32.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="171.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="190.0" y="32.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="211.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="230.0" y="32.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="251.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="270.0" y="32.2" class="tc" text-anchor="middle" font-size="13">5</text><rect x="291.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="310.0" y="32.2" class="tc" text-anchor="middle" font-size="13">6</text><rect x="331.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="350.0" y="32.2" class="tc" text-anchor="middle" font-size="13">7</text><rect x="371.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="390.0" y="32.2" class="tc" text-anchor="middle" font-size="13">8</text><rect x="411.0" y="5.0" width="38.0" height="40.0" rx="4" class="dim"/><text x="430.0" y="32.2" class="tc" text-anchor="middle" font-size="13">9</text><text x="44.0" y="78.2" class="lab" text-anchor="end" font-size="12">a</text><rect x="51.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="70.0" y="78.2" class="tc" text-anchor="middle" font-size="13">3</text><rect x="91.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="110.0" y="78.2" class="tc" text-anchor="middle" font-size="13">8</text><rect x="131.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="150.0" y="78.2" class="tc" text-anchor="middle" font-size="13">1</text><rect x="171.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="190.0" y="78.2" class="tc" text-anchor="middle" font-size="13">5</text><rect x="211.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="230.0" y="78.2" class="tc" text-anchor="middle" font-size="13">6</text><rect x="251.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi"/><text x="270.0" y="78.2" class="tc" text-anchor="middle" font-size="13">9</text><rect x="291.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="310.0" y="78.2" class="tc" text-anchor="middle" font-size="13">0</text><rect x="331.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="350.0" y="78.2" class="tc" text-anchor="middle" font-size="13">2</text><rect x="371.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="390.0" y="78.2" class="tc" text-anchor="middle" font-size="13">4</text><rect x="411.0" y="51.0" width="38.0" height="40.0" rx="4" class="hi2"/><text x="430.0" y="78.2" class="tc" text-anchor="middle" font-size="13">7</text></svg><figcaption>المصفوفة اتملت: <code>topA + 1 == topB</code>. الـ overflow بيحصل <b>بس لما المجموع يوصل 10</b>، حتى لو A واخد 6 وB واخد 4. مع نصّين ثابتين (5+5) كان A هيعمل overflow عند العنصر السادس.</figcaption></figure></div><!--/fig:ds-two-stacks-->
+<pre><code>/* two stacks in ONE array: stack A grows from the left end, stack B from the right end.
+   Overflow happens only when the WHOLE array is full — much better than two fixed halves. */
+typedef struct { int a[CAP]; int topA, topB; } two_stacks;     /* topA: next free on the left, topB on the right */
+static void ts_init(two_stacks *s) { s-&gt;topA = -1; s-&gt;topB = CAP; }
+static int ts_push(two_stacks *s, int which, int v)
+{
+    if (s-&gt;topA + 1 == s-&gt;topB) return 0;                         /* the two tops met: full */
+    if (which == 0) s-&gt;a[++s-&gt;topA] = v; else s-&gt;a[--s-&gt;topB] = v;
+    return 1;
+}
+static int ts_pop(two_stacks *s, int which, int *v)
+{
+    if (which == 0) { if (s-&gt;topA &lt; 0) return 0; *v = s-&gt;a[s-&gt;topA--]; }
+    else            { if (s-&gt;topB &gt;= CAP) return 0; *v = s-&gt;a[s-&gt;topB++]; }
+    return 1;
+}</code></pre>
+
+<h2>7) stack بـ getMin في O(1)</h2>
+<p>مع كل push بنخزّن كمان «أصغر قيمة لحد دلوقتي» في stack تاني. الـ pop بيشيل من الاتنين، فالـ min دايمًا فوق التاني. نفس الفكرة بتنفع لأي دالة تجميعية (max، gcd، sum).</p>
+<pre><code>/* every push also pushes min(v, current min) on a second stack; getMin = peek of that stack */
+typedef struct { int v[CAP], m[CAP], n; } min_stack;
+static void ms_push(min_stack *s, int x)
+{
+    assert(s-&gt;n &lt; CAP);
+    s-&gt;m[s-&gt;n] = (s-&gt;n == 0 || x &lt; s-&gt;m[s-&gt;n - 1]) ? x : s-&gt;m[s-&gt;n - 1];
+    s-&gt;v[s-&gt;n++] = x;
+}
+static int ms_pop(min_stack *s) { assert(s-&gt;n &gt; 0); return s-&gt;v[--s-&gt;n]; }
+static int ms_min(const min_stack *s) { assert(s-&gt;n &gt; 0); return s-&gt;m[s-&gt;n - 1]; }</code></pre>
+
+<h2>8) queue من stackين، وstack من queueين</h2>
+<p><b>queue من stackين:</b> enqueue بيدفع في IN. dequeue بيعمل pop من OUT، ولو OUT فاضي بينقل <b>كل</b> IN لـ OUT (فبيتعكس الترتيب). كل عنصر بينتقل مرة واحدة بس في عمره، فـ n عملية تكلّف O(n): <b>amortised O(1)</b> للعملية (رغم إن dequeue الواحدة ممكن تكلّف O(n)). البرنامج بيعدّ النقلات ويتأكد إنها ≤ عدد العمليات.</p>
+<!--fig:ds-q2s--><div class="steps"><figure class="frame"><div class="fside"><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="IN" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="90.0" width="50.0" height="28.0" rx="4" class="cell"/><text x="35.0" y="109.0" class="tc" text-anchor="middle" font-size="13">1</text><rect x="10.0" y="60.0" width="50.0" height="28.0" rx="4" class="cell"/><text x="35.0" y="79.0" class="tc" text-anchor="middle" font-size="13">2</text><rect x="10.0" y="30.0" width="50.0" height="28.0" rx="4" class="hi"/><text x="35.0" y="49.0" class="tc" text-anchor="middle" font-size="13">3</text><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">IN</text></svg></div><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="OUT" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">OUT</text></svg></div></div><figcaption>enqueue 1,2,3: كلها بتنزل على IN. القمة = 3 (الأحدث).</figcaption></figure><figure class="frame"><div class="fside"><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="IN" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">IN</text></svg></div><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="OUT" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="90.0" width="50.0" height="28.0" rx="4" class="cell"/><text x="35.0" y="109.0" class="tc" text-anchor="middle" font-size="13">3</text><rect x="10.0" y="60.0" width="50.0" height="28.0" rx="4" class="cell"/><text x="35.0" y="79.0" class="tc" text-anchor="middle" font-size="13">2</text><rect x="10.0" y="30.0" width="50.0" height="28.0" rx="4" class="hi"/><text x="35.0" y="49.0" class="tc" text-anchor="middle" font-size="13">1</text><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">OUT</text></svg></div></div><figcaption>أول dequeue: OUT فاضي، فننقل <b>كل</b> IN لـ OUT (3 pops و3 pushes) فالترتيب بيتعكس: القمة بقت 1 (الأقدم).</figcaption></figure><figure class="frame"><div class="fside"><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="IN" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">IN</text></svg></div><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="OUT" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="90.0" width="50.0" height="28.0" rx="4" class="cell"/><text x="35.0" y="109.0" class="tc" text-anchor="middle" font-size="13">3</text><rect x="10.0" y="60.0" width="50.0" height="28.0" rx="4" class="hi"/><text x="35.0" y="79.0" class="tc" text-anchor="middle" font-size="13">2</text><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">OUT</text></svg></div></div><figcaption>نعمل pop من OUT = 1: ده بالظبط اللي دخل أولًا (FIFO).</figcaption></figure><figure class="frame"><div class="fside"><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="IN" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="90.0" width="50.0" height="28.0" rx="4" class="hi"/><text x="35.0" y="109.0" class="tc" text-anchor="middle" font-size="13">4</text><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">IN</text></svg></div><div class="fside-item"><svg class="fsvg" viewBox="0 0 72 150" width="72" height="150" role="img" aria-label="OUT" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="10.0" y="90.0" width="50.0" height="28.0" rx="4" class="cell"/><text x="35.0" y="109.0" class="tc" text-anchor="middle" font-size="13">3</text><rect x="10.0" y="60.0" width="50.0" height="28.0" rx="4" class="hi"/><text x="35.0" y="79.0" class="tc" text-anchor="middle" font-size="13">2</text><line x1="8.0" y1="122.0" x2="62.0" y2="122.0" class="edge"/><text x="35.0" y="140.0" class="lab" text-anchor="middle" font-size="12">OUT</text></svg></div></div><figcaption>enqueue 4 يروح IN، من غير ما يلمس OUT. الـ 2 هو اللي هيطلع بعده ثم 3 ثم 4.</figcaption></figure></div><!--/fig:ds-q2s-->
+<p><b>stack من queueين:</b> push بيدخل العنصر الجديد في queue فاضية، ويدخل وراه كل القديم، وبعدين نبدّل الدورين. فالجديد بقى في المقدمة: push بـ O(n) وpop بـ O(1). (أو العكس.)</p>
+<pre><code>/* queue from two stacks: enqueue pushes on IN; dequeue pops from OUT, and only when OUT is
+   empty moves EVERYTHING from IN to OUT (reversing it).  Each element moves at most once
+   from IN to OUT, so n operations cost O(n) in total = amortised O(1) per operation. */
+typedef struct { int in[CAP], out[CAP], ni, no; long moves; } queue2s;
+static void q2_enqueue(queue2s *q, int x) { assert(q-&gt;ni &lt; CAP); q-&gt;in[q-&gt;ni++] = x; }
+static int  q2_dequeue(queue2s *q)
+{
+    if (q-&gt;no == 0) while (q-&gt;ni) { q-&gt;out[q-&gt;no++] = q-&gt;in[--q-&gt;ni]; q-&gt;moves++; }
+    assert(q-&gt;no &gt; 0);
+    return q-&gt;out[--q-&gt;no];
+}
+
+/* stack from two queues (circular int queues): push makes the new element the FRONT by
+   rotating the old ones behind it: O(n) push, O(1) pop. */
+typedef struct { int a[CAP]; int head, n; } iqueue;
+static void iq_put(iqueue *q, int x) { assert(q-&gt;n &lt; CAP); q-&gt;a[(q-&gt;head + q-&gt;n++) % CAP] = x; }
+static int  iq_get(iqueue *q) { assert(q-&gt;n &gt; 0); int x = q-&gt;a[q-&gt;head]; q-&gt;head = (q-&gt;head + 1) % CAP; q-&gt;n--; return x; }
+typedef struct { iqueue q1, q2; } stack2q;
+static void s2_push(stack2q *s, int x)
+{
+    iq_put(&amp;s-&gt;q2, x);
+    while (s-&gt;q1.n) iq_put(&amp;s-&gt;q2, iq_get(&amp;s-&gt;q1));
+    iqueue t = s-&gt;q1; s-&gt;q1 = s-&gt;q2; s-&gt;q2 = t;          /* swap the roles */
+}
+static int s2_pop(stack2q *s) { return iq_get(&amp;s-&gt;q1); }</code></pre>
+<pre><code>brackets: &quot;{[()]}&quot; ok, &quot;(]&quot; bad at index 1, &quot;())&quot; bad at index 2
+two stacks: 64 cells shared, A took 50, B took 14 before overflow
+queue from 2 stacks: 3991 ops, 1999 element moves (&lt;= one per element, amortised O(1))
+next greater of {4,5,2,25,7,8} = {5,25,25,-1,8,-1};  span of {100,80,60,70,60,75,85} = {1,1,1,2,1,4,6}
+stack_apps ok</code></pre>
+
+<h2>9) المونوتونك stack: next greater وstock span</h2>
+<p>سؤال متكرر: لكل عنصر، أول عنصر أكبر منه على يمينه. الحل الساذج O(n²). بـ stack فيه <b>أرقام الخانات اللي لسه ما عرفناش إجابتها</b> (قيمها متناقصة): لما يجي عنصر أكبر منهم، هو الإجابة بتاعتهم كلهم فنشيلهم. كل خانة تتدفع مرة وتتشال مرة: O(n). نفس الفكرة بتحل stock span (كام يوم متتالي السعر ≤ النهاردة).</p>
+<pre><code>/* next greater element: for each i, the first a[j] &gt; a[i] with j &gt; i (or -1).
+   The stack holds indices whose answer is still unknown, with DECREASING values; each index
+   is pushed once and popped once, so the whole scan is O(n). */
+static void next_greater(const int a[], int n, int out[])
+{
+    int st[CAP], sp = 0;
+    for (int i = 0; i &lt; n; i++) {
+        while (sp &amp;&amp; a[st[sp - 1]] &lt; a[i]) out[st[--sp]] = a[i];
+        st[sp++] = i;
+    }
+    while (sp) out[st[--sp]] = -1;
+}
+/* stock span: span[i] = number of consecutive days up to i with price &lt;= price[i] */
+static void stock_span(const int p[], int n, int span[])
+{
+    int st[CAP], sp = 0;
+    for (int i = 0; i &lt; n; i++) {
+        while (sp &amp;&amp; p[st[sp - 1]] &lt;= p[i]) sp--;
+        span[i] = sp ? i - st[sp - 1] : i + 1;
+        st[sp++] = i;
+    }
+}</code></pre>
+<p>ولعمليات الـ stack بس (copy، compare، reverse) بدون أي هيكل تاني:</p>
+<pre><code>typedef struct { int a[CAP]; int n; } istack;
+static void is_push(istack *s, int x) { assert(s-&gt;n &lt; CAP); s-&gt;a[s-&gt;n++] = x; }
+static int  is_pop(istack *s)          { assert(s-&gt;n &gt; 0);   return s-&gt;a[--s-&gt;n]; }
+/* copy preserving order: pop into a temporary (reverses), pop back into both (restores) */
+static void is_copy(istack *src, istack *dst)
+{
+    istack tmp = {{0}, 0};
+    while (src-&gt;n) is_push(&amp;tmp, is_pop(src));
+    while (tmp.n) { int x = is_pop(&amp;tmp); is_push(src, x); is_push(dst, x); }
+}
+/* compare two stacks: they are equal iff the pops agree one by one (both are restored) */
+static int is_equal(istack *a, istack *b)
+{
+    if (a-&gt;n != b-&gt;n) return 0;
+    istack ta = {{0}, 0}, tb = {{0}, 0}; int eq = 1;
+    while (a-&gt;n) { int x = is_pop(a), y = is_pop(b); is_push(&amp;ta, x); is_push(&amp;tb, y); if (x != y) eq = 0; }
+    while (ta.n) is_push(a, is_pop(&amp;ta));
+    while (tb.n) is_push(b, is_pop(&amp;tb));
+    return eq;
+}
+/* reverse a stack using only push/pop and two temporary stacks (three moves = identity on order twice, reverse once) */
+static void is_reverse(istack *s)
+{
+    istack t1 = {{0}, 0}, t2 = {{0}, 0};
+    while (s-&gt;n) is_push(&amp;t1, is_pop(s));
+    while (t1.n) is_push(&amp;t2, is_pop(&amp;t1));
+    while (t2.n) is_push(s, is_pop(&amp;t2));
+}</code></pre>
+
+<h2>10) الريكيرشن = stack: نحاكي الـ call stack بإيدينا</h2>
+<p>كل نداء recursive بيعمل <b>frame</b> (الـ arguments والمتغيرات المحلية و«أكمّل من فين») على الـ call stack، وكل return بيشيله. عشان كده الريكيرشن العميق جدًا بيعمل <i>stack overflow</i>. أي دالة recursive ممكن نحوّلها لحلقة + stack صريح. الأمثلة هنا: factorial (الأبسط: stack من «الضربات المستنية»)، Fibonacci (frame بيه حالة 0/1/2 ومسجّل <code>ret</code>)، Hanoi (stack من «مهام»، بنحط المهام بعكس ترتيب التنفيذ)، وAckermann (stack من الـ m المستنية).</p>
+<pre><code>/* recursive: 1 frame per level, n+1 frames deep at the bottom */
+static long fact_rec(int n) { return n &lt;= 1 ? 1 : n * fact_rec(n - 1); }
+
+/* explicit stack: phase 1 &quot;descend&quot; pushes n, n-1, ..., 2 (the pending multiplications);
+   phase 2 &quot;return&quot; pops them multiplying on the way back — exactly the order the real stack unwinds. */
+static long fact_stack(int n, int *max_depth)
+{
+    int st[64], sp = 0;
+    while (n &gt; 1) st[sp++] = n--;                 /* &quot;call fact(n-1), remember to multiply by n&quot; */
+    *max_depth = sp + 1;
+    long result = 1;                               /* fact(1) */
+    while (sp) result *= st[--sp];                 /* &quot;return&quot;: result = n * result */
+    return result;
+}
+/* tail recursion: the recursive call is the LAST thing done, so no frame has to be remembered;
+   a compiler (or you) can turn it into a loop that reuses one frame. */
+static long fact_tail(int n, long acc) { return n &lt;= 1 ? acc : fact_tail(n - 1, acc * n); }
+static long fact_loop(int n) { long acc = 1; while (n &gt; 1) acc *= n--; return acc; }
+static int gcd_rec(int a, int b)  { return b == 0 ? a : gcd_rec(b, a % b); }
+static int gcd_loop(int a, int b) { while (b) { int t = a % b; a = b; b = t; } return a; }</code></pre>
+<p><b>Tail recursion:</b> لو النداء الـ recursive هو <i>آخر</i> حاجة بتتعمل (مفيش ضرب مستني)، فمش محتاجين نفتكر frame القديم: compiler بيحوّلها لحلقة. <code>fact_tail</code> بتحمل المجموع التراكمي في <code>acc</code>، وgcd بتتحوّل مباشرة. لاحظ إن <code>fact_rec</code> مش tail لأن <code>n *</code> مستنية بعد الرجوع.</p>
+<!--fig:ds-fibtree--><figure class="fig"><svg class="fsvg" viewBox="0 0 470 260" width="470" height="260" role="img" aria-label="fib(5) call tree" xmlns="http://www.w3.org/2000/svg"><line x1="295.0" y1="24.0" x2="175.0" y2="70.0" class="edge"/><line x1="175.0" y1="70.0" x2="115.0" y2="116.0" class="edge"/><line x1="115.0" y1="116.0" x2="55.0" y2="162.0" class="edge"/><line x1="55.0" y1="162.0" x2="25.0" y2="208.0" class="edge"/><line x1="55.0" y1="162.0" x2="85.0" y2="208.0" class="edge"/><line x1="115.0" y1="116.0" x2="145.0" y2="162.0" class="edge"/><line x1="175.0" y1="70.0" x2="235.0" y2="116.0" class="edge"/><line x1="235.0" y1="116.0" x2="205.0" y2="162.0" class="edge"/><line x1="235.0" y1="116.0" x2="265.0" y2="162.0" class="edge"/><line x1="295.0" y1="24.0" x2="415.0" y2="70.0" class="edge"/><line x1="415.0" y1="70.0" x2="355.0" y2="116.0" class="edge"/><line x1="355.0" y1="116.0" x2="325.0" y2="162.0" class="edge"/><line x1="355.0" y1="116.0" x2="385.0" y2="162.0" class="edge"/><line x1="415.0" y1="70.0" x2="445.0" y2="116.0" class="edge"/><circle cx="25.0" cy="208.0" r="14" class="node"/><text x="25.0" y="213.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="85.0" cy="208.0" r="14" class="node"/><text x="85.0" y="213.0" class="tn" text-anchor="middle" font-size="13">0</text><circle cx="55.0" cy="162.0" r="14" class="node"/><text x="55.0" y="167.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="145.0" cy="162.0" r="14" class="node"/><text x="145.0" y="167.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="115.0" cy="116.0" r="14" class="node"/><text x="115.0" y="121.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="205.0" cy="162.0" r="14" class="node"/><text x="205.0" y="167.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="265.0" cy="162.0" r="14" class="node"/><text x="265.0" y="167.0" class="tn" text-anchor="middle" font-size="13">0</text><circle cx="235.0" cy="116.0" r="14" class="node"/><text x="235.0" y="121.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="175.0" cy="70.0" r="14" class="node"/><text x="175.0" y="75.0" class="tn" text-anchor="middle" font-size="13">4</text><circle cx="325.0" cy="162.0" r="14" class="node"/><text x="325.0" y="167.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="385.0" cy="162.0" r="14" class="node"/><text x="385.0" y="167.0" class="tn" text-anchor="middle" font-size="13">0</text><circle cx="355.0" cy="116.0" r="14" class="node"/><text x="355.0" y="121.0" class="tn" text-anchor="middle" font-size="13">2</text><circle cx="445.0" cy="116.0" r="14" class="node"/><text x="445.0" y="121.0" class="tn" text-anchor="middle" font-size="13">1</text><circle cx="415.0" cy="70.0" r="14" class="node"/><text x="415.0" y="75.0" class="tn" text-anchor="middle" font-size="13">3</text><circle cx="295.0" cy="24.0" r="14" class="node"/><text x="295.0" y="29.0" class="tn" text-anchor="middle" font-size="13">5</text></svg><figcaption>شجرة النداءات لـ <code>fib(5)</code>: 15 نداء. <code>fib(3)</code> اتحسبت مرتين و<code>fib(2)</code> 3 مرات و<code>fib(1)</code> 5 مرات: نفس المشكلة الفرعية بتتحل تاني وتالت (ولذلك <code>fib(25)</code> محتاجة 242785 نداء، وده أُسّي ≈ 1.618<sup>n</sup>). الحل: memoization أو حلقة بسيطة. لاحظ إن <b>عمق</b> الـ stack هو ارتفاع الشجرة (5)، مش عدد النداءات.</figcaption></figure><!--/fig:ds-fibtree-->
+<pre><code>static long fib_rec(int n) { return n &lt; 2 ? n : fib_rec(n - 1) + fib_rec(n - 2); }
+static long calls;                                   /* counts frames pushed */
+static long fib_count(int n) { calls++; return n &lt; 2 ? n : fib_count(n - 1) + fib_count(n - 2); }
+
+/* Fibonacci with an explicit stack. A frame = (n, state). state 0: need to compute fib(n-1);
+   state 1: have fib(n-1) in &#x27;a&#x27;, need fib(n-2); state 2: both done, return a+b.
+   &#x27;ret&#x27; is the value being returned to the frame below (the &quot;return register&quot;). */
+typedef struct { int n, state; long a; } frame;
+static long fib_stack(int n0)
+{
+    frame st[128]; int sp = 0; long ret = 0;
+    st[sp++] = (frame){n0, 0, 0};
+    while (sp) {
+        frame *f = &amp;st[sp - 1];
+        if (f-&gt;n &lt; 2) { ret = f-&gt;n; sp--; continue; }               /* base case: return n */
+        if (f-&gt;state == 0)      { f-&gt;state = 1; st[sp++] = (frame){f-&gt;n - 1, 0, 0}; }   /* call fib(n-1) */
+        else if (f-&gt;state == 1) { f-&gt;a = ret; f-&gt;state = 2; st[sp++] = (frame){f-&gt;n - 2, 0, 0}; }   /* call fib(n-2) */
+        else                    { ret = f-&gt;a + ret; sp--; }          /* return fib(n-1)+fib(n-2) */
+    }
+    return ret;
+}</code></pre>
+<h3>أبراج هانوي</h3>
+<p>انقل n قرص من A لـ C بقرص واحد كل مرة وبدون كبير فوق صغير: انقل n−1 لـ B، انقل الأكبر لـ C، انقل n−1 من B لـ C. عدد الحركات <code>T(n) = 2T(n−1) + 1 = 2ⁿ − 1</code>، ومفيش حل أسرع (إثبات بالاستقراء: الأكبر لازم يتحرك مرة على الأقل، وقبلها n−1 لازم يكونوا على القضيب الوسيط).</p>
+<!--fig:ds-hanoi--><div class="steps"><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="25.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="70.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text><rect x="36.0" y="88.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="70.0" y="101.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="47.0" y="68.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="70.0" y="81.0" class="tc" text-anchor="middle" font-size="11">1</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text></svg><figcaption>3 أقراص على A. الهدف: ننقلهم لـ C، قرص واحد كل مرة، وما نحطش كبير فوق صغير.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="25.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="70.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text><rect x="36.0" y="88.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="70.0" y="101.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text><rect x="327.0" y="108.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="350.0" y="121.0" class="tc" text-anchor="middle" font-size="11">1</text></svg><figcaption>حركة 1: القرص 1 من A لـ C.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="25.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="70.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="176.0" y="108.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="210.0" y="121.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text><rect x="327.0" y="108.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="350.0" y="121.0" class="tc" text-anchor="middle" font-size="11">1</text></svg><figcaption>حركة 2: القرص 2 من A لـ B.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="25.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="70.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="176.0" y="108.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="210.0" y="121.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="187.0" y="88.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="210.0" y="101.0" class="tc" text-anchor="middle" font-size="11">1</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text></svg><figcaption>حركة 3: القرص 1 من C لـ B.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="176.0" y="108.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="210.0" y="121.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="187.0" y="88.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="210.0" y="101.0" class="tc" text-anchor="middle" font-size="11">1</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text><rect x="305.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="350.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text></svg><figcaption>حركة 4: القرص 3 من A لـ C.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="47.0" y="108.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="70.0" y="121.0" class="tc" text-anchor="middle" font-size="11">1</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="176.0" y="108.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="210.0" y="121.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text><rect x="305.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="350.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text></svg><figcaption>حركة 5: القرص 1 من B لـ A.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="47.0" y="108.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="70.0" y="121.0" class="tc" text-anchor="middle" font-size="11">1</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text><rect x="305.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="350.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text><rect x="316.0" y="88.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="350.0" y="101.0" class="tc" text-anchor="middle" font-size="11">2</text></svg><figcaption>حركة 6: القرص 2 من B لـ C.</figcaption></figure><figure class="frame"><svg class="fsvg" viewBox="0 0 420 150" width="420" height="150" role="img" aria-label="hanoi" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="67.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="70.0" y="140.0" class="lab" text-anchor="middle" font-size="12">A</text><rect x="207.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="210.0" y="140.0" class="lab" text-anchor="middle" font-size="12">B</text><rect x="347.0" y="20.0" width="6.0" height="100.0" rx="2" class="dim"/><text x="350.0" y="140.0" class="lab" text-anchor="middle" font-size="12">C</text><rect x="305.0" y="108.0" width="90.0" height="17.0" rx="4" class="cell"/><text x="350.0" y="121.0" class="tc" text-anchor="middle" font-size="11">3</text><rect x="316.0" y="88.0" width="68.0" height="17.0" rx="4" class="cell"/><text x="350.0" y="101.0" class="tc" text-anchor="middle" font-size="11">2</text><rect x="327.0" y="68.0" width="46.0" height="17.0" rx="4" class="hi"/><text x="350.0" y="81.0" class="tc" text-anchor="middle" font-size="11">1</text></svg><figcaption>حركة 7: القرص 1 من A لـ C.</figcaption></figure></div><!--/fig:ds-hanoi-->
+<pre><code>/* Towers of Hanoi: move n disks from &#x27;from&#x27; to &#x27;to&#x27; using &#x27;via&#x27;. 2^n - 1 moves. */
+static long hmoves; static int hlog[2048][2];
+static void hanoi_rec(int n, int from, int to, int via)
+{
+    if (n == 0) return;
+    hanoi_rec(n - 1, from, via, to);
+    hlog[hmoves][0] = from; hlog[hmoves][1] = to; hmoves++;
+    hanoi_rec(n - 1, via, to, from);
+}
+/* Same with an explicit stack of &quot;tasks&quot;: either &quot;solve (n,from,to,via)&quot; or &quot;do this one move&quot;.
+   Push in REVERSE order of execution: move n-1 (via-&gt;to) last, the disk, then move n-1 (from-&gt;via) first. */
+typedef struct { int kind, n, from, to, via; } task;       /* kind 0 = solve, 1 = move one disk */
+static long hanoi_stack(int n, int from, int to, int via, int out[][2])
+{
+    task st[256]; int sp = 0; long m = 0;
+    st[sp++] = (task){0, n, from, to, via};
+    while (sp) {
+        task t = st[--sp];
+        if (t.kind == 1) { out[m][0] = t.from; out[m][1] = t.to; m++; continue; }
+        if (t.n == 0) continue;
+        st[sp++] = (task){0, t.n - 1, t.via, t.to, t.from};
+        st[sp++] = (task){1, 0, t.from, t.to, 0};
+        st[sp++] = (task){0, t.n - 1, t.from, t.via, t.to};
+    }
+    return m;
+}</code></pre>
+<h3>دالة Ackermann</h3>
+<p>بتنمو أسرع من أي دالة primitive recursive: A(2,3) = 9 وA(3,3) = 61 وA(4,2) رقم بـ 19729 خانة. مثال كلاسيكي على recursion متداخل (النداء جوه argument نداء).</p>
+<pre><code>/* Ackermann: grows faster than any primitive recursive function. A(2,3)=9, A(3,3)=61, A(4,*) is astronomical.
+   m = 0:  A = n+1;   n = 0:  A(m-1, 1);   else  A(m-1, A(m, n-1)).  */
+static long ack_rec(long m, long n)
+{
+    if (m == 0) return n + 1;
+    if (n == 0) return ack_rec(m - 1, 1);
+    return ack_rec(m - 1, ack_rec(m, n - 1));
+}
+/* the stack of pending &quot;m&quot; values: A(m, n) with m&gt;0 and n&gt;0 becomes  push m-1, then compute A(m, n-1) */
+static long ack_stack(long m, long n, long *max_stack)
+{
+    long *st = malloc(sizeof(long) * (1 &lt;&lt; 20)); long sp = 0; *max_stack = 0;
+    st[sp++] = m;
+    while (sp) {
+        m = st[--sp];
+        if (m == 0) { n = n + 1; }
+        else if (n == 0) { st[sp++] = m - 1; n = 1; }
+        else { st[sp++] = m - 1; st[sp++] = m; n = n - 1; }
+        if (sp &gt; *max_stack) *max_stack = sp;
+    }
+    free(st);
+    return n;
+}</code></pre>
+<pre><code>fact(10) = 3628800  needs 10 frames on the call stack
+fib(25) = 75025  using 242785 recursive calls (the call stack is only about 25 frames deep)
+hanoi n=3: 7 moves: A-&gt;C A-&gt;B C-&gt;B A-&gt;C B-&gt;A B-&gt;C A-&gt;C
+A(3,3) = 61, explicit stack never held more than 60 pending values
+recursion simulations match the recursive versions</code></pre>
+
+<h2>11) الـ queue الدايرية: فاضية ولا ممتلئة؟</h2>
+<p>في queue بـ array عادية، بعد ما REAR يوصل آخر المصفوفة بنقول OVERFLOW حتى لو الخانات اللي قبل FRONT فاضية (بعد dequeues). الحل: الدوران <code>(i+1) % N</code>. المشكلة الجديدة: لما FRONT == REAR+1 الـ queue ممكن تكون فاضية <b>أو</b> ممتلئة. تلات حلول (كلها في الكود ومتقارنة بنماذج مرجعية على 20000 خطوة عشوائية):</p>
+<!--fig:ds-ring--><figure class="fig"><div class="fside"><div class="fside-item"><b>C D E F</b><svg class="fsvg" viewBox="0 0 210 210" width="210" height="210" role="img" aria-label="a" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="83.0" y="16.0" width="34.0" height="28.0" rx="5" class="cell"/><text x="100.0" y="35.0" class="tc" text-anchor="middle" font-size="13"></text><text x="100.0" y="0.0" class="lab" text-anchor="middle" font-size="10">0</text><rect x="132.5" y="36.5" width="34.0" height="28.0" rx="5" class="cell"/><text x="149.5" y="55.5" class="tc" text-anchor="middle" font-size="13"></text><text x="173.5" y="30.5" class="lab" text-anchor="middle" font-size="10">1</text><rect x="153.0" y="86.0" width="34.0" height="28.0" rx="5" class="cell"/><text x="170.0" y="105.0" class="tc" text-anchor="middle" font-size="13"></text><text x="204.0" y="104.0" class="lab" text-anchor="middle" font-size="10">2</text><rect x="132.5" y="135.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="149.5" y="154.5" class="tc" text-anchor="middle" font-size="13">C</text><text x="173.5" y="177.5" class="lab" text-anchor="middle" font-size="10">3</text><rect x="83.0" y="156.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="100.0" y="175.0" class="tc" text-anchor="middle" font-size="13">D</text><text x="100.0" y="208.0" class="lab" text-anchor="middle" font-size="10">4</text><rect x="33.5" y="135.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="50.5" y="154.5" class="tc" text-anchor="middle" font-size="13">E</text><text x="26.5" y="177.5" class="lab" text-anchor="middle" font-size="10">5</text><rect x="13.0" y="86.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="30.0" y="105.0" class="tc" text-anchor="middle" font-size="13">F</text><text x="-4.0" y="104.0" class="lab" text-anchor="middle" font-size="10">6</text><rect x="33.5" y="36.5" width="34.0" height="28.0" rx="5" class="cell"/><text x="50.5" y="55.5" class="tc" text-anchor="middle" font-size="13"></text><text x="26.5" y="30.5" class="lab" text-anchor="middle" font-size="10">7</text><text x="100.0" y="104.0" class="lab" text-anchor="middle" font-size="11">front=3 rear=6</text></svg></div><div class="fside-item"><b>بعد إضافة G وH وI: REAR لفّ</b><svg class="fsvg" viewBox="0 0 210 210" width="210" height="210" role="img" aria-label="b" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="83.0" y="16.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="100.0" y="35.0" class="tc" text-anchor="middle" font-size="13">H</text><text x="100.0" y="0.0" class="lab" text-anchor="middle" font-size="10">0</text><rect x="132.5" y="36.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="149.5" y="55.5" class="tc" text-anchor="middle" font-size="13">I</text><text x="173.5" y="30.5" class="lab" text-anchor="middle" font-size="10">1</text><rect x="153.0" y="86.0" width="34.0" height="28.0" rx="5" class="cell"/><text x="170.0" y="105.0" class="tc" text-anchor="middle" font-size="13"></text><text x="204.0" y="104.0" class="lab" text-anchor="middle" font-size="10">2</text><rect x="132.5" y="135.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="149.5" y="154.5" class="tc" text-anchor="middle" font-size="13">C</text><text x="173.5" y="177.5" class="lab" text-anchor="middle" font-size="10">3</text><rect x="83.0" y="156.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="100.0" y="175.0" class="tc" text-anchor="middle" font-size="13">D</text><text x="100.0" y="208.0" class="lab" text-anchor="middle" font-size="10">4</text><rect x="33.5" y="135.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="50.5" y="154.5" class="tc" text-anchor="middle" font-size="13">E</text><text x="26.5" y="177.5" class="lab" text-anchor="middle" font-size="10">5</text><rect x="13.0" y="86.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="30.0" y="105.0" class="tc" text-anchor="middle" font-size="13">F</text><text x="-4.0" y="104.0" class="lab" text-anchor="middle" font-size="10">6</text><rect x="33.5" y="36.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="50.5" y="55.5" class="tc" text-anchor="middle" font-size="13">G</text><text x="26.5" y="30.5" class="lab" text-anchor="middle" font-size="10">7</text><text x="100.0" y="104.0" class="lab" text-anchor="middle" font-size="11">front=3 rear=1</text></svg></div><div class="fside-item"><b>بعد J: ممتلئ</b><svg class="fsvg" viewBox="0 0 210 210" width="210" height="210" role="img" aria-label="c" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs><rect x="83.0" y="16.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="100.0" y="35.0" class="tc" text-anchor="middle" font-size="13">H</text><text x="100.0" y="0.0" class="lab" text-anchor="middle" font-size="10">0</text><rect x="132.5" y="36.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="149.5" y="55.5" class="tc" text-anchor="middle" font-size="13">I</text><text x="173.5" y="30.5" class="lab" text-anchor="middle" font-size="10">1</text><rect x="153.0" y="86.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="170.0" y="105.0" class="tc" text-anchor="middle" font-size="13">J</text><text x="204.0" y="104.0" class="lab" text-anchor="middle" font-size="10">2</text><rect x="132.5" y="135.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="149.5" y="154.5" class="tc" text-anchor="middle" font-size="13">C</text><text x="173.5" y="177.5" class="lab" text-anchor="middle" font-size="10">3</text><rect x="83.0" y="156.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="100.0" y="175.0" class="tc" text-anchor="middle" font-size="13">D</text><text x="100.0" y="208.0" class="lab" text-anchor="middle" font-size="10">4</text><rect x="33.5" y="135.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="50.5" y="154.5" class="tc" text-anchor="middle" font-size="13">E</text><text x="26.5" y="177.5" class="lab" text-anchor="middle" font-size="10">5</text><rect x="13.0" y="86.0" width="34.0" height="28.0" rx="5" class="hi"/><text x="30.0" y="105.0" class="tc" text-anchor="middle" font-size="13">F</text><text x="-4.0" y="104.0" class="lab" text-anchor="middle" font-size="10">6</text><rect x="33.5" y="36.5" width="34.0" height="28.0" rx="5" class="hi"/><text x="50.5" y="55.5" class="tc" text-anchor="middle" font-size="13">G</text><text x="26.5" y="30.5" class="lab" text-anchor="middle" font-size="10">7</text><text x="100.0" y="104.0" class="lab" text-anchor="middle" font-size="11">front=3 rear=2</text></svg></div></div><figcaption>الـ 8 خلايا دايرة: بعد الخلية 7 بييجي 0 (<code>(i+1) % 8</code>). G راحت 7 ثم H في 0 وI في 1: REAR لفّ وFRONT لسه 3، فالـ queue ماشية 3..7 ثم 0..1. بعد J في الخلية 2 بقى <code>FRONT == (REAR+1) % N</code> يعني ممتلئة. الشرط ده نفسه بيتحقق في الفاضية، عشان كده بنفرّق بينهم بـ count أو بخلية فاضية أو بـ −1 (التلات طرق في الكود).</figcaption></figure><!--/fig:ds-ring-->
+<table class="comp-table">
+<tr><th>الحل</th><th>الفاضية</th><th>الممتلئة</th><th>السعة</th></tr>
+<tr><td>(a) حقل count</td><td><code>n == 0</code></td><td><code>n == N</code></td><td>N</td></tr>
+<tr><td>(b) خانة فاضية دايمًا</td><td><code>front == rear</code></td><td><code>(rear+1)%N == front</code></td><td>N−1</td></tr>
+<tr><td>(c) الكتاب (Thareja): −1</td><td><code>front == -1</code></td><td><code>front==0 &amp;&amp; rear==N-1</code> أو <code>front == rear+1</code></td><td>N</td></tr>
+</table>
+<pre><code>/* (a) count field: front = index of the oldest element, n = how many.
+       rear = (front + n) % N  — it is never stored, it is computed. Full: n == N. Empty: n == 0. */
+typedef struct { int a[N]; int front, n; } cqueue;
+static int cq_put(cqueue *q, int x)
+{
+    if (q-&gt;n == N) return 0;                           /* overflow */
+    q-&gt;a[(q-&gt;front + q-&gt;n++) % N] = x; return 1;
+}
+static int cq_get(cqueue *q, int *x)
+{
+    if (q-&gt;n == 0) return 0;                           /* underflow */
+    *x = q-&gt;a[q-&gt;front]; q-&gt;front = (q-&gt;front + 1) % N; q-&gt;n--; return 1;
+}
+
+/* (b) front/rear only, so N-1 usable cells: empty is front == rear, full is (rear+1)%N == front */
+typedef struct { int a[N]; int front, rear; } cqueue_b;
+static int cb_put(cqueue_b *q, int x)
+{
+    if ((q-&gt;rear + 1) % N == q-&gt;front) return 0;
+    q-&gt;a[q-&gt;rear] = x; q-&gt;rear = (q-&gt;rear + 1) % N; return 1;
+}
+static int cb_get(cqueue_b *q, int *x)
+{
+    if (q-&gt;front == q-&gt;rear) return 0;
+    *x = q-&gt;a[q-&gt;front]; q-&gt;front = (q-&gt;front + 1) % N; return 1;
+}
+
+/* (c) the book&#x27;s convention: front = rear = -1 means empty.  N usable cells.
+       full  &lt;=&gt;  (front == 0 &amp;&amp; rear == N-1)  ||  (front == rear + 1)   — the two faces of the same state */
+typedef struct { int a[N]; int front, rear; } cqueue_c;
+static int cc_full(const cqueue_c *q) { return (q-&gt;front == 0 &amp;&amp; q-&gt;rear == N - 1) || q-&gt;front == q-&gt;rear + 1; }
+static int cc_put(cqueue_c *q, int x)
+{
+    if (cc_full(q)) return 0;
+    if (q-&gt;front == -1) q-&gt;front = q-&gt;rear = 0;
+    else q-&gt;rear = (q-&gt;rear + 1) % N;
+    q-&gt;a[q-&gt;rear] = x; return 1;
+}
+static int cc_get(cqueue_c *q, int *x)
+{
+    if (q-&gt;front == -1) return 0;
+    *x = q-&gt;a[q-&gt;front];
+    if (q-&gt;front == q-&gt;rear) q-&gt;front = q-&gt;rear = -1;        /* took the last one: back to empty */
+    else q-&gt;front = (q-&gt;front + 1) % N;
+    return 1;
+}</code></pre>
+<p>ملحوظة على أسئلة Thareja: مفتاح الإجابات في آخر الكتاب بيقول إن الـ circular queue بتبقى ممتلئة لما <code>FRONT = 0 and REAR = MAX−1</code> (اختيار (b))، وده فعلًا حالة من الحالتين في الجدول (c). والمفتاح بيقول كمان إن «front = MAX−1 وrear = 0 تعني ممتلئة» صح؛ ده صحيح حرفيًا بس لما MAX = 2، والقاعدة العامة هي <code>front == (rear+1) % MAX</code>. التفصيل في صفحة التمارين.</p>
+
+<h2>12) الـ Deque (double-ended queue)</h2>
+<p>إدخال وحذف من الطرفين. بـ circular array: <code>push_left</code> بيرجّع <code>left</code> خطوة لورا (بالـ mod) ويخزّن، <code>push_right</code> بيخزّن عند <code>(left+n)%N</code>. نوعين مقيّدين: <b>input-restricted</b> (إدخال من طرف واحد، حذف من الاتنين) و<b>output-restricted</b> (حذف من طرف واحد، إدخال من الاتنين). همّا نفس الهيكل مع منع عمليتين. الـ stack = deque بتستخدم طرف واحد، والـ queue = deque (إدخال يمين، حذف شمال). تطبيقات: undo/redo، work-stealing، sliding window maximum.</p>
+<pre><code>/* deque on a circular array.  left = index of the leftmost element, n = count.
+   push_left moves left one step BACK (mod N) and stores; push_right stores at (left+n)%N. */
+typedef struct { int a[N]; int left, n; } deque;
+static int dq_push_left(deque *d, int x)
+{
+    if (d-&gt;n == N) return 0;
+    d-&gt;left = (d-&gt;left + N - 1) % N; d-&gt;a[d-&gt;left] = x; d-&gt;n++; return 1;
+}
+static int dq_push_right(deque *d, int x)
+{
+    if (d-&gt;n == N) return 0;
+    d-&gt;a[(d-&gt;left + d-&gt;n++) % N] = x; return 1;
+}
+static int dq_pop_left(deque *d, int *x)
+{
+    if (!d-&gt;n) return 0;
+    *x = d-&gt;a[d-&gt;left]; d-&gt;left = (d-&gt;left + 1) % N; d-&gt;n--; return 1;
+}
+static int dq_pop_right(deque *d, int *x)
+{
+    if (!d-&gt;n) return 0;
+    *x = d-&gt;a[(d-&gt;left + --d-&gt;n) % N]; return 1;
+}
+/* Input-restricted deque: insert only at the right; delete at both ends.
+   Output-restricted deque: delete only at the left; insert at both ends.
+   They are the same structure with two of the four operations simply not offered. */
+#define ir_insert(d, x)      dq_push_right((d), (x))
+#define ir_delete_left(d, x) dq_pop_left((d), (x))
+#define ir_delete_right(d,x) dq_pop_right((d), (x))
+#define or_insert_left(d, x) dq_push_left((d), (x))
+#define or_insert_right(d,x) dq_push_right((d), (x))
+#define or_delete(d, x)      dq_pop_left((d), (x))</code></pre>
+
+<h2>13) الـ Priority Queue بطريقتين</h2>
+<p>كل عنصر ليه أولوية، والأعلى أولوية يتخدم الأول، ولو اتساووا فالـ FCFS. <b>(1) قايمة مرتبة:</b> الإدخال O(n) (نمشي لحد أول عقدة أولويتها أقل <i>بشدة</i>، فالجديد يدخل بعد المتساوين)، والحذف O(1) (الأول). <b>(2) مصفوفة طوابير:</b> صف لكل مستوى أولوية، الإدخال O(1)، والحذف بيدوّر على أول صف مش فاضي O(P) (P عدد المستويات). الاتنين «غير مثاليين»؛ الـ <a href="#/pq-advanced">heap</a> بيدّي O(log n) للاتنين.</p>
+<pre><code>/* priority queue = sorted linked list; SMALLER number = HIGHER priority; ties are FCFS.
+   insert: walk while the next node&#x27;s priority is &lt;= the new one&#x27;s (so the new node goes AFTER equals).
+   delete: remove the head.   insert O(n), delete O(1). */
+typedef struct pnode { int data, pri; struct pnode *next; } pnode;
+static pnode *pq_insert(pnode *head, int data, int pri)
+{
+    pnode *n = malloc(sizeof *n);
+    if (!n) { perror(&quot;malloc&quot;); exit(1); }
+    n-&gt;data = data; n-&gt;pri = pri;
+    if (!head || pri &lt; head-&gt;pri) { n-&gt;next = head; return n; }
+    pnode *p = head;
+    while (p-&gt;next &amp;&amp; p-&gt;next-&gt;pri &lt;= pri) p = p-&gt;next;
+    n-&gt;next = p-&gt;next; p-&gt;next = n;
+    return head;
+}
+static pnode *pq_delete(pnode *head, int *data)
+{
+    assert(head);
+    *data = head-&gt;data; pnode *rest = head-&gt;next; free(head); return rest;
+}</code></pre>
+<!--fig:ds-pqarr--><figure class="fig"><table class="comp-table"><tr><th>الأولوية</th><th>الـ queue (front ← rear)</th></tr><tr><td>1</td><td>A</td></tr><tr><td>2</td><td>B → C → D</td></tr><tr><td>3</td><td>E → F</td></tr><tr><td>4</td><td>G → H</td></tr></table><figcaption>priority queue كمصفوفة طوابير: صف لكل أولوية (1 = الأعلى). insert = ضيف في آخر صف الأولوية O(1). delete = أول صف مش فاضي، شيل من أوله: هنا A. لو A مشيت يبقى B (أولوية 2)، وبالنسبة لـ B وC وD بالـ FCFS.</figcaption></figure><!--/fig:ds-pqarr-->
+<pre><code>/* priority queue as an array of circular queues, one per priority level 0..P-1 (0 = most urgent).
+   insert: put at the rear of row p, O(1).   delete: scan rows from 0 for the first non-empty row, O(P). */
+#define P 5
+typedef struct { cqueue row[P]; } pq_array;
+static int pa_insert(pq_array *q, int data, int pri) { return cq_put(&amp;q-&gt;row[pri], data); }
+static int pa_delete(pq_array *q, int *data, int *pri)
+{
+    for (int k = 0; k &lt; P; k++) if (q-&gt;row[k].n) { *pri = k; return cq_get(&amp;q-&gt;row[k], data); }
+    return 0;
+}</code></pre>
+<pre><code>circular queues: 20000 random steps, 3 conventions match their models (overflows caught: 2451 / 2557 / 2451)
+  convention (b) holds 7 items, (a)/(c) hold 8
+deque: 20000 random operations at both ends match the model
+priority list: ABCDE(1,2,3,5,6) + F(pri 4) -&gt; ABCFDE ;  + F(pri 2) -&gt; ABFCDE  (Thareja Fig 8.26-8.28)
+priority queue: array-of-queues and sorted list give identical output order over 20000 random steps
+deque_pq ok</code></pre>
+
+<div class="quiz"><p class="q">ليه <code>A ^ B ^ C</code> بتتحوّل لـ <code>A B C ^ ^</code> مش <code>A B ^ C ^</code>؟</p>
+<button>عشان ^ ليها أولوية أقل</button>
+<button data-ok>لأن ^ بتتجمّع من اليمين: A^(B^C)، فالـ ^ الأولى لازم تستنى على الـ stack لحد ما التانية تجي</button>
+<button>عشان مفيش أقواس</button>
+<p class="why">لما تيجي ^ ويكون على القمة ^ كمان، مانفرّغش القمة (مساوية في الأولوية لكنها يمينية).</p></div>
+<div class="quiz"><p class="q">في تقييم postfix، لما نقابل <code>-</code> ونعمل pop مرتين، الـ pop الأول هو…؟</p>
+<button>المعامل الشمال</button>
+<button data-ok>المعامل اليمين</button>
+<button>مفيش فرق</button>
+<p class="why">المعامل الشمال اتدفع الأول فهو تحت. <code>7 5 -</code> = 7 − 5 = 2 مش −2.</p></div>
+<div class="quiz"><p class="q">dequeue واحدة في queue من stackين ممكن تكلّف O(n)، فليه نقول amortised O(1)؟</p>
+<button>لأن n صغيرة</button>
+<button data-ok>لأن كل عنصر بينتقل من IN لـ OUT مرة واحدة بس في حياته، فمجموع النقلات ≤ عدد الـ enqueues</button>
+<button>لأن الـ stacks سريعة</button>
+<p class="why">التكلفة الغالية بتتوزّع على العمليات اللي دفعت العناصر.</p></div>
+<div class="quiz"><p class="q">ليه queue دايرية (b) سعتها N−1؟</p>
+<button>ده bug</button>
+<button data-ok>لأن لو اتملت كل الخانات هيبقى front == rear وده نفس شكل الفاضية، فبنسيب خانة فاضية للتفرقة</button>
+<button>لأن الـ % بتاكل خانة</button>
+<p class="why">الحل (a) بحقل count والحل (c) بقيمة −1 بيستعملوا كل الـ N خانة.</p></div>
+<div class="quiz"><p class="q">عمق الـ call stack في <code>fib(25)</code> الـ recursive؟</p>
+<button>242785</button>
+<button data-ok>حوالي 25، أما عدد النداءات الكلي فهو 242785</button>
+<button>2²⁵</button>
+<p class="why">الـ stack بيتمدد على مسار واحد من الجذر للورقة؛ الشجرة بتتمشى depth-first.</p></div>

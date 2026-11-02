@@ -132,3 +132,130 @@ def cursor_pool():
 
 dlist_insert(); circ_header(); list_reverse_steps(); cursor_pool()
 arr_insert(); arr_rowcol(); sparse_triplet(); tri_pack()
+
+
+# ---------------- chapter 19: stacks and queues ----------------
+def ds19_two_stacks():
+    cap = 10
+    def row(a_items, b_items, cap_cls):
+        cells = [''] * cap
+        cls = {}
+        for i, v in enumerate(a_items): cells[i] = v; cls[i] = 'hi'
+        for k, v in enumerate(b_items): cells[cap - 1 - k] = v; cls[cap - 1 - k] = 'hi2'
+        return array_rows([('index', list(range(cap)), {i: 'dim' for i in range(cap)}), ('a', cells, cls)], 40, 50, '')
+    fr = [frame(row([], [], {}), 'مصفوفة واحدة سعتها 10. المكدّس A هيبدأ من الشمال (topA = −1) والمكدّس B من اليمين (topB = 10).'),
+          frame(row(['3', '8', '1'], ['7', '4'], {}), 'دفعنا 3 و8 و1 في A و7 و4 في B. كل واحد بيكبر ناحية التاني.'),
+          frame(row(['3', '8', '1', '5', '6', '9'], ['7', '4', '2', '0'], {}), 'المصفوفة اتملت: <code>topA + 1 == topB</code>. الـ overflow بيحصل <b>بس لما المجموع يوصل 10</b>، حتى لو A واخد 6 وB واخد 4. مع نصّين ثابتين (5+5) كان A هيعمل overflow عند العنصر السادس.')]
+    F['ds-two-stacks'] = ('steps', ''.join(fr))
+
+def ds19_shunting():
+    toks = 'A + B * C - D'.split()
+    prec = {'+': 1, '-': 1, '*': 2, '/': 2}
+    st, out, fr = [], [], []
+    def tbl(tok, note):
+        return ('<table class="comp-table"><tr><th>قرأنا</th><td>' + tok + '</td><th>الـ stack (من الأسفل)</th><td>' + (' '.join(st) or '·') +
+                '</td><th>الـ output</th><td>' + (' '.join(out) or '·') + '</td></tr></table>')
+    fr.append(frame(tbl('—', ''), 'التعبير: <code>A + B * C − D</code>. الـ stack بيشيل العمليات اللي مستنية، والـ output بيطلع الـ postfix.'))
+    notes = {'A': 'معامل: يروح للـ output على طول.', 'B': 'معامل: output.', 'C': 'معامل: output.', 'D': 'معامل: output.'}
+    for t in toks:
+        if t in prec:
+            popped = []
+            while st and prec[st[-1]] >= prec[t]:
+                popped.append(st[-1]); out.append(st.pop())
+            st.append(t)
+            n = ('<code>%s</code> أولويتها %s. ' % (t, 'أعلى من اللي على القمة، فتستنى فوقها (ما اتشالش حاجة).' if not popped else
+                 'أقل من أو تساوي اللي على القمة (%s)، فاللي على القمة يخرج للـ output الأول.' % ' '.join(popped)))
+            fr.append(frame(tbl(t, n), n))
+        else:
+            out.append(t); fr.append(frame(tbl(t, ''), notes[t]))
+    while st:
+        out.append(st.pop())
+    fr.append(frame(tbl('نهاية', ''), 'خلصت التوكنز: نفرّغ الـ stack كله للـ output. النتيجة: <b>' + ' '.join(out) + '</b>'))
+    assert ' '.join(out) == 'A B C * + D -'
+    F['ds-shunting'] = ('steps', ''.join(fr))
+
+def ds19_ring():
+    import math
+    n = 8
+    def ring(items, fr_i, rr_i, title):
+        cx, cy, R = 100, 100, 70
+        o = [DEFS]
+        for i in range(n):
+            ang = -math.pi / 2 + i * 2 * math.pi / n
+            x, y = cx + R * math.cos(ang), cy + R * math.sin(ang)
+            c = 'hi' if items[i] else 'cell'
+            o.append(rect(x - 17, y - 14, 34, 28, c, 5))
+            o.append(text(x, y + 5, items[i] or '', 'tc', 'middle', 13))
+            o.append(text(cx + (R + 34) * math.cos(ang), cy + (R + 34) * math.sin(ang) + 4, str(i), 'lab', 'middle', 10))
+        lab = []
+        if fr_i is not None: lab.append('front=%d' % fr_i)
+        if rr_i is not None: lab.append('rear=%d' % rr_i)
+        o.append(text(cx, cy + 4, ' '.join(lab) or 'فاضي', 'lab', 'middle', 11))
+        return svg(210, 210, ''.join(o), title)
+    p1 = ['', '', '', 'C', 'D', 'E', 'F', '']
+    p2 = ['H', 'I', '', 'C', 'D', 'E', 'F', 'G']
+    p3 = ['H', 'I', 'J', 'C', 'D', 'E', 'F', 'G']
+    html = ('<div class="fside"><div class="fside-item"><b>C D E F</b>' + ring(p1, 3, 6, 'a') +
+            '</div><div class="fside-item"><b>بعد إضافة G وH وI: REAR لفّ</b>' + ring(p2, 3, 1, 'b') +
+            '</div><div class="fside-item"><b>بعد J: ممتلئ</b>' + ring(p3, 3, 2, 'c') + '</div></div>'
+            '<figcaption>الـ 8 خلايا دايرة: بعد الخلية 7 بييجي 0 (<code>(i+1) % 8</code>). G راحت 7 ثم H في 0 وI في 1: REAR لفّ وFRONT لسه 3، فالـ queue ماشية 3..7 ثم 0..1. بعد J في الخلية 2 بقى <code>FRONT == (REAR+1) % N</code> يعني ممتلئة. الشرط ده نفسه بيتحقق في الفاضية، عشان كده بنفرّق بينهم بـ count أو بخلية فاضية أو بـ −1 (التلات طرق في الكود).</figcaption>')
+    F['ds-ring'] = ('fig', html)
+
+def ds19_q2s():
+    def st(items, label):
+        o = [DEFS]; h = 28
+        for i, v in enumerate(items):
+            o.append(rect(10, 120 - (i + 1) * (h + 2), 50, h, 'hi' if i == len(items) - 1 else 'cell', 4))
+            o.append(text(35, 120 - (i + 1) * (h + 2) + 19, v, 'tc', 'middle', 13))
+        o.append(line(8, 122, 62, 122, 'edge'))
+        o.append(text(35, 140, label, 'lab', 'middle', 12))
+        return svg(72, 150, ''.join(o), label)
+    def two(i, o, cap):
+        return frame('<div class="fside"><div class="fside-item">' + st(i, 'IN') + '</div><div class="fside-item">' + st(o, 'OUT') + '</div></div>', cap)
+    fr = [two(['1', '2', '3'], [], 'enqueue 1,2,3: كلها بتنزل على IN. القمة = 3 (الأحدث).'),
+          two([], ['3', '2', '1'], 'أول dequeue: OUT فاضي، فننقل <b>كل</b> IN لـ OUT (3 pops و3 pushes) فالترتيب بيتعكس: القمة بقت 1 (الأقدم).'),
+          two([], ['3', '2'], 'نعمل pop من OUT = 1: ده بالظبط اللي دخل أولًا (FIFO).'),
+          two(['4'], ['3', '2'], 'enqueue 4 يروح IN، من غير ما يلمس OUT. الـ 2 هو اللي هيطلع بعده ثم 3 ثم 4.')]
+    F['ds-q2s'] = ('steps', ''.join(fr))
+
+def ds19_fibtree():
+    def fib(n, hi):
+        if n < 2: return N(str(n), cls='node hi' if (n, ) in hi else 'node')
+        return N(str(n), fib(n - 1, hi), fib(n - 2, hi), cls='node')
+    t = fib(5, set())
+    # mark every call that is a repeat of fib(3) or fib(2): easy to show visually by note
+    F['ds-fibtree'] = ('fig', tree(t, 30, 46, 14, 'fib(5) call tree') +
+        '<figcaption>شجرة النداءات لـ <code>fib(5)</code>: 15 نداء. <code>fib(3)</code> اتحسبت مرتين و<code>fib(2)</code> 3 مرات و<code>fib(1)</code> 5 مرات: نفس المشكلة الفرعية بتتحل تاني وتالت (ولذلك <code>fib(25)</code> محتاجة 242785 نداء، وده أُسّي ≈ 1.618<sup>n</sup>). الحل: memoization أو حلقة بسيطة. لاحظ إن <b>عمق</b> الـ stack هو ارتفاع الشجرة (5)، مش عدد النداءات.</figcaption>')
+
+def ds19_hanoi():
+    def pegs(state, cap):
+        o = [DEFS]
+        for p in range(3):
+            x = 70 + p * 140
+            o.append(rect(x - 3, 20, 6, 100, 'dim', 2))
+            o.append(text(x, 140, 'ABC'[p], 'lab', 'middle', 12))
+            for k, d in enumerate(state[p]):
+                w = 24 + d * 22
+                o.append(rect(x - w / 2, 108 - k * 20, w, 17, 'hi' if d == 1 else 'cell', 4))
+                o.append(text(x, 108 - k * 20 + 13, str(d), 'tc', 'middle', 11))
+        return frame(svg(420, 150, ''.join(o), 'hanoi'), cap)
+    state = [[3, 2, 1], [], []]
+    fr = [pegs([p[:] for p in state], '3 أقراص على A. الهدف: ننقلهم لـ C، قرص واحد كل مرة، وما نحطش كبير فوق صغير.')]
+    moves = []
+    def h(n, a, c, b):
+        if n == 0: return
+        h(n - 1, a, b, c); moves.append((a, c)); h(n - 1, b, c, a)
+    h(3, 0, 2, 1)
+    for i, (a, c) in enumerate(moves):
+        d = state[a].pop(); assert not state[c] or state[c][-1] > d; state[c].append(d)
+        fr.append(pegs([p[:] for p in state], 'حركة %d: القرص %d من %s لـ %s.' % (i + 1, d, 'ABC'[a], 'ABC'[c])))
+    assert state == [[], [], [3, 2, 1]]
+    F['ds-hanoi'] = ('steps', ''.join(fr))
+
+def ds19_pqarr():
+    rows = {1: ['A'], 2: ['B', 'C', 'D'], 3: ['E', 'F'], 4: ['G', 'H']}
+    t = '<table class="comp-table"><tr><th>الأولوية</th><th>الـ queue (front ← rear)</th></tr>'
+    for k, v in rows.items(): t += '<tr><td>%d</td><td>%s</td></tr>' % (k, ' → '.join(v))
+    F['ds-pqarr'] = ('fig', t + '</table><figcaption>priority queue كمصفوفة طوابير: صف لكل أولوية (1 = الأعلى). insert = ضيف في آخر صف الأولوية O(1). delete = أول صف مش فاضي، شيل من أوله: هنا A. لو A مشيت يبقى B (أولوية 2)، وبالنسبة لـ B وC وD بالـ FCFS.</figcaption>')
+
+ds19_two_stacks(); ds19_shunting(); ds19_ring(); ds19_q2s(); ds19_fibtree(); ds19_hanoi(); ds19_pqarr()

@@ -74,7 +74,9 @@ window.COURSE = {
       { id: 'arrays-matrices', file: '41-arrays-matrices.html', title: 'Arrays والمصفوفات: العناوين والـ Sparse والمثلثية', min: 40 },
       { id: 'ex-ch17', file: 'ex-17-arrays-matrices.html', title: 'تمارين محلولة: الفصل 17', min: 40 },
       { id: 'linked-variants', file: '42-linked-variants.html', title: 'قوايم Header و Circular و Doubly و Cursor وكثيرات الحدود', min: 45 },
-      { id: 'ex-ch18', file: 'ex-18-linked-variants.html', title: 'تمارين محلولة: الفصل 18', min: 45 }
+      { id: 'ex-ch18', file: 'ex-18-linked-variants.html', title: 'تمارين محلولة: الفصل 18', min: 45 },
+      { id: 'stacks-queues-apps', file: '43-stacks-queues-apps.html', title: 'Stacks وQueues: التعبيرات والتطبيقات والـ call stack والـ deque', min: 50 },
+      { id: 'ex-ch19', file: 'ex-19-stacks-queues.html', title: 'تمارين محلولة: الفصل 19', min: 45 }
     ]},
     { title: 'الخاتمة', lessons: [
       { id: 'practice',     file: '40-practice.html',           title: 'تختار إيه إمتى؟ ومشاريع تطبيقية', min: 30 }
