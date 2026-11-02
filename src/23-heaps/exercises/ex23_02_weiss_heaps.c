@@ -197,9 +197,9 @@ int main(void)
     printf("== 6.1 insert and findMin in constant time ==\n");
     { /* yes if deleteMin is not required: keep the smallest so far.  For a binary heap the AVERAGE insert is O(1): */
       srand(61); long sw = 0; int runs = 2000, n = 1000;
-      for (int r = 0; r < runs; r++) { BHeap h = bh_new(n, 0); for (int i = 0; i < n; i++) { int pos = bh_insert(&h, rand()); int d = 0; for (int p = n; p > 0; p = 0) { (void)p; } (void)d; (void)pos; }
+      for (int r = 0; r < runs; r++) { BHeap h = bh_new(n, 0); for (int i = 0; i < n; i++) bh_insert(&h, rand());
           sw += h.cmp; bh_free(&h); }
-      printf("  average comparisons per insert in a binary heap (random keys): %.3f   (Weiss: 2.607)\n", (double)sw / ((double)runs * n));
+      printf("  average comparisons per insert in a binary heap (heaps of up to %d keys built by repeated insertion): %.3f   (Weiss quotes 2.607 on average; the two set-ups differ)\n", n, (double)sw / ((double)runs * n));
       assert((double)sw / ((double)runs * n) < 3.0); }
 
     /* ---------- 6.2, 6.3 ---------- */

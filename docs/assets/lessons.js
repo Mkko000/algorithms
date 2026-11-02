@@ -82,7 +82,9 @@ window.COURSE = {
       { id: 'efficient-trees', file: '45-efficient-trees.html', title: 'BST وThreaded وAVL وRed-Black وSplay', min: 60 },
       { id: 'ex-ch21', file: 'ex-21-efficient-trees.html', title: 'تمارين محلولة: الفصل 21', min: 55 },
       { id: 'multiway-trees', file: '46-multiway-trees.html', title: 'الأشجار متعددة الفروع: M-way وB وB+ و2-3 وTrie', min: 70 },
-      { id: 'ex-ch22', file: 'ex-22-multiway.html', title: 'تمارين الفصل 22', min: 60 }
+      { id: 'ex-ch22', file: 'ex-22-multiway.html', title: 'تمارين الفصل 22', min: 60 },
+      { id: 'heaps', file: '47-heaps.html', title: 'Heaps: binary وd-heap وleftist وbinomial وFibonacci', min: 60 },
+      { id: 'ex-ch23', file: 'ex-23-heaps.html', title: 'تمارين الفصل 23', min: 35 }
     ]},
     { title: 'الخاتمة', lessons: [
       { id: 'practice',     file: '40-practice.html',           title: 'تختار إيه إمتى؟ ومشاريع تطبيقية', min: 30 }
