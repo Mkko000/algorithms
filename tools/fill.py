@@ -4,7 +4,7 @@ Usage: python3 tools/fill.py"""
 import re, glob, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 F = {}
-for mod in ('figs_a', 'figs_b', 'figs_c', 'figs_ex', 'figs_ds', 'figs_ds2', 'figs_ds3', 'figs_ds4'):
+for mod in ('figs_a', 'figs_b', 'figs_c', 'figs_ex', 'figs_ds', 'figs_ds2', 'figs_ds3', 'figs_ds4', 'figs_ds5'):
     try:
         F.update(__import__(mod).F)
     except ModuleNotFoundError as e:
