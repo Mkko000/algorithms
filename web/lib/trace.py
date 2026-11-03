@@ -15,15 +15,15 @@ typedef int Item;
 static Item *T_base;
 static int T_n;
 static int T_idx(Item *p) { return (T_base && p >= T_base && p < T_base + T_n) ? (int)(p - T_base) : -1; }
-static void T_dump(const char *op, int line, int ia, int ib)
+static void T_dump(const char *op, int line, int ia, int ib, int va, int vb)
 {
-    printf("%s %d %d %d", op, line, ia, ib);
+    printf("%s %d %d %d %d %d", op, line, ia, ib, va, vb);
     for (int k = 0; k < T_n; k++) printf(" %d", T_base[k]);
     printf("\n");
 }
-static int T_less(Item *pa, Item *pb, int line) { T_dump("less", line, T_idx(pa), T_idx(pb)); return *pa < *pb; }
-static void T_exch(Item *pa, Item *pb, int line) { Item t = *pa; *pa = *pb; *pb = t; T_dump("exch", line, T_idx(pa), T_idx(pb)); }
-static void T_mark(const char *what, int line) { T_dump(what, line, -1, -1); }
+static int T_less(Item *pa, Item *pb, int line) { T_dump("less", line, T_idx(pa), T_idx(pb), *pa, *pb); return *pa < *pb; }
+static void T_exch(Item *pa, Item *pb, int line) { Item t = *pa; *pa = *pb; *pb = t; T_dump("exch", line, T_idx(pa), T_idx(pb), *pa, *pb); }
+static void T_mark(const char *what, int line, int va, int vb) { T_dump(what, line, -1, -1, va, vb); }
 #define key(A) (A)
 #define less(A, B) T_less(&(A), &(B), __LINE__)
 #define exch(A, B) T_exch(&(A), &(B), __LINE__)
@@ -38,6 +38,8 @@ class Event:
     line: int
     i: int | None
     j: int | None
+    x: int
+    y: int
     a: tuple
 
 
@@ -56,6 +58,13 @@ class Trace:
     source: str
     code: Snippet
     presets: dict
+
+
+def span(source: str, first_fn: str, last_fn: str) -> Snippet:
+    a = extract_function(source, first_fn)
+    b = extract_function(source, last_fn)
+    lines = (ROOT / source).read_text(encoding="utf-8").split("\n")
+    return Snippet(a.path, "\n".join(lines[a.first_line - 1:b.last_line]), a.first_line, b.last_line)
 
 
 def harness_source(source: str, functions: list, driver: str, globals_: str = "") -> str:
@@ -84,11 +93,11 @@ def run_c_harness(source: str, functions: list, driver: str, globals_: str = "")
     events = []
     for line in p.stdout.splitlines():
         parts = line.split()
-        if len(parts) < 4:
+        if len(parts) < 6:
             continue
         ia, ib = int(parts[2]), int(parts[3])
         events.append(Event(parts[0], int(parts[1]), None if ia < 0 else ia, None if ib < 0 else ib,
-                            tuple(int(x) for x in parts[4:])))
+                            int(parts[4]), int(parts[5]), tuple(int(x) for x in parts[6:])))
     return events
 
 
@@ -96,43 +105,64 @@ def load_templates(path: Path) -> dict:
     return tomllib.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def payload(trace: Trace, templates: dict) -> dict:
-    presets = {}
+def frames_json(trace: Trace) -> dict:
+    return {"name": trace.name, "first_line": trace.code.first_line,
+            "presets": {p: [{"line": f.line, "svg": f.svg, "vars": f.vars} for f in frames]
+                        for p, frames in trace.presets.items()}}
+
+
+def says(trace: Trace, templates: dict) -> dict:
+    out = {}
     for name, frames in trace.presets.items():
-        out = []
+        lines = []
         for f in frames:
             if f.say not in templates:
                 raise KeyError(f"{trace.name}: no {f.say}")
-            out.append({"line": f.line, "svg": f.svg, "vars": f.vars, "say": templates[f.say].format(**f.args)})
-        presets[name] = out
-    return {"name": trace.name, "source": trace.source, "code_html": highlight_c(trace.code.text),
-            "first_line": trace.code.first_line, "presets": presets}
+            lines.append(templates[f.say].format(**f.args))
+        out[name] = lines
+    return out
+
+
+def payload(trace: Trace, templates: dict) -> dict:
+    text = says(trace, templates)
+    data = frames_json(trace)
+    for name, frames in data["presets"].items():
+        for f, say in zip(frames, text[name]):
+            f["say"] = say
+    data["source"] = trace.source
+    data["code_html"] = highlight_c(trace.code.text)
+    return data
 
 
 def _json(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
-def section_html(trace: Trace, templates: dict, ui: dict, preset_labels: dict) -> str:
-    data = payload(trace, templates)
-    first = next(iter(data["presets"].values()))[0]
-    lines = data["code_html"].split("\n")
-    n0 = data["first_line"]
+def section_html(trace: Trace, templates: dict, ui: dict, preset_labels: dict, data_url: str | None = None) -> str:
+    text = says(trace, templates)
+    first_preset = next(iter(trace.presets))
+    first = trace.presets[first_preset][0]
+    n0 = trace.code.first_line
+    lines = highlight_c(trace.code.text).split("\n")
     code = "".join(
-        f'<span class="ln{" on" if first["line"] == n0 + k else ""}" data-n="{n0 + k}">{l}</span>\n'
+        f'<span class="ln{" on" if first.line == n0 + k else ""}" data-n="{n0 + k}">{l}</span>\n'
         for k, l in enumerate(lines))
     options = "".join(
-        f'<option value="{escape(p)}">{escape(preset_labels.get(p, p))}</option>' for p in data["presets"])
-    vars_html = "".join(f'<span>{escape(k)} = <b>{escape(v)}</b></span>' for k, v in first["vars"].items())
-    total = len(next(iter(data["presets"].values())))
+        f'<option value="{escape(p)}">{escape(preset_labels.get(p, p))}</option>' for p in trace.presets)
+    vars_html = "".join(f'<span>{escape(k)} = <b>{escape(v)}</b></span>' for k, v in first.vars.items())
+    total = len(trace.presets[first_preset])
+    if data_url:
+        embedded = {"name": trace.name, "first_line": n0, "url": data_url, "says": text}
+    else:
+        embedded = {**frames_json(trace), "says": text}
     return (
         f'<section class="trace" dir="ltr" data-trace="{escape(trace.name)}" tabindex="0" '
         f'aria-label="{escape(ui.get("trace", ""))} {escape(trace.name)}">'
-        f'<header class="trace-head"><span>{escape(ui.get("trace", ""))} · {escape(trace.name)}()</span>'
+        f'<header class="trace-head"><span>{escape(ui.get("trace", ""))} · {escape(trace.name)}</span>'
         f'<span class="trace-src" data-src="{escape(trace.source)}">{escape(trace.source)}</span></header>'
         f'<div class="trace-body"><pre class="trace-code"><code>{code}</code></pre>'
-        f'<div class="trace-state"><div class="trace-scene">{first["svg"]}</div>'
-        f'<p class="trace-say" aria-live="polite">{escape(first["say"])}</p>'
+        f'<div class="trace-state"><div class="trace-scene">{first.svg}</div>'
+        f'<p class="trace-say" aria-live="polite">{escape(text[first_preset][0])}</p>'
         f'<p class="trace-vars">{vars_html}</p></div></div>'
         f'<div class="trace-ctl">'
         f'<button type="button" data-a="reset" aria-label="{escape(ui.get("reset", ""))}">⟲</button>'
@@ -142,7 +172,7 @@ def section_html(trace: Trace, templates: dict, ui: dict, preset_labels: dict) -
         f'<button type="button" data-a="fwd" aria-label="{escape(ui.get("step_forward", ""))}">›</button>'
         f'<input class="trace-scrub" type="range" min="0" max="{total - 1}" value="0" '
         f'aria-label="{escape(ui.get("step", ""))}">'
-        f'<span class="trace-count">{escape(ui.get("step", ""))} 1 / {total}</span>'
+        f'<span class="trace-count" data-label="{escape(ui.get("step", ""))}">{escape(ui.get("step", ""))} 1 / {total}</span>'
         f'<label class="trace-preset"><span>{escape(ui.get("preset", ""))}</span><select>{options}</select></label>'
-        f'</div><script type="application/json">{_json(data)}</script></section>'
+        f'</div><script type="application/json">{_json(embedded)}</script></section>'
     )

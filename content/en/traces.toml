@@ -8,3 +8,85 @@ swap = "Both scans stopped on elements that sit in the wrong half. Swap them: a[
 cross = "i = {i} has reached j = {j}. The scans crossed, so the loop ends."
 place_pivot = "Swap the pivot into a[{i}]. That is its final place."
 done = "Done. Nothing left of index {i} is bigger than {v}, and nothing right of it is smaller."
+
+[selection]
+start = "{n} keys. Each pass finds the smallest key left and swaps it into place."
+new_min = "a[{p}] = {x} is smaller than the current minimum {y}, so min moves to {p}."
+keep_min = "a[{p}] = {x} is not smaller than {y}, so min stays at {q}."
+swap = "Swap the minimum into place: a[{p}] is now {x}."
+done = "Sorted. Every key is in its final place."
+
+[insertion]
+start = "{n} keys. First the smallest key is moved to the left end, where it acts as a sentinel."
+sentinel_swap = "{x} is smaller than its left neighbor {y}, so they trade places."
+sentinel_keep = "{x} is not smaller than {y}, so nothing moves."
+sentinel_exch = "Swapped: a[{p}] = {x} and a[{q}] = {y}."
+shift = "v = {x} is smaller than a[{q}] = {y}, so {y} moves one place right."
+place = "v = {x} is not smaller than a[{q}] = {y}, so v drops into the gap just after it."
+done = "Sorted. Every key is in its final place."
+
+[shellsort]
+start = "{n} keys. Shellsort runs insertion sort on keys h apart, for shrinking h, ending with h = 1."
+shift = "v = {x} is smaller than a[{q}] = {y}, h places to the left, so {y} moves h places right."
+place = "v = {x} is not smaller than a[{q}] = {y}, so v drops into the gap."
+done = "Sorted. The last pass with h = 1 had very little left to do."
+
+[heap]
+start = "An empty heap. We insert {n} keys, then remove the largest a few times."
+insert = "Insert {x} at the bottom, in the next free leaf."
+up_swap = "Parent {x} is smaller than child {y}, so {y} moves up."
+up_stop = "Parent {x} is not smaller than {y}. The heap condition holds again."
+swapped = "{x} and {y} trade places."
+built = "The heap holds {n} keys, and the largest sits at the root."
+delmax = "Remove the maximum {x}: swap it with the last leaf."
+removed = "{x} leaves the heap. Now the new root sinks to its place."
+kids = "Compare the two children {x} and {y} to find the larger one."
+down_swap = "{x} is smaller than its larger child {y}, so it sinks one level."
+down_stop = "{x} is not smaller than {y}, so it stays. The heap is fixed."
+done = "Done. {n} keys are left in the heap."
+
+[batcher]
+start = "{n} keys on {n} wires. The comparators run in a fixed order whatever the data is."
+swap = "Comparator {i}:{j} finds the pair out of order and swaps it: a[{i}] = {x}, a[{j}] = {y}."
+keep = "Comparator {i}:{j}: a[{i}] = {x} and a[{j}] = {y} are already in order."
+done = "All {n} comparators ran. The same network sorts any input of this size."
+
+[lsd]
+start = "{n} keys of {w} characters. LSD sorts on the last character first."
+pass = "Pass {p}: a stable sort on character {d}. Keys that tie keep the order from the pass before."
+done = "Sorted after one pass per character."
+
+[union-find]
+start = "Ten objects, each one its own component."
+halve = "While climbing to the roots of {p} and {q}, path halving points nodes at their grandparents."
+already = "{p} and {q} already share the root {r}, so nothing changes."
+link = "The roots differ. The root of the smaller tree, {c}, now points to {r}."
+done = "Components left: {n}."
+
+[bst]
+start = "An empty tree."
+insert = "Insert {x}, starting at the root."
+go_left = "{x} is less than {y}, so go left."
+go_right = "{x} is not less than {y}, so go right."
+new_node = "An empty link. {x} becomes a new leaf here."
+done = "{n} keys in the tree. An inorder walk reads them in sorted order."
+
+[chaining]
+start = "{m} empty lists."
+hash = "hash(\"{x}\") = {b}."
+insert = "\"{x}\" goes to the front of list {b}, which now holds {len}."
+done = "{n} keys in {m} lists."
+
+[probing]
+start = "An empty table of {m} slots."
+hash = "{x} hashes to slot {h}."
+occupied = "That slot is taken, so {x} tries the next one, slot {i}."
+place = "{x} lands in slot {i}. Probes used: {p}."
+done = "{n} keys placed. A search hit costs {avg} probes on average."
+
+[recursion]
+start = "Compute F({n}) the naive way: every call makes two more."
+enter = "Call F({n})."
+base = "F({n}) is a base case: return {v}."
+return = "F({n}) = {a} + {b} = {v}."
+done = "F({n}) = {v}, after {c} calls. Look how often the same small values are computed again."

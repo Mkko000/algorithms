@@ -110,9 +110,65 @@ class PayloadTest(unittest.TestCase):
         data = json.loads(m.group(1))
         self.assertEqual(data["name"], "partition")
         self.assertNotIn("</", m.group(1).replace("<\\/", ""))
+        self.assertIn("presets", data)
+        self.assertEqual(len(data["says"]["book"]), len(t.presets["book"]))
+        lazy = section_html(t, tpl, ui, {}, data_url="/assets/traces/partition.json")
+        m2 = re.search(r'<script type="application/json">(.*?)</script>', lazy, re.S)
+        small = json.loads(m2.group(1))
+        self.assertNotIn("presets", small)
+        self.assertEqual(small["url"], "/assets/traces/partition.json")
+        self.assertLess(len(lazy), len(h) / 5)
         self.assertIn('class="trace-scene"', h)
         self.assertIn('aria-live="polite"', h)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+NAMES = ["selection", "insertion", "shellsort", "heap", "batcher", "lsd", "union-find", "bst",
+         "chaining", "probing", "recursion"]
+
+
+class AllTracesTest(unittest.TestCase):
+    def test_registry_has_every_trace(self):
+        self.assertEqual(set(all_traces()), {"partition", *NAMES})
+
+    def test_final_matches_program(self):
+        import importlib
+        for name in NAMES:
+            with self.subTest(trace=name):
+                mod = importlib.import_module("web.traces." + name.replace("-", "_"))
+                got, want = mod.check()
+                self.assertEqual(got, want)
+
+    def test_frames_are_well_formed(self):
+        for name, t in all_traces().items():
+            for preset, frames in t.presets.items():
+                with self.subTest(trace=name, preset=preset):
+                    self.assertGreaterEqual(len(frames), 3)
+                    self.assertEqual(frames[-1].say, "done")
+                    for f in frames:
+                        self.assertTrue(f.svg.startswith("<svg"))
+                        if f.line is not None:
+                            self.assertGreaterEqual(f.line, t.code.first_line)
+                            self.assertLessEqual(f.line, t.code.last_line)
+
+    def test_highlighted_lines_are_real(self):
+        for name, t in all_traces().items():
+            lines = (ROOT / t.source).read_text(encoding="utf-8").split("\n")
+            for f in t.presets[next(iter(t.presets))]:
+                if f.line is not None:
+                    self.assertTrue(lines[f.line - 1].strip(), f"{name}: blank line {f.line}")
+
+
+class EveryPayloadTest(unittest.TestCase):
+    def test_every_trace_renders_in_both_languages(self):
+        for lang in ("ar", "en"):
+            tpl = load_templates(Path(f"content/{lang}/traces.toml"))
+            for name, t in all_traces().items():
+                with self.subTest(lang=lang, trace=name):
+                    p = payload(t, tpl[name])
+                    for frames in p["presets"].values():
+                        for f in frames:
+                            self.assertNotIn("{", f["say"])
