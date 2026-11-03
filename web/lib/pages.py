@@ -184,6 +184,8 @@ def resolve_sources(html: str, site: Site, lang: str) -> str:
             return f'href="{url(site, lang, target)}"'
         if not (ROOT / target).exists():
             raise ValueError(f"link to missing file {target}")
+        if not target.endswith(".c"):
+            return f'href="{GITHUB}{target}"'
         return f'href="{code_url(site, lang, target)}"'
 
     html = LINK_SCHEME.sub(scheme, html)

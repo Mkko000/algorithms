@@ -9,7 +9,7 @@ SOURCES := $(sort $(wildcard src/*/*.c src/*/exercises/*.c))
 BINDIR  = bin
 TARGETS = $(patsubst src/%.c,$(BINDIR)/%,$(SOURCES))
 
-.PHONY: all c run test check-c clean venv
+.PHONY: all c run test check-c clean venv site serve check test-web
 
 all: c
 
@@ -45,3 +45,15 @@ check-c:
 venv:
 	python3 -m venv .venv
 	.venv/bin/pip install -r requirements.txt
+
+site:
+	$(PY) -m web.build
+
+serve: site
+	$(PY) -m http.server -d _site 8000
+
+test-web:
+	$(PY) -m unittest discover -s web/tests -t .
+
+check: test-web
+	$(PY) -m web.check

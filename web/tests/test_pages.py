@@ -99,6 +99,10 @@ class PagesTest(unittest.TestCase):
         self.assertIn('<a href="/algorithms/en/a/">x</a>', out)
         self.assertIn('<a href="/algorithms/en/code/07-quicksort/quicksort/">y</a>', out)
 
+    def test_header_link_goes_to_github(self):
+        out = resolve_sources('<a href="src:src/common_item.h">h</a>', self.site, "en")
+        self.assertIn('href="https://github.com/Mkko000/algorithms/blob/main/src/common_item.h"', out)
+
     def test_unknown_lesson_link_raises(self):
         with self.assertRaises(ValueError):
             resolve_sources('<a href="lesson:nope">x</a>', self.site, "en")
