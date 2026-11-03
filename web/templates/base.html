@@ -16,19 +16,48 @@
 </head>
 <body>
 <a class="skip" href="#main">{{skip}}</a>
-<header class="site-head"><div class="wrap">
+<header class="site-head">
+<div class="wrap head-row">
 <a class="brand" href="{{home}}" dir="ltr"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>{{site_name}}</a>
+<nav class="head-nav" aria-label="{{nav_label}}">
+<a href="{{home}}">{{contents}}</a>
+<a href="{{code_index}}">{{code_index_label}}</a>
+</nav>
 <div class="head-tools">
 <span class="progress" data-total="{{total}}" data-tpl="{{progress_tpl}}"></span>
 <a class="lang-switch" href="{{switch_href}}" hreflang="{{switch_lang}}" lang="{{switch_lang}}">{{switch_label}}</a>
 <button type="button" class="theme-toggle" data-auto="{{theme_auto}}" data-light="{{theme_light}}" data-dark="{{theme_dark}}">{{theme_auto}}</button>
 </div>
-</div></header>
+<button type="button" class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="{{menu_label}}"><span></span><span></span><span></span></button>
+</div>
+<div class="menu-panel" id="menu">
+<div class="wrap">
+<nav class="menu-nav" aria-label="{{nav_label}}">
+<a href="{{home}}">{{contents}}</a>
+<a href="{{code_index}}">{{code_index_label}}</a>
+</nav>
+{{menu_toc}}
+<div class="menu-tools">
+<a class="lang-switch" href="{{switch_href}}" hreflang="{{switch_lang}}" lang="{{switch_lang}}">{{switch_label}}</a>
+<button type="button" class="theme-toggle" data-auto="{{theme_auto}}" data-light="{{theme_light}}" data-dark="{{theme_dark}}">{{theme_auto}}</button>
+</div>
+</div>
+</div>
+</header>
 {{main}}
-<footer class="site-foot"><div class="wrap">
+<footer class="site-foot">
+<div class="wrap foot-grid">
+<div class="foot-about">
+<p class="foot-name" dir="ltr">{{site_name}}</p>
 <p>{{credit}}</p>
-<p><a href="{{code_index}}">{{code_index_label}}</a> &nbsp; <a href="https://github.com/Mkko000/algorithms">{{repo}}</a></p>
-</div></footer>
+</div>
+<div class="foot-links">
+<p>{{built_by}} <a href="https://github.com/saeeedhany" dir="ltr">github.com/saeeedhany</a></p>
+<p><a href="{{code_index}}">{{code_index_label}}</a></p>
+<p><a href="https://github.com/Mkko000/algorithms">{{repo}}</a></p>
+</div>
+</div>
+</footer>
 <script type="application/json" id="ui">{{ui_json}}</script>
 <script src="{{assets}}js/app.js" defer></script>
 <script src="{{assets}}js/bigoh.js" defer></script>

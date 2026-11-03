@@ -20,27 +20,69 @@
   }
 
   function setupTheme() {
-    var btn = document.querySelector(".theme-toggle");
-    if (!btn) return;
+    var buttons = document.querySelectorAll(".theme-toggle");
+    if (!buttons.length) return;
     var order = ["auto", "light", "dark"];
     function current() {
       var t = root.dataset.theme;
       return t === "light" || t === "dark" ? t : "auto";
     }
-    function label() { btn.textContent = btn.dataset[current()] || btn.textContent; }
-    btn.addEventListener("click", function () {
-      var next = order[(order.indexOf(current()) + 1) % order.length];
-      if (next === "auto") { delete root.dataset.theme; store("algo-theme", null); }
-      else { root.dataset.theme = next; store("algo-theme", next); }
-      label();
+    function label() {
+      buttons.forEach(function (b) { b.textContent = b.dataset[current()] || b.textContent; });
+    }
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var next = order[(order.indexOf(current()) + 1) % order.length];
+        if (next === "auto") { delete root.dataset.theme; store("algo-theme", null); }
+        else { root.dataset.theme = next; store("algo-theme", next); }
+        label();
+      });
     });
     label();
   }
 
   function setupLang() {
-    var a = document.querySelector(".lang-switch");
-    if (a) a.addEventListener("click", function () { store("algo-lang", a.getAttribute("hreflang")); });
+    document.querySelectorAll(".lang-switch").forEach(function (a) {
+      a.addEventListener("click", function () { store("algo-lang", a.getAttribute("hreflang")); });
+    });
     store("algo-lang", root.lang);
+  }
+
+  function setupMenu() {
+    var head = document.querySelector(".site-head");
+    var btn = document.querySelector(".menu-btn");
+    var panel = document.getElementById("menu");
+    if (!head || !btn || !panel) return;
+    function set(open) {
+      head.classList.toggle("menu-open", open);
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    btn.addEventListener("click", function () { set(!head.classList.contains("menu-open")); });
+    panel.addEventListener("click", function (e) { if (e.target.closest("a")) set(false); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && head.classList.contains("menu-open")) { set(false); btn.focus(); }
+    });
+    document.addEventListener("click", function (e) {
+      if (head.classList.contains("menu-open") && !head.contains(e.target)) set(false);
+    });
+  }
+
+  function setupOutline() {
+    var links = document.querySelectorAll(".toc a");
+    if (!links.length || !("IntersectionObserver" in window)) return;
+    var byId = {};
+    links.forEach(function (a) { byId[decodeURIComponent(a.hash.slice(1))] = a; });
+    var heads = [];
+    Object.keys(byId).forEach(function (id) { var h = document.getElementById(id); if (h) heads.push(h); });
+    function mark(id) {
+      links.forEach(function (a) { a.classList.toggle("on", a === byId[id]); });
+    }
+    var obs = new IntersectionObserver(function () {
+      var best = null;
+      heads.forEach(function (h) { if (h.getBoundingClientRect().top < 140) best = h; });
+      mark(best ? best.id : heads.length ? heads[0].id : null);
+    }, { rootMargin: "0px 0px -60% 0px", threshold: [0, 1] });
+    heads.forEach(function (h) { obs.observe(h); });
   }
 
   function doneList() {
@@ -261,6 +303,8 @@
 
   setupTheme();
   setupLang();
+  setupMenu();
+  setupOutline();
   setupProgress();
   setupQuizzes();
   setupSteps();

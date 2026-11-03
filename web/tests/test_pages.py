@@ -7,7 +7,7 @@ from web.figures import Figure
 from web.lib.content import RenderContext, render_page
 from web.lib.manifest import load_course
 from web.lib.pages import (Site, fill, load_ui, render_code_index, render_code_page, render_home,
-                           render_lesson, render_missing, resolve_sources, url)
+                           render_lesson, render_missing, render_root, resolve_sources, url)
 
 TOML = '''
 [[part]]
@@ -128,6 +128,31 @@ class PagesTest(unittest.TestCase):
         self.assertIn('class="row ex todo"', en)
         self.assertIn("Arabic only for now", en)
         self.assertNotIn("todo", render_home(self.site, "ar"))
+
+    def test_root_defaults_to_arabic(self):
+        h = render_root(self.site)
+        self.assertIn('"ar"', h)
+        self.assertNotIn("navigator.language", h)
+        self.assertLess(h.index('hreflang="ar"'), h.index('hreflang="en"'))
+
+    def test_footer_credits_maintainer(self):
+        for lang in ("ar", "en"):
+            h = render_home(self.site, lang)
+            self.assertIn('href="https://github.com/saeeedhany"', h)
+            self.assertIn(self.site.ui[lang]["built_by"], h)
+
+    def test_menu_button_and_panel(self):
+        h = self.lesson("en", "## One\n\n## Two\n\n## Three\n")
+        self.assertIn('class="menu-btn"', h)
+        self.assertIn('aria-controls="menu"', h)
+        self.assertIn('id="menu"', h)
+        panel = h[h.index('id="menu"'):]
+        self.assertIn('href="#one"', panel)
+
+    def test_arabic_pages_isolate_english_runs(self):
+        h = self.lesson("ar", "الـ loop الداخلي\n")
+        self.assertIn('<span class="lt" dir="ltr">loop</span>', h)
+        self.assertNotIn('class="lt"', self.lesson("en", "the loop\n"))
 
     def test_code_page(self):
         h = render_code_page(self.site, "en", "src/07-quicksort/quicksort.c", [self.site.course.by_slug["a"]])

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from html import escape
 from pathlib import Path
 
+from web.lib.bidi import isolate_latin
 from web.lib.csource import ROOT, header_comment, run_output, whole_file
 from web.lib.highlight import highlight_c
 
@@ -65,14 +66,14 @@ def code_url(site: Site, lang: str, path: str) -> str:
     return url(site, lang, "code", code_slug(path))
 
 
-def page(site: Site, lang: str, title: str, main: str, twin: str, description: str = "") -> str:
+def page(site: Site, lang: str, title: str, main: str, twin: str, description: str = "", menu_toc: str = "") -> str:
     ui = site.ui[lang]
     o = other(lang)
     alternate = (f'<link rel="alternate" hreflang="{lang}" href="{escape(url_self(twin, lang, o))}">\n'
                  f'<link rel="alternate" hreflang="{o}" href="{escape(twin)}">')
     done = len(site.course.lessons)
     ui_json = json.dumps({k: ui[k] for k in JS_UI_KEYS}, ensure_ascii=False).replace("</", "<\\/")
-    return fill(
+    html = fill(
         template("base"),
         lang=lang, dir="rtl" if lang == "ar" else "ltr",
         title=escape(title), description=escape(description or ui["tagline"]),
@@ -83,7 +84,13 @@ def page(site: Site, lang: str, title: str, main: str, twin: str, description: s
         theme_auto=escape(ui["theme_auto"]), theme_light=escape(ui["theme_light"]), theme_dark=escape(ui["theme_dark"]),
         main=main, credit=escape(ui["credit"]), code_index=url(site, lang, "code"),
         code_index_label=escape(ui["code_index"]), repo=escape(ui["repo"]), ui_json=ui_json,
+        contents=escape(ui["contents"]), nav_label=escape(ui["nav_label"]), menu_label=escape(ui["menu_label"]),
+        menu_toc=menu_toc, built_by=escape(ui["built_by"]),
     )
+    if lang == "ar":
+        head, _, body = html.partition("<body>")
+        html = head + "<body>" + isolate_latin(body)
+    return html
 
 
 def url_self(twin: str, lang: str, twin_lang: str) -> str:
@@ -122,12 +129,26 @@ def render_home(site: Site, lang: str) -> str:
     return page(site, lang, ui["site_name"], main, url(site, other(lang)))
 
 
-def _toc(rendered, ui) -> str:
+def _toc_list(rendered) -> str:
     items = [e for e in rendered.toc if e[0] in (2, 3)]
     if len(items) < 3:
         return ""
-    lis = "".join(f'<li class="l{lvl}"><a href="#{hid}">{escape(text)}</a></li>' for lvl, hid, text in items)
-    return f'<aside class="toc" aria-label="{escape(ui["on_this_page"])}"><p>{escape(ui["on_this_page"])}</p><ol>{lis}</ol></aside>'
+    return "".join(f'<li class="l{lvl}"><a href="#{hid}">{escape(text)}</a></li>' for lvl, hid, text in items)
+
+
+def _toc(rendered, ui) -> str:
+    lis = _toc_list(rendered)
+    if not lis:
+        return ""
+    return (f'<aside class="toc" aria-label="{escape(ui["on_this_page"])}"><div class="toc-inner">'
+            f'<p class="toc-title">{escape(ui["on_this_page"])}</p><ol>{lis}</ol></div></aside>')
+
+
+def _menu_toc(rendered, ui) -> str:
+    lis = _toc_list(rendered)
+    if not lis:
+        return ""
+    return f'<div class="menu-toc"><p class="toc-title">{escape(ui["on_this_page"])}</p><ol>{lis}</ol></div>'
 
 
 def _pager_link(site, lang, lesson, cls, label) -> str:
@@ -154,7 +175,8 @@ def render_lesson(site: Site, lang: str, lesson, rendered) -> str:
                 next=_pager_link(site, lang, nxt, "next", ui["next"]),
                 slug=lesson.slug, mark_done=escape(ui["mark_done"]), done=escape(ui["done"]),
                 toc=_toc(rendered, ui))
-    return page(site, lang, f'{lesson.title[lang]} | {ui["site_name"]}', main, url(site, other(lang), lesson.slug))
+    return page(site, lang, f'{lesson.title[lang]} | {ui["site_name"]}', main, url(site, other(lang), lesson.slug),
+                menu_toc=_menu_toc(rendered, ui))
 
 
 def render_missing(site: Site, lesson) -> str:
@@ -250,7 +272,7 @@ def render_root(site: Site) -> str:
         f'<title>{escape(site.ui["en"]["site_name"])}</title>'
         f'<link rel="stylesheet" href="{asset(site, "css/tokens.css")}"><link rel="stylesheet" href="{asset(site, "css/base.css")}">'
         '<script>(function(){var l=null;try{l=localStorage.getItem("algo-lang")}catch(e){}'
-        'if(l!=="ar"&&l!=="en"){l=(navigator.language||"").slice(0,2)==="en"?"en":"ar"}'
+        'if(l!=="ar"&&l!=="en"){l="ar"}'
         f'location.replace("{site.base}"+l+"/")}})()</script></head>'
         f'<body><main class="wrap missing"><h1>{escape(site.ui["en"]["site_name"])}</h1><p>{links}</p></main></body></html>'
     )
