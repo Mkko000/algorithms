@@ -121,7 +121,13 @@ class PagesTest(unittest.TestCase):
         h = render_home(self.site, "en")
         self.assertIn("Part one", h)
         self.assertIn('href="/algorithms/en/a/"', h)
-        self.assertIn('class="row ex"', h)
+        self.assertIn('class="row ex', h)
+
+    def test_english_home_marks_arabic_only(self):
+        en = render_home(self.site, "en")
+        self.assertIn('class="row ex todo"', en)
+        self.assertIn("Arabic only for now", en)
+        self.assertNotIn("todo", render_home(self.site, "ar"))
 
     def test_code_page(self):
         h = render_code_page(self.site, "en", "src/07-quicksort/quicksort.c", [self.site.course.by_slug["a"]])

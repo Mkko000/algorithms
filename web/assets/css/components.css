@@ -114,3 +114,5 @@ html:not(.js) .trace-ctl,html:not(.js) .stepbar{display:none}
 .used-in{columns:2 16rem}
 .missing{padding-block:5rem;max-width:var(--measure)}
 :lang(ar) .trace-say,:lang(ar) .figure figcaption,:lang(ar) .steps figcaption{direction:rtl;unicode-bidi:isolate}
+.row.todo .t{color:var(--muted)}
+.row .note{font-size:.8rem;font-style:italic;color:var(--muted);margin-inline-start:.6rem}

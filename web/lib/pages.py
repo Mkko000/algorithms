@@ -103,9 +103,13 @@ def render_home(site: Site, lang: str) -> str:
         for l in part.lessons:
             n += 1
             cls = "row ex" if l.kind == "exercises" else "row"
+            note = ""
+            if lang == "en" and l.slug in site.arabic_only:
+                cls += " todo"
+                note = f'<span class="note">{escape(ui["arabic_only_note"])}</span>'
             rows.append(
                 f'<li><a class="{cls}" href="{url(site, lang, l.slug)}" data-slug="{l.slug}">'
-                f'<span class="num">{n}</span><span class="t">{escape(l.title[lang])}</span>'
+                f'<span class="num">{n}</span><span class="t">{escape(l.title[lang])}{note}</span>'
                 f'<span class="lead" aria-hidden="true"></span>'
                 f'<span class="min">{escape(ui["minutes"].format(n=l.minutes))}</span></a></li>')
         parts.append(f'<h2>{escape(part.title[lang])}</h2>\n<ol>{"".join(rows)}</ol>')
