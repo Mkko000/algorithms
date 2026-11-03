@@ -1,3 +1,4 @@
+import itertools
 import math
 import re
 from html import escape
@@ -70,8 +71,21 @@ def _map_body(body: str) -> str:
 _SVG = re.compile(r"<svg[\s\S]*?</svg>")
 
 
+_marker_ids = itertools.count(1)
+
+
+def _local_markers(svg_text: str) -> str:
+    if "url(#ah)" not in svg_text and 'id="ah"' not in svg_text:
+        return svg_text
+    if 'id="ah"' not in svg_text:
+        head = svg_text.index(">") + 1
+        svg_text = svg_text[:head] + _map_body(DEFS) + svg_text[head:]
+    n = next(_marker_ids)
+    return svg_text.replace('id="ah"', f'id="ah{n}"').replace("url(#ah)", f"url(#ah{n})")
+
+
 def map_svg_classes(html: str) -> str:
-    return _SVG.sub(lambda m: _map_body(m.group()), html)
+    return _SVG.sub(lambda m: _local_markers(_map_body(m.group())), html)
 
 
 def svg(w, h, body, label="", cls="fsvg"):

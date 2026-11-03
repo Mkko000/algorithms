@@ -97,3 +97,16 @@ class CaptionColorTest(unittest.TestCase):
         stale = re.compile("الأزرق|البنفسجي|البرتقالي|الأخضر|أزرق|بنفسجي|برتقالي|أخضر")
         for f in all_figures().values():
             self.assertIsNone(stale.search(f.html), f.name)
+
+
+class MarkerIdTest(unittest.TestCase):
+    def test_markers_are_local_and_unique(self):
+        seen = set()
+        for f in all_figures().values():
+            for svg in re.findall(r"<svg[\s\S]*?</svg>", f.html):
+                ids = re.findall(r'<marker id="([^"]+)"', svg)
+                for ref in set(re.findall(r"url\(#([^)]+)\)", svg)):
+                    self.assertIn(ref, ids, f.name)
+                for i in ids:
+                    self.assertNotIn(i, seen, f.name)
+                    seen.add(i)
