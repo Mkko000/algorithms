@@ -228,8 +228,8 @@
           if (hit) on = ln;
         });
         if (on && code) {
-          var top = on.offsetTop - code.clientHeight / 2;
-          code.scrollTop = Math.max(0, top);
+          var delta = on.getBoundingClientRect().top - code.getBoundingClientRect().top;
+          code.scrollTop = Math.max(0, code.scrollTop + delta - code.clientHeight / 2 + on.offsetHeight / 2);
         }
         scrub.max = String(frames().length - 1);
         scrub.value = String(k);

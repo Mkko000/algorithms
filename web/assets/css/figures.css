@@ -1,4 +1,4 @@
-.fsvg{overflow:visible;flex:none}
+.fsvg{overflow:visible;flex:none;max-width:none}
 .fsvg text{font-family:var(--font-mono)}
 .s-idle,.s-look,.s-focus,.s-done{stroke:var(--ink);stroke-width:var(--stroke);fill:var(--bg)}
 .s-look{stroke:var(--accent);stroke-width:2.75px}
