@@ -289,3 +289,15 @@ en = "A Fibonacci tree of height 5 (exercise 5.73): under the root is a Fibonacc
 [[t]]
 ar = "شجرة divide-and-conquer لـ N = 11 (تمرين 5.74): كل node مكتوب فيها حجم المسألة، وبتتقسم ⌊N/2⌋ و⌈N/2⌉. الأوراق البنفسجي هي الـ 11 مسألة اللي حجمها 1. مجموع أعماقهم = 39، وده بين N lg N = 38.1 وN lg N + N = 49.1 (تمرين 5.75)."
 en = "The divide and conquer tree for N = 11 (exercise 5.74): each node shows the size of its problem, which splits into ⌊N/2⌋ and ⌈N/2⌉. The outlined leaves are the 11 problems of size 1. The sum of their depths = 39, which lies between N lg N = 38.1 and N lg N + N = 49.1 (exercise 5.75)."
+
+[[t]]
+ar = "Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، الأزرق هو الخانة i اللي اتحط فيها الأصغر، والبنفسجي هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا."
+en = "Selection sort on <code>ASORTINGEXAMPLE</code>: in each row, the highlighted entry is position i, where the smallest item was placed, and the outlined entry is where that smallest item came from (they were exchanged). Faded entries are already in their final place. Notice: a faded entry is never touched again."
+
+[[t]]
+ar = "Insertion sort: في السطر i، العنصر الأزرق هو اللي «اتزق» شمال لحد مكانه، والبنفسجي هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات البنفسجي في كل سطر = عدد الـ inversions اللي اتصلحت."
+en = "Insertion sort: in row i, the highlighted item is the one pushed left into its place, and the outlined items are the ones that shifted one step right. The faded part on the right has not been touched yet. The number of outlined entries in each row = the number of inversions fixed."
+
+[[t]]
+ar = "Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (الأزرق). البنفسجي: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة."
+en = "Bubble sort: each pass from right to left brings the smallest remaining item to position i (highlighted). Outlined: items that moved during the pass. Notice how slowly the end improves: large items move only one step right per pass."
