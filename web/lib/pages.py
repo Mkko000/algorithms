@@ -11,6 +11,8 @@ from web.lib.highlight import highlight_c
 
 TEMPLATES = ROOT / "web" / "templates"
 GITHUB = "https://github.com/Mkko000/algorithms/blob/main/"
+AUTHOR_URL = "https://github.com/Mkko000"
+MAINTAINER_URL = "https://github.com/saeeedhany"
 PLACEHOLDER = re.compile(r"\{\{(\w+)\}\}")
 JS_UI_KEYS = ("step", "play", "pause", "reset", "step_back", "step_forward", "theme_auto", "theme_light",
               "theme_dark", "progress", "done", "mark_done", "start", "continue", "bigoh_title", "bigoh_n",
@@ -27,6 +29,10 @@ class Site:
 
 def load_ui(path: Path) -> dict:
     return tomllib.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _linked(text: str, key: str, name: str, href: str) -> str:
+    return escape(text).replace("{" + key + "}", f'<a href="{href}">{escape(name)}</a>')
 
 
 def url(site: Site, lang: str, *parts: str) -> str:
@@ -82,10 +88,10 @@ def page(site: Site, lang: str, title: str, main: str, twin: str, description: s
         total=done, progress_tpl=escape(ui["progress"]),
         switch_href=escape(twin), switch_lang=o, switch_label=escape(ui["switch_to"]),
         theme_auto=escape(ui["theme_auto"]), theme_light=escape(ui["theme_light"]), theme_dark=escape(ui["theme_dark"]),
-        main=main, credit=escape(ui["credit"]), code_index=url(site, lang, "code"),
+        main=main, credit=_linked(ui["credit"], "author", ui["author_name"], AUTHOR_URL), code_index=url(site, lang, "code"),
         code_index_label=escape(ui["code_index"]), repo=escape(ui["repo"]), ui_json=ui_json,
         contents=escape(ui["contents"]), nav_label=escape(ui["nav_label"]), menu_label=escape(ui["menu_label"]),
-        menu_toc=menu_toc, built_by=escape(ui["built_by"]),
+        menu_toc=menu_toc, built_by=_linked(ui["built_by"], "name", ui["maintainer_name"], MAINTAINER_URL),
     )
     if lang == "ar":
         head, _, body = html.partition("<body>")

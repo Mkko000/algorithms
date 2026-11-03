@@ -136,10 +136,13 @@ class PagesTest(unittest.TestCase):
         self.assertLess(h.index('hreflang="ar"'), h.index('hreflang="en"'))
 
     def test_footer_credits_maintainer(self):
+        names = {"ar": "سعيد", "en": "Saeed"}
+        authors = {"ar": "محمد السيسي", "en": "Mohammed El Sisi"}
         for lang in ("ar", "en"):
             h = render_home(self.site, lang)
-            self.assertIn('href="https://github.com/saeeedhany"', h)
-            self.assertIn(self.site.ui[lang]["built_by"], h)
+            self.assertIn(f'<a href="https://github.com/saeeedhany">{names[lang]}</a>', h)
+            self.assertIn(f'<a href="https://github.com/Mkko000">{authors[lang]}</a>', h)
+            self.assertNotIn(">github.com/saeeedhany<", h)
 
     def test_menu_button_and_panel(self):
         h = self.lesson("en", "## One\n\n## Two\n\n## Three\n")

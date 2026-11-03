@@ -46,16 +46,19 @@
 </header>
 {{main}}
 <footer class="site-foot">
-<div class="wrap foot-grid">
+<div class="wrap foot-top">
 <div class="foot-about">
-<p class="foot-name" dir="ltr">{{site_name}}</p>
-<p>{{credit}}</p>
+<p class="foot-name"><span dir="ltr">{{site_name}}</span></p>
+<p class="foot-credit">{{credit}}</p>
 </div>
-<div class="foot-links">
-<p>{{built_by}} <a href="https://github.com/saeeedhany" dir="ltr">github.com/saeeedhany</a></p>
-<p><a href="{{code_index}}">{{code_index_label}}</a></p>
-<p><a href="https://github.com/Mkko000/algorithms">{{repo}}</a></p>
+<nav class="foot-links" aria-label="{{nav_label}}">
+<a href="{{home}}">{{contents}}</a>
+<a href="{{code_index}}">{{code_index_label}}</a>
+<a href="https://github.com/Mkko000/algorithms">{{repo}}</a>
+</nav>
 </div>
+<div class="wrap foot-bottom">
+<p>{{built_by}}</p>
 </div>
 </footer>
 <script type="application/json" id="ui">{{ui_json}}</script>

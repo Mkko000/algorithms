@@ -124,6 +124,6 @@ The site is deployed to GitHub Pages by the workflow in `.github/workflows/pages
 
 ## Credits
 
-Code and lessons by **Mohammed El Sisi**. Based on Robert Sedgewick, *Algorithms in C* (3rd edition), Parts 1 to 4: Fundamentals, Data Structures, Sorting, Searching (Addison Wesley), with data structure chapters drawn from Reema Thareja, Mark Allen Weiss and other textbooks. The books belong to their authors and publishers; this project does not reproduce their text.
+Code and lessons by **[Mohammed El Sisi](https://github.com/Mkko000)**. Based on Robert Sedgewick, *Algorithms in C* (3rd edition), Parts 1 to 4: Fundamentals, Data Structures, Sorting, Searching (Addison Wesley), with data structure chapters drawn from Reema Thareja, Mark Allen Weiss and other textbooks. The books belong to their authors and publishers; this project does not reproduce their text.
 
 Fonts: Source Serif 4, Noto Naskh Arabic and IBM Plex Mono, under the SIL Open Font License (`web/assets/fonts/OFL.txt`).

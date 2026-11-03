@@ -104,7 +104,7 @@ Makefile            every command above
 
 ## الحقوق
 
-الكود والدروس من تأليف **محمد السيسي**. مبني على كتاب Robert Sedgewick، *Algorithms in C* (الطبعة التالتة)، الأجزاء من 1 لـ 4: Fundamentals وData Structures وSorting وSearching (Addison Wesley)، وفصول هياكل البيانات من كتب Reema Thareja وMark Allen Weiss وغيرهم. الكتب حقوقها لأصحابها والناشرين، والمشروع ده مش بيعيد نشر نصّها.
+الكود والدروس من تأليف **[محمد السيسي](https://github.com/Mkko000)**. مبني على كتاب Robert Sedgewick، *Algorithms in C* (الطبعة التالتة)، الأجزاء من 1 لـ 4: Fundamentals وData Structures وSorting وSearching (Addison Wesley)، وفصول هياكل البيانات من كتب Reema Thareja وMark Allen Weiss وغيرهم. الكتب حقوقها لأصحابها والناشرين، والمشروع ده مش بيعيد نشر نصّها.
 
 الخطوط: Source Serif 4 وNoto Naskh Arabic وIBM Plex Mono، برخصة SIL Open Font License (`web/assets/fonts/OFL.txt`).
 
