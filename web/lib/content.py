@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from html import escape
+from html import escape, unescape
 
 from markdown_it import MarkdownIt
 
@@ -262,7 +262,7 @@ def _add_ids(html: str, out: Rendered) -> str:
     def rep(m):
         count[0] += 1
         level, inner = int(m.group(1)), m.group(2)
-        plain = TAG.sub("", inner).strip()
+        plain = unescape(TAG.sub("", inner)).strip()
         has_arabic = re.search(r"[؀-ۿ]", plain) is not None
         base = _slug(plain)
         if not base or (has_arabic and not re.search(r"[a-z]", base)):

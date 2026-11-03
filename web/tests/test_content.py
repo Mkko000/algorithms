@@ -141,6 +141,10 @@ class ContentTest(unittest.TestCase):
         self.assertEqual(r.toc, [(2, "7-1-the-basic-algorithm", "7.1 The basic algorithm"),
                                  (2, "s-2", "الخوارزمية"), (3, "details", "Details")])
 
+    def test_toc_text_is_plain(self):
+        r = render_page("## P&H and B&D\n", ctx())
+        self.assertEqual(r.toc, [(2, "p-h-and-b-d", "P&H and B&D")])
+
     def test_duplicate_heading_ids(self):
         r = render_page("## Intro\n\n## Intro\n", ctx())
         self.assertIn('id="intro"', r.html)
