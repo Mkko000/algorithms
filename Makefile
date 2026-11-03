@@ -9,7 +9,7 @@ SOURCES := $(sort $(wildcard src/*/*.c src/*/exercises/*.c))
 BINDIR  = bin
 TARGETS = $(patsubst src/%.c,$(BINDIR)/%,$(SOURCES))
 
-.PHONY: all c run test check-c clean venv site serve check test-web
+.PHONY: all c run test check-c clean venv site serve check test-web readme
 
 all: c
 
@@ -57,3 +57,6 @@ test-web:
 
 check: test-web
 	$(PY) -m web.check
+
+readme:
+	$(PY) -m web.lib.readme
