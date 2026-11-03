@@ -189,7 +189,7 @@ def _fence(node: Node, ctx: RenderContext) -> str:
     else:
         code = escape(node.text)
     if "listing" in node.args:
-        cap = f'{escape(ctx.ui.get("listing", ""))} · {escape(node.args["listing"])}'
+        cap = f'{escape(ctx.ui.get("listing", ""))} {escape(node.args["listing"])}'
         return _code_block(code, cap)
     if lang == "c":
         return _code_block(code)

@@ -158,7 +158,7 @@ def section_html(trace: Trace, templates: dict, ui: dict, preset_labels: dict, d
     return (
         f'<section class="trace" dir="ltr" data-trace="{escape(trace.name)}" tabindex="0" '
         f'aria-label="{escape(ui.get("trace", ""))} {escape(trace.name)}">'
-        f'<header class="trace-head"><span>{escape(ui.get("trace", ""))} · {escape(trace.name)}</span>'
+        f'<header class="trace-head"><span>{escape(trace.name)}</span>'
         f'<span class="trace-src" data-src="{escape(trace.source)}">{escape(trace.source)}</span></header>'
         f'<div class="trace-body"><pre class="trace-code"><code>{code}</code></pre>'
         f'<div class="trace-state"><div class="trace-scene">{first.svg}</div>'

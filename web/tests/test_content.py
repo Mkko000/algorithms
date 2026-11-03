@@ -5,7 +5,7 @@ from web.figures import Figure
 from web.lib.content import ContentError, RenderContext, render_page
 from web.tests.support import sample_c
 
-UI = {"output": "Output", "solution": "Solution", "listing": "Book listing", "problem": "Problem",
+UI = {"output": "Output", "solution": "Solution", "listing": "From the book:", "problem": "Problem",
       "think": "How to think about it", "goal": "Goal", "tip": "Tip", "oops": "Watch out"}
 
 
@@ -56,7 +56,7 @@ class ContentTest(unittest.TestCase):
 
     def test_listing_caption(self):
         r = render_page('```c listing="Program 7.1"\nint x;\n```\n', ctx())
-        self.assertIn("<figcaption>Book listing · Program 7.1</figcaption>", r.html)
+        self.assertIn("<figcaption>From the book: Program 7.1</figcaption>", r.html)
         self.assertIn('<span class="k">int</span>', r.html)
 
     def test_plain_fence(self):
