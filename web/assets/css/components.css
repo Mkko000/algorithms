@@ -113,3 +113,4 @@ html:not(.js) .trace-ctl,html:not(.js) .stepbar{display:none}
 .code-about{white-space:pre-wrap;font-family:var(--font-mono);font-size:.82rem;color:var(--muted);background:transparent;border-inline-start:2px solid var(--rule);padding-inline-start:1rem}
 .used-in{columns:2 16rem}
 .missing{padding-block:5rem;max-width:var(--measure)}
+:lang(ar) .trace-say,:lang(ar) .figure figcaption,:lang(ar) .steps figcaption{direction:rtl;unicode-bidi:isolate}

@@ -107,6 +107,10 @@ class PagesTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve_sources('<a href="lesson:nope">x</a>', self.site, "en")
 
+    def test_arabic_comma(self):
+        h = self.lesson("ar")
+        self.assertIn("درس 1 من 2، حوالي 10 دقيقة", h)
+
     def test_pager_and_done(self):
         h = self.lesson("en")
         self.assertIn('href="/algorithms/en/ex-ch1/"', h)

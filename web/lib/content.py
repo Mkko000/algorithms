@@ -193,7 +193,7 @@ def _fence(node: Node, ctx: RenderContext) -> str:
         return _code_block(code, cap)
     if lang == "c":
         return _code_block(code)
-    return f"<pre><code>{code}</code></pre>"
+    return f'<pre dir="ltr"><code>{code}</code></pre>'
 
 
 OPTION = re.compile(r"^\s*\d+\.\s+\[( |x)\]\s+(.*)$")

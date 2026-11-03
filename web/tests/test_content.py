@@ -61,7 +61,7 @@ class ContentTest(unittest.TestCase):
 
     def test_plain_fence(self):
         r = render_page("```\na < b\n```\n", ctx())
-        self.assertIn("<pre><code>a &lt; b</code></pre>", r.html)
+        self.assertIn('<pre dir="ltr"><code>a &lt; b</code></pre>', r.html)
         self.assertNotIn("figcaption", r.html)
 
     def test_figure_and_steps(self):

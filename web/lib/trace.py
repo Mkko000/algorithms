@@ -145,7 +145,7 @@ def section_html(trace: Trace, templates: dict, ui: dict, preset_labels: dict, d
     n0 = trace.code.first_line
     lines = highlight_c(trace.code.text).split("\n")
     code = "".join(
-        f'<span class="ln{" on" if first.line == n0 + k else ""}" data-n="{n0 + k}">{l}</span>\n'
+        f'<span class="ln{" on" if first.line == n0 + k else ""}" data-n="{n0 + k}">{l}</span>'
         for k, l in enumerate(lines))
     options = "".join(
         f'<option value="{escape(p)}">{escape(preset_labels.get(p, p))}</option>' for p in trace.presets)

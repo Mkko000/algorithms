@@ -142,8 +142,8 @@ def render_lesson(site: Site, lang: str, lesson, rendered) -> str:
     part = next(p for p in site.course.parts if p.key == lesson.part)
     context = f'<a href="{url(site, lang)}">{escape(part.title[lang])}</a>'
     if lesson.chapter:
-        context += f", {escape(ui['chapter'].format(n=lesson.chapter))}"
-    meta = f'{ui["lesson_n_of"].format(n=i + 1, total=len(lessons))}, {ui["about_minutes"].format(n=lesson.minutes)}'
+        context += f"{escape(ui['sep'])}{escape(ui['chapter'].format(n=lesson.chapter))}"
+    meta = f'{ui["lesson_n_of"].format(n=i + 1, total=len(lessons))}{ui["sep"]}{ui["about_minutes"].format(n=lesson.minutes)}'
     main = fill(template("lesson"), context=context, title=escape(lesson.title[lang]), meta=escape(meta),
                 body=resolve_sources(rendered.html, site, lang),
                 prev=_pager_link(site, lang, prev, "prev", ui["prev"]),
