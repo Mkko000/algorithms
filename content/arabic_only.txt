@@ -1,16 +1,3 @@
-data-structs
-linked-lists
-strings-compound
-ex-ch3
-adt
-queues-adt
-first-class
-ex-ch4
-recursion
-dp
-trees
-graph-traversal
-ex-ch5
 elem-sort
 shellsort-more
 ex-ch6

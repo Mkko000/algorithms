@@ -61,3 +61,231 @@ en = "6-1: the tree of 1 (smaller or equal) now hangs under 3. The smaller tree 
 [[t]]
 ar = "شجرة الـ recurrence <code>C(N) = 2C(N/2) + N</code> لـ N = 16: كل مستوى مجموع أرقامه 16 (= N)، وفيه lg N = 4 مستويات تحت الجذر — فالمجموع N lg N. ده البرهان «بالرسم» لـ Formula 2.4."
 en = "The recurrence tree for <code>C(N) = 2C(N/2) + N</code> with N = 16: the numbers on every level add up to 16 (= N), and there are lg N = 4 levels under the root, so the total is N lg N. This is the proof of Formula 2.4 \"by picture\"."
+
+[[t]]
+ar = "عايزين ندخّل <b>C</b> بعد العقدة x (اللي فيها B)."
+en = "We want to insert <b>C</b> after node x (the one holding B)."
+
+[[t]]
+ar = "عملنا عقدة جديدة t فيها C (لسه مش متوصّلة بحاجة)."
+en = "We made a new node t holding C (not linked to anything yet)."
+
+[[t]]
+ar = "السطر الأول: <code>t->next = x->next</code> (C بقت بتشاور على D)، والتاني: <code>x->next = t</code>. لو عكست الترتيب، D والباقي يضيعوا."
+en = "The first line: <code>t->next = x->next</code> (C now points to D), and the second: <code>x->next = t</code>. If you swap the order, D and the rest are lost."
+
+[[t]]
+ar = "والحذف بعد x: <code>t = x->next; x->next = t->next; free(t);</code> — رجعنا للأول."
+en = "And deleting after x: <code>t = x->next; x->next = t->next; free(t);</code> brings us back to the start."
+
+[[t]]
+ar = "Josephus بـ N=9 وM=5: قايمة دائرية، كل عقدة بتشاور على اللي بعدها."
+en = "Josephus with N=9 and M=5: a circular list where every node points to the next one."
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>5</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5"
+en = "We counted 5, and <b>5</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>1</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1"
+en = "We counted 5, and <b>1</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>7</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1 7"
+en = "We counted 5, and <b>7</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1 7"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>4</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1 7 4"
+en = "We counted 5, and <b>4</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1 7 4"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>3</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1 7 4 3"
+en = "We counted 5, and <b>3</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1 7 4 3"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>6</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1 7 4 3 6"
+en = "We counted 5, and <b>6</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1 7 4 3 6"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>9</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1 7 4 3 6 9"
+en = "We counted 5, and <b>9</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1 7 4 3 6 9"
+
+[[t]]
+ar = "عدّينا 5 — خرج <b>2</b> (<code>x->next = x->next->next</code>). اللي خرجوا لحد دلوقتي: 5 1 7 4 3 6 9 2"
+en = "We counted 5, and <b>2</b> leaves (<code>x->next = x->next->next</code>). Out so far: 5 1 7 4 3 6 9 2"
+
+[[t]]
+ar = "فضل <b>8</b> لوحده — هو الناجي، وبيشاور على نفسه (<code>x == x->next</code>)."
+en = "<b>8</b> is left alone. It is the survivor, and it points to itself (<code>x == x->next</code>)."
+
+[[t]]
+ar = "البداية: r فاضية وy هي القايمة كلها."
+en = "The start: r is empty and y is the whole list."
+
+[[t]]
+ar = "خطوة 1: خدنا أول عقدة من y (1) وخلّيناها تشاور على r. سهم واحد اتقلب."
+en = "Step 1: we took the first node of y (1) and made it point to r. One arrow flipped."
+
+[[t]]
+ar = "خطوة 2: خدنا أول عقدة من y (2) وخلّيناها تشاور على r. سهم واحد اتقلب."
+en = "Step 2: we took the first node of y (2) and made it point to r. One arrow flipped."
+
+[[t]]
+ar = "خطوة 3: خدنا أول عقدة من y (3) وخلّيناها تشاور على r. سهم واحد اتقلب."
+en = "Step 3: we took the first node of y (3) and made it point to r. One arrow flipped."
+
+[[t]]
+ar = "y خلصت: r هي القايمة معكوسة. كل عقدة اتلمست مرة واحدة → O(N)."
+en = "y is used up: r is the list reversed. Every node was touched once, so O(N)."
+
+[[t]]
+ar = "r (اللي اتعكس)"
+en = "r (reversed so far)"
+
+[[t]]
+ar = "y (الباقي)"
+en = "y (the rest)"
+
+[[t]]
+ar = "الـ stack بعد كل رمز في <code>5 9 8 + 4 6 * * 7 + *</code> (قاعدة الـ stack على الشمال). الأزرق: رقم اتعمله push. البنفسجي: ناتج عملية (pop اتنين وpush واحد). آخر سطر: 2075."
+en = "The stack after each symbol of <code>5 9 8 + 4 6 * * 7 + *</code> (the bottom of the stack is on the left). Highlighted: a number that was pushed. Outlined: the result of an operator (pop two, push one). The last row: 2075."
+
+[[t]]
+ar = "put A: اتحط في خانة 0 وtail بقى 1."
+en = "put A: stored in slot 0 and tail became 1."
+
+[[t]]
+ar = "put B: اتحط في خانة 1 وtail بقى 2."
+en = "put B: stored in slot 1 and tail became 2."
+
+[[t]]
+ar = "put C: اتحط في خانة 2 وtail بقى 3."
+en = "put C: stored in slot 2 and tail became 3."
+
+[[t]]
+ar = "get → A: head اتقدّم لـ 1. الخانة اللي فضيت هتتستخدم تاني لما tail يلف."
+en = "get gives A: head moved to 1. The freed slot will be used again when tail wraps around."
+
+[[t]]
+ar = "put D: اتحط في خانة 3 وtail بقى 4."
+en = "put D: stored in slot 3 and tail became 4."
+
+[[t]]
+ar = "put E: اتحط في خانة 4 وtail بقى 5."
+en = "put E: stored in slot 4 and tail became 5."
+
+[[t]]
+ar = "get → B: head اتقدّم لـ 2. الخانة اللي فضيت هتتستخدم تاني لما tail يلف."
+en = "get gives B: head moved to 2. The freed slot will be used again when tail wraps around."
+
+[[t]]
+ar = "get → C: head اتقدّم لـ 3. الخانة اللي فضيت هتتستخدم تاني لما tail يلف."
+en = "get gives C: head moved to 3. The freed slot will be used again when tail wraps around."
+
+[[t]]
+ar = "put F: اتحط في خانة 5 وtail بقى 6."
+en = "put F: stored in slot 5 and tail became 6."
+
+[[t]]
+ar = "put G: اتحط في خانة 6 وtail بقى 7."
+en = "put G: stored in slot 6 and tail became 7."
+
+[[t]]
+ar = "put H: اتحط في خانة 7 وtail بقى 0."
+en = "put H: stored in slot 7 and tail became 0."
+
+[[t]]
+ar = "put I: اتحط في خانة 0 وtail بقى 1."
+en = "put I: stored in slot 0 and tail became 1."
+
+[[t]]
+ar = "شجرة نداءات <code>F(5)</code> الساذجة: 15 نداء عشان 6 قيم مختلفة. العقد الباهتة كلها حسابات <b>متكررة</b> — اللي الـ memoization بيشيلها، فتفضل سلسلة واحدة من F5 لـ F0."
+en = "The naive call tree of <code>F(5)</code>: 15 calls for 6 distinct values. The faded nodes are all <b>repeated</b> computations, which memoization removes, leaving a single chain from F5 to F0."
+
+[[t]]
+ar = "جدول الـ DP للشنطة: لكل سعة من 0 لـ 17، أحسن قيمة وآخر حاجة اتحطت. عشان تبني الحل من 17: خد C (حجم 7) ← سعة 10، خد C ← سعة 3، خد A ← سعة 0. الحل A+C+C = 24."
+en = "The DP table for the knapsack: for every capacity from 0 to 17, the best value and the last item added. To rebuild the solution from 17: take C (size 7) to reach capacity 10, take C to reach capacity 3, take A to reach capacity 0. The solution A+C+C = 24."
+
+[[t]]
+ar = "شجرة كاملة فيها N = 15 عقدة داخلية و16 عقدة خارجية (الخطوط المتقطعة) — Property 5.5. الارتفاع 3 = ⌊lg 15⌋، أقل ارتفاع ممكن (Property 5.8)."
+en = "A complete tree with N = 15 internal nodes and 16 external nodes (the dashed lines), Property 5.5. The height 3 = ⌊lg 15⌋ is the smallest possible height (Property 5.8)."
+
+[[t]]
+ar = "الرقم فوق كل عقدة = ترتيب زيارتها في <b>pre/in/post</b>. مثلًا E هي 1 في preorder (أول حاجة)، 5 في inorder (في النص)، و9 في postorder (آخر حاجة)."
+en = "The number above each node = the order it is visited in <b>pre/in/post</b>order. For example E is 1 in preorder (first), 5 in inorder (in the middle), and 9 in postorder (last)."
+
+[[t]]
+ar = "زرنا <b>0</b>. ترتيب الزيارة: 0. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>0</b>. Visit order: 0. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>2</b>. ترتيب الزيارة: 0 2. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>2</b>. Visit order: 0 2. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>6</b>. ترتيب الزيارة: 0 2 6. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>6</b>. Visit order: 0 2 6. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>4</b>. ترتيب الزيارة: 0 2 6 4. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>4</b>. Visit order: 0 2 6 4. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>3</b>. ترتيب الزيارة: 0 2 6 4 3. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>3</b>. Visit order: 0 2 6 4 3. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>5</b>. ترتيب الزيارة: 0 2 6 4 3 5. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>5</b>. Visit order: 0 2 6 4 3 5. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>7</b>. ترتيب الزيارة: 0 2 6 4 3 5 7. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>7</b>. Visit order: 0 2 6 4 3 5 7. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "زرنا <b>1</b>. ترتيب الزيارة: 0 2 6 4 3 5 7 1. الخطوط العريضة = أضلاع الـ spanning tree."
+en = "We visited <b>1</b>. Visit order: 0 2 6 4 3 5 7 1. The thick lines are the edges of the spanning tree."
+
+[[t]]
+ar = "طلّعنا <b>0</b> (مسافته 0) وحطينا جيرانه الجداد. الطابور دلوقتي: [2 5 7]"
+en = "We took out <b>0</b> (distance 0) and added its new neighbors. The queue now: [2 5 7]"
+
+[[t]]
+ar = "طلّعنا <b>2</b> (مسافته 1) وحطينا جيرانه الجداد. الطابور دلوقتي: [5 7 6]"
+en = "We took out <b>2</b> (distance 1) and added its new neighbors. The queue now: [5 7 6]"
+
+[[t]]
+ar = "طلّعنا <b>5</b> (مسافته 1) وحطينا جيرانه الجداد. الطابور دلوقتي: [7 6 3 4]"
+en = "We took out <b>5</b> (distance 1) and added its new neighbors. The queue now: [7 6 3 4]"
+
+[[t]]
+ar = "طلّعنا <b>7</b> (مسافته 1) وحطينا جيرانه الجداد. الطابور دلوقتي: [6 3 4 1]"
+en = "We took out <b>7</b> (distance 1) and added its new neighbors. The queue now: [6 3 4 1]"
+
+[[t]]
+ar = "طلّعنا <b>6</b> (مسافته 2) وحطينا جيرانه الجداد. الطابور دلوقتي: [3 4 1]"
+en = "We took out <b>6</b> (distance 2) and added its new neighbors. The queue now: [3 4 1]"
+
+[[t]]
+ar = "طلّعنا <b>3</b> (مسافته 2) وحطينا جيرانه الجداد. الطابور دلوقتي: [4 1]"
+en = "We took out <b>3</b> (distance 2) and added its new neighbors. The queue now: [4 1]"
+
+[[t]]
+ar = "طلّعنا <b>4</b> (مسافته 2) وحطينا جيرانه الجداد. الطابور دلوقتي: [1]"
+en = "We took out <b>4</b> (distance 2) and added its new neighbors. The queue now: [1]"
+
+[[t]]
+ar = "طلّعنا <b>1</b> (مسافته 2) وحطينا جيرانه الجداد. الطابور دلوقتي: []"
+en = "We took out <b>1</b> (distance 2) and added its new neighbors. The queue now: []"
+
+[[t]]
+ar = "الـ 15 حركة بتوع Hanoi لـ 4 أقراص (تمرين 5.22–5.23): صف «disk» هو نفسه علامات المسطرة (1 2 1 3 1 2 1 4 …)، والقرص اللي بيتحرك في الخطوة i = 1 + عدد الأصفار في آخر i بالـ binary. والأقراص الفردية (أزرق) دايمًا بتمشي في اتجاه واحد (←)، والزوجية (بنفسجي) في الاتجاه التاني (→)."
+en = "The 15 moves of Hanoi with 4 disks (exercises 5.22 and 5.23): the \"disk\" row is exactly the ruler marks (1 2 1 3 1 2 1 4 …), and the disk moved at step i = 1 + the number of trailing zeros of i in binary. The odd disks (highlighted) always move in one direction (←), and the even disks (outlined) in the other (→)."
+
+[[t]]
+ar = "شجرة Fibonacci ارتفاعها 5 (تمرين 5.73): تحت الجذر شجرة Fibonacci ارتفاعها 4 على الشمال و3 على اليمين، وهكذا لحد تحت. فيها 12 node و13 external node (الخطوط المتقطعة). يعني N + 1 = F<sub>7</sub> = 13. وفي كل node، الفرق بين ارتفاع الشمال واليمين بالظبط 1، وده أسوأ توازن ممكن لشجرة AVL."
+en = "A Fibonacci tree of height 5 (exercise 5.73): under the root is a Fibonacci tree of height 4 on the left and 3 on the right, and so on all the way down. It has 12 nodes and 13 external nodes (the dashed lines). So N + 1 = F<sub>7</sub> = 13. At every node, the heights of the left and right subtrees differ by exactly 1, which is the worst possible balance for an AVL tree."
+
+[[t]]
+ar = "شجرة divide-and-conquer لـ N = 11 (تمرين 5.74): كل node مكتوب فيها حجم المسألة، وبتتقسم ⌊N/2⌋ و⌈N/2⌉. الأوراق البنفسجي هي الـ 11 مسألة اللي حجمها 1. مجموع أعماقهم = 39، وده بين N lg N = 38.1 وN lg N + N = 49.1 (تمرين 5.75)."
+en = "The divide and conquer tree for N = 11 (exercise 5.74): each node shows the size of its problem, which splits into ⌊N/2⌋ and ⌈N/2⌉. The outlined leaves are the 11 problems of size 1. The sum of their depths = 39, which lies between N lg N = 38.1 and N lg N + N = 49.1 (exercise 5.75)."
