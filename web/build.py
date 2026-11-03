@@ -5,9 +5,10 @@ import shutil
 import sys
 from pathlib import Path
 
-from web.figures import all_figures
+from web.figures import Figure, all_figures
 from web.lib.content import ContentError, RenderContext, render_page
 from web.lib.csource import ROOT, SourceError
+from web.lib.figlang import load_figure_text, localize
 from web.lib.manifest import LANGS, load_arabic_only, load_course
 from web.lib.pages import (Site, asset, code_slug, load_ui, render_code_index, render_code_page, render_home,
                            render_lesson, render_missing, render_not_found, render_root)
@@ -44,7 +45,10 @@ def build(out: Path, base: str = "/", only: str | None = None) -> dict:
     course = load_course(ROOT / "content" / "course.toml")
     site = Site(course=course, base=base, ui=load_ui(ROOT / "content" / "ui.toml"),
                 arabic_only=load_arabic_only(ROOT / "content" / "arabic_only.txt"))
-    figures = all_figures()
+    base_figures = all_figures()
+    fig_text = load_figure_text(ROOT / "content" / "en" / "figures.toml")
+    figures_by_lang = {"ar": base_figures,
+                       "en": {n: Figure(n, f.kind, localize(f.html, fig_text)) for n, f in base_figures.items()}}
     traces = all_traces()
     templates = {lang: load_templates(ROOT / "content" / lang / "traces.toml") for lang in LANGS}
     prepare(out)
@@ -75,7 +79,7 @@ def build(out: Path, base: str = "/", only: str | None = None) -> dict:
                     continue
                 raise SystemExit(f"missing {md_path.relative_to(ROOT)}")
             text = md_path.read_text(encoding="utf-8")
-            ctx = RenderContext(lang, figures, trace_map, ui, str(md_path.relative_to(ROOT)))
+            ctx = RenderContext(lang, figures_by_lang[lang], trace_map, ui, str(md_path.relative_to(ROOT)))
             rendered = render_page(text, ctx)
             for src in rendered.sources | set(SRC_LINK.findall(text)) | {traces[t].source for t in rendered.traces}:
                 used.setdefault(src, [])
