@@ -56,7 +56,7 @@ class EnglishContentTest(unittest.TestCase):
     def test_code_blocks_identical(self):
         for slug, ar, en in twins():
             with self.subTest(page=slug):
-                self.assertEqual(re.findall(r"^::.*$", ar, re.M), re.findall(r"^::.*$", en, re.M))
+                self.assertEqual(re.findall(r"^::(?!:).*$", ar, re.M), re.findall(r"^::(?!:).*$", en, re.M))
                 self.assertEqual(re.findall(r"```[\s\S]*?```", ar), re.findall(r"```[\s\S]*?```", en))
 
     def test_no_arabic_prose_left(self):

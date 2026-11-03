@@ -1,0 +1,63 @@
+[[t]]
+ar = "تتبّع <b>quick-find</b> على أزواج الكتاب: السطر الأول أرقام الخانات، وكل سطر بعده هو <code>id[]</code> بعد الزوج المكتوب على الشمال. الخانات الملوّنة هي اللي اتغيرت — لاحظ إن union واحد ممكن يغيّر خانات كتير (ده سبب الـ N في كل union). السطور الباهتة: الزوج كان متوصّل أصلًا."
+en = "A trace of <b>quick find</b> on the book's pairs: the first row is the index of each entry, and every row after it is <code>id[]</code> after the pair written on the left. The highlighted entries are the ones that changed. Notice that a single union can change many entries (that is where the N in every union comes from). Faded rows: the pair was already connected."
+
+[[t]]
+ar = "أسوأ حالة لـ quick-union من غير وزن: الأزواج 0-1، 1-2، 2-3… بتعمل «سلسلة» ارتفاعها N−1، وكل find على 0 بيمشي المسار كله."
+en = "The worst case for quick union without weighting: the pairs 0-1, 1-2, 2-3… build a \"chain\" of height N−1, and every find on 0 walks the whole path."
+
+[[t]]
+ar = "البداية: كل عنصر شجرة لوحده."
+en = "The start: every item is a tree on its own."
+
+[[t]]
+ar = "3-4: شجرة 4 (الأصغر أو مساوية) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "3-4: the tree of 4 (smaller or equal) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "4-9: شجرة 9 (الأصغر أو مساوية) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "4-9: the tree of 9 (smaller or equal) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "8-0: شجرة 0 (الأصغر أو مساوية) بقت تحت 8. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "8-0: the tree of 0 (smaller or equal) now hangs under 8. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "2-3: شجرة 2 (حجمها أصغر) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "2-3: the tree of 2 (smaller) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "5-6: شجرة 6 (الأصغر أو مساوية) بقت تحت 5. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "5-6: the tree of 6 (smaller or equal) now hangs under 5. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "2-9: نفس الجذر (3) — متوصّلين أصلًا، مفيش تغيير."
+en = "2-9: the same root (3). Already connected, nothing changes."
+
+[[t]]
+ar = "5-9: شجرة 5 (حجمها أصغر) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "5-9: the tree of 5 (smaller) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "7-3: شجرة 7 (حجمها أصغر) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "7-3: the tree of 7 (smaller) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "4-8: شجرة 8 (الأصغر أو مساوية) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "4-8: the tree of 8 (smaller or equal) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "5-6: نفس الجذر (3) — متوصّلين أصلًا، مفيش تغيير."
+en = "5-6: the same root (3). Already connected, nothing changes."
+
+[[t]]
+ar = "0-2: نفس الجذر (3) — متوصّلين أصلًا، مفيش تغيير."
+en = "0-2: the same root (3). Already connected, nothing changes."
+
+[[t]]
+ar = "6-1: شجرة 1 (الأصغر أو مساوية) بقت تحت 3. الأصغر دايمًا تحت الأكبر، فالارتفاع مايزيدش عن lg N."
+en = "6-1: the tree of 1 (smaller or equal) now hangs under 3. The smaller tree always goes under the larger one, so the height never exceeds lg N."
+
+[[t]]
+ar = "شجرة الـ recurrence <code>C(N) = 2C(N/2) + N</code> لـ N = 16: كل مستوى مجموع أرقامه 16 (= N)، وفيه lg N = 4 مستويات تحت الجذر — فالمجموع N lg N. ده البرهان «بالرسم» لـ Formula 2.4."
+en = "The recurrence tree for <code>C(N) = 2C(N/2) + N</code> with N = 16: the numbers on every level add up to 16 (= N), and there are lg N = 4 levels under the root, so the total is N lg N. This is the proof of Formula 2.4 \"by picture\"."
