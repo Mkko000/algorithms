@@ -3,12 +3,13 @@
 CC      = gcc
 CFLAGS  = -std=c99 -Wall -Wextra -O2
 LDFLAGS =
+PY     ?= .venv/bin/python
 
 SOURCES := $(sort $(wildcard src/*/*.c src/*/exercises/*.c))
 BINDIR  = bin
 TARGETS = $(patsubst src/%.c,$(BINDIR)/%,$(SOURCES))
 
-.PHONY: all c run test check-c clean
+.PHONY: all c run test check-c clean venv
 
 all: c
 
@@ -40,3 +41,7 @@ test: run
 check-c:
 	$(MAKE) c CFLAGS="$(CFLAGS) -Werror"
 	$(MAKE) run
+
+venv:
+	python3 -m venv .venv
+	.venv/bin/pip install -r requirements.txt

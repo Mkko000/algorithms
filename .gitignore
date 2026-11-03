@@ -11,3 +11,6 @@ tools/*.html
 __pycache__/
 !tools/ds_src/
 !tools/ds_src/*.html
+_site/
+.cache/
+.venv/
