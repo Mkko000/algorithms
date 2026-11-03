@@ -1,0 +1,137 @@
+[[term]]
+ar = "مصفوفة"
+en = "array"
+
+[[term]]
+ar = "ملف"
+en = "file (Sedgewick's word for the array being sorted)"
+
+[[term]]
+ar = "قايمة متصلة"
+en = "linked list"
+
+[[term]]
+ar = "عقدة"
+en = "node"
+
+[[term]]
+ar = "جذر"
+en = "root"
+
+[[term]]
+ar = "ورقة"
+en = "leaf"
+
+[[term]]
+ar = "أب / ابن"
+en = "parent / child"
+
+[[term]]
+ar = "مؤشر"
+en = "pointer"
+
+[[term]]
+ar = "رابط"
+en = "link"
+
+[[term]]
+ar = "مفتاح"
+en = "key"
+
+[[term]]
+ar = "خانة"
+en = "slot (in a table) or position (in an array)"
+
+[[term]]
+ar = "مقارنة"
+en = "compare (noun: comparison)"
+
+[[term]]
+ar = "تبديل"
+en = "exchange"
+
+[[term]]
+ar = "لفّة"
+en = "pass"
+
+[[term]]
+ar = "دمج"
+en = "merge"
+
+[[term]]
+ar = "مستقر"
+en = "stable"
+
+[[term]]
+ar = "أسوأ حالة"
+en = "worst case"
+
+[[term]]
+ar = "المتوسط"
+en = "average case"
+
+[[term]]
+ar = "ريكيرشن"
+en = "recursion"
+
+[[term]]
+ar = "تمرين"
+en = "exercise"
+
+[[term]]
+ar = "الحل"
+en = "solution"
+
+[[term]]
+ar = "تتبّع"
+en = "trace"
+
+[[term]]
+ar = "pivot"
+en = "pivot"
+keep = true
+
+[[term]]
+ar = "partition"
+en = "partition"
+keep = true
+
+[[term]]
+ar = "heap"
+en = "heap"
+keep = true
+
+[[term]]
+ar = "stack"
+en = "stack"
+keep = true
+
+[[term]]
+ar = "queue"
+en = "queue"
+keep = true
+
+[[term]]
+ar = "hash"
+en = "hash"
+keep = true
+
+[[term]]
+ar = "trie"
+en = "trie"
+keep = true
+
+[[term]]
+ar = "sentinel"
+en = "sentinel"
+keep = true
+
+[[term]]
+ar = "inorder / preorder / postorder"
+en = "inorder / preorder / postorder"
+keep = true
+
+[[term]]
+ar = "Program N.M"
+en = "Program N.M (the book's listing numbers stay as they are)"
+keep = true
