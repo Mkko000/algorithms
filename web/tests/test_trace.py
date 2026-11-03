@@ -126,7 +126,7 @@ if __name__ == "__main__":
     unittest.main()
 
 
-NAMES = ["selection", "insertion", "shellsort", "heap", "batcher", "lsd", "union-find", "bst",
+NAMES = ["selection", "insertion", "shellsort", "mergesort", "heap", "batcher", "lsd", "union-find", "bst",
          "chaining", "probing", "recursion"]
 
 

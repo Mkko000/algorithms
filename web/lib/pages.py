@@ -161,6 +161,7 @@ def render_missing(site: Site, lesson) -> str:
 
 
 CODE_CAPTION = re.compile(r'(<figure class="(?:code|output)" dir="ltr" data-src="(src/[^"]+\.c)"><figcaption>)([^<]*)(</figcaption>)')
+LINK_SCHEME = re.compile(r'href="(lesson|src):([^"#]+)"')
 TRACE_SRC = re.compile(r'(<span class="trace-src" data-src="(src/[^"]+\.c)">)([^<]*)(</span>)')
 
 
@@ -175,6 +176,17 @@ def resolve_sources(html: str, site: Site, lang: str) -> str:
             return m.group(0)
         return link(m)
 
+    def scheme(m):
+        kind, target = m.group(1), m.group(2)
+        if kind == "lesson":
+            if target not in site.course.by_slug:
+                raise ValueError(f"link to unknown lesson {target}")
+            return f'href="{url(site, lang, target)}"'
+        if not (ROOT / target).exists():
+            raise ValueError(f"link to missing file {target}")
+        return f'href="{code_url(site, lang, target)}"'
+
+    html = LINK_SCHEME.sub(scheme, html)
     return TRACE_SRC.sub(link, CODE_CAPTION.sub(link_code_only, html))
 
 

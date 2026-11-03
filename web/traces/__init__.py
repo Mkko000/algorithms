@@ -1,6 +1,6 @@
 import importlib
 
-MODULES = ("partition", "selection", "insertion", "shellsort", "heap", "batcher", "lsd", "union_find",
+MODULES = ("partition", "selection", "insertion", "shellsort", "mergesort", "heap", "batcher", "lsd", "union_find",
            "bst", "chaining", "probing", "recursion")
 
 _all = None

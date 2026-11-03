@@ -90,3 +90,9 @@ enter = "Call F({n})."
 base = "F({n}) is a base case: return {v}."
 return = "F({n}) = {a} + {b} = {v}."
 done = "F({n}) = {v}, after {c} calls. Look how often the same small values are computed again."
+
+[mergesort]
+start = "{n} keys. Sort each half, then merge the two sorted halves through the aux array."
+take_left = "{x} is smaller than {y}, so {x} goes next into a."
+take_right = "{x} is not smaller than {y}, so {y} goes next into a."
+done = "Sorted. Each merge pass doubled the length of the sorted runs."

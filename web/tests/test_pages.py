@@ -94,6 +94,15 @@ class PagesTest(unittest.TestCase):
         out = resolve_sources(html, self.site, "ar")
         self.assertIn('<a href="/algorithms/ar/code/07-quicksort/quicksort/">src/07-quicksort/quicksort.c</a>', out)
 
+    def test_internal_link_schemes(self):
+        out = resolve_sources('<a href="lesson:a">x</a> <a href="src:src/07-quicksort/quicksort.c">y</a>', self.site, "en")
+        self.assertIn('<a href="/algorithms/en/a/">x</a>', out)
+        self.assertIn('<a href="/algorithms/en/code/07-quicksort/quicksort/">y</a>', out)
+
+    def test_unknown_lesson_link_raises(self):
+        with self.assertRaises(ValueError):
+            resolve_sources('<a href="lesson:nope">x</a>', self.site, "en")
+
     def test_pager_and_done(self):
         h = self.lesson("en")
         self.assertIn('href="/algorithms/en/ex-ch1/"', h)
