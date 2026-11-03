@@ -1,0 +1,10 @@
+[partition]
+start = "The pivot is v = {v}, the last element. i starts just left of the range and j starts at the pivot."
+i_moves = "a[{i}] = {x} is less than {v}, so i keeps moving right."
+i_stops = "a[{i}] = {x} is not less than the pivot {v}, so i stops here."
+j_moves = "a[{j}] = {x} is bigger than {v}, so j keeps moving left."
+j_stops = "a[{j}] = {x} is not bigger than {v}, so j stops here."
+swap = "Both scans stopped on elements that sit in the wrong half. Swap them: a[{i}] is now {x} and a[{j}] is now {y}."
+cross = "i = {i} has reached j = {j}. The scans crossed, so the loop ends."
+place_pivot = "Swap the pivot into a[{i}]. That is its final place."
+done = "Done. Nothing left of index {i} is bigger than {v}, and nothing right of it is smaller."
