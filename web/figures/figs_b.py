@@ -10,7 +10,7 @@ def selection_trace():
         a[i], a[m] = a[m], a[i]
         c = {k: 'dim' for k in range(i)}; c[i] = 'hi'; c[m] = 'hi2' if m != i else 'hi'
         rows.append((str(i), a[:], c))
-    F['sel-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، الأزرق هو الخانة i اللي اتحط فيها الأصغر، والبنفسجي هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا.'))
+    F['sel-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، المظلّل هو الخانة i اللي اتحط فيها الأصغر، والمحدّد هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا.'))
 
 def insertion_trace():
     a = S[:]; rows = [('', a[:], {})]
@@ -22,7 +22,7 @@ def insertion_trace():
         for k in range(j + 1, i + 1): c[k] = 'hi2'
         c[j] = 'hi'
         rows.append((str(i), a[:], c))
-    F['ins-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Insertion sort: في السطر i، العنصر الأزرق هو اللي «اتزق» شمال لحد مكانه، والبنفسجي هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات البنفسجي في كل سطر = عدد الـ inversions اللي اتصلحت.'))
+    F['ins-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Insertion sort: في السطر i، العنصر المظلّل هو اللي «اتزق» شمال لحد مكانه، والمحدّد هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات المحدّد في كل سطر = عدد الـ inversions اللي اتصلحت.'))
 
 def bubble_trace():
     a = S[:]; rows = [('', a[:], {})]
@@ -35,7 +35,7 @@ def bubble_trace():
         for k in moved:
             if k > i: c[k] = 'hi2'
         rows.append((str(i), a[:], c))
-    F['bub-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (الأزرق). البنفسجي: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة.'))
+    F['bub-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (المظلّل). المحدّد: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة.'))
 
 def shell_trace():
     a = list('ASORTINGEXAMPLE'); rows = [('', a[:], {})]
@@ -45,7 +45,7 @@ def shell_trace():
             while j >= h and v < a[j - h]: a[j] = a[j - h]; j -= h
             a[j] = v
         rows.append((f'h={h}', a[:], {k: ('hi' if (k % h == 0 and h > 1) else 'cell') for k in range(len(a))}))
-    F['shell-trace'] = ('fig', fig(array_rows(rows, 24, 44), 'Shellsort بالزيادات 13، 4، 1: بعد 13-sort، بعد 4-sort (الأزرق متتابعة واحدة من الأربعة: الخانات 0، 4، 8، 12 — مترتبة جواها)، وبعد 1-sort. شوف قد إيه الملف «شبه مترتب» قبل اللفّة الأخيرة، فالـ insertion sort الأخير بيخلص بسرعة.'))
+    F['shell-trace'] = ('fig', fig(array_rows(rows, 24, 44), 'Shellsort بالزيادات 13، 4، 1: بعد 13-sort، بعد 4-sort (المظلّل متتابعة واحدة من الأربعة: الخانات 0، 4، 8، 12 — مترتبة جواها)، وبعد 1-sort. شوف قد إيه الملف «شبه مترتب» قبل اللفّة الأخيرة، فالـ insertion sort الأخير بيخلص بسرعة.'))
 
 def kic_trace():
     a = list('31202130102'); R = 4
@@ -70,7 +70,7 @@ def partition_steps():
         if 0 <= i < len(a): idx[i] = 'i'
         if 0 <= j < len(a): idx[j] = 'j' if j != i else 'ij'
         fr.append(frame(array_rows([('', a[:], c), ('', idx, {k: 'dim' for k in range(len(a))})], 26, 0), cap))
-    snap(f'الـ pivot هو آخر عنصر <b>{v}</b> (برتقالي). i هيمشي من الشمال وj من اليمين.')
+    snap(f'الـ pivot هو آخر عنصر <b>{v}</b> (مظلّل). i هيمشي من الشمال وj من اليمين.')
     while True:
         i += 1
         while a[i] < v: i += 1
@@ -105,14 +105,14 @@ def quick_trace():
         c = {k: 'dim' for k in range(len(a)) if k < l or k > r}; c[i] = 'piv'
         rows.append(('', a[:], c)); qs(l, i - 1); qs(i + 1, r)
     qs(0, len(a) - 1)
-    F['quick-trace'] = ('fig', fig(array_rows(rows, 22, 0), 'quicksort كامل على <code>ASORTINGEXAMPLE</code>: كل سطر partition واحد. البرتقالي هو الـ pivot اللي استقر في مكانه، والجزء غير الباهت هو الملف الفرعي اللي اتقسم. السطور بعنصر أخضر واحد: ملفات حجمها 1 (خلصانة). اقرا العمود الأوسط من فوق لتحت: كل عنصر بيستقر مرة واحدة.'))
+    F['quick-trace'] = ('fig', fig(array_rows(rows, 22, 0), 'quicksort كامل على <code>ASORTINGEXAMPLE</code>: كل سطر partition واحد. المظلّل هو الـ pivot اللي استقر في مكانه، والجزء غير الباهت هو الملف الفرعي اللي اتقسم. السطور بعنصر رمادي واحد: ملفات حجمها 1 (خلصانة). اقرا العمود الأوسط من فوق لتحت: كل عنصر بيستقر مرة واحدة.'))
 
 def three_way_steps():
     a = list('ABRACADABRACADABRA'); v = a[-1]
     lt = [x for x in a if x < v]; eq = [x for x in a if x == v]; gt = [x for x in a if x > v]
     res = lt + eq + gt
     rows = [('in', a, {len(a) - 1: 'piv'}), ('out', res, {**{k: 'hi' for k in range(len(lt))}, **{k: 'piv' for k in range(len(lt), len(lt) + len(eq))}, **{k: 'hi2' for k in range(len(lt) + len(eq), len(a))}})]
-    F['three-way'] = ('fig', fig(array_rows(rows, 24, 34), f'3-way partitioning بالـ pivot <b>{v}</b>: أصغر (أزرق) | <b>مساوي</b> (برتقالي) | أكبر (بنفسجي). كل الـ {len(eq)} نسخ من {v} استقروا مرة واحدة وماحدش منهم هيدخل ريكيرشن تاني. ملف فيه مفاتيح متكررة كتير بيخلص بسرعة جدًا.'))
+    F['three-way'] = ('fig', fig(array_rows(rows, 24, 34), f'3-way partitioning بالـ pivot <b>{v}</b>: أصغر (مظلّل) | <b>مساوي</b> (مظلّل) | أكبر (محدّد). كل الـ {len(eq)} نسخ من {v} استقروا مرة واحدة وماحدش منهم هيدخل ريكيرشن تاني. ملف فيه مفاتيح متكررة كتير بيخلص بسرعة جدًا.'))
 
 def merge_trace():
     a = list('ASORTINGEXAMPLE'); rows = [('', a[:], {})]
@@ -122,7 +122,7 @@ def merge_trace():
         a[l:r + 1] = sorted(a[l:r + 1])
         rows.append((f'{l}-{r}', a[:], {**{k: 'dim' for k in range(len(a)) if k < l or k > r}, **{k: 'hi' for k in range(l, r + 1)}}))
     ms(0, len(a) - 1)
-    F['merge-td'] = ('fig', fig(array_rows(rows, 22, 44), 'Top-down mergesort: كل سطر merge واحد للجزء الأزرق (الحدود على الشمال). لاحظ الترتيب: الشمال كله بيخلص قبل ما اليمين يبدأ — بالظبط ترتيب الـ postorder في شجرة الريكيرشن.'))
+    F['merge-td'] = ('fig', fig(array_rows(rows, 22, 44), 'Top-down mergesort: كل سطر merge واحد للجزء المظلّل (الحدود على الشمال). لاحظ الترتيب: الشمال كله بيخلص قبل ما اليمين يبدأ — بالظبط ترتيب الـ postorder في شجرة الريكيرشن.'))
     a = list('ASORTINGEXAMPLE'); rows = [('', a[:], {})]; m = 1
     while m < len(a):
         for i in range(0, len(a) - m, 2 * m):
@@ -150,7 +150,7 @@ def heap_steps():
         a.append(ch); k = len(a) - 1; path = [k]
         while k > 1 and a[k // 2] < a[k]:
             a[k], a[k // 2] = a[k // 2], a[k]; k //= 2; path.append(k)
-        fr.append(frame(heap_tree(a, hi=(k,), hi2=tuple(path[:-1])), f'insert <b>{ch}</b>: اتحط في الآخر (خانة {len(a)-1}) وطلع بـ fixUp {len(path)-1} مستوى. الأزرق مكانه النهائي، والبنفسجي اللي نزل مكانه.'))
+        fr.append(frame(heap_tree(a, hi=(k,), hi2=tuple(path[:-1])), f'insert <b>{ch}</b>: اتحط في الآخر (خانة {len(a)-1}) وطلع بـ fixUp {len(path)-1} مستوى. المظلّل مكانه النهائي، والمحدّد اللي نزل مكانه.'))
     F['heap-insert'] = ('steps', ''.join(fr))
     a = [None] + list('ASORTINGEXAMPLE'); n = 15; fr = [frame(heap_tree(a), 'heapsort — مرحلة البناء: المصفوفة زي ما هي، كشجرة كاملة. هنعمل fixDown من الخانة 7 لحد 1.')]
     def fixdown(k, n):
@@ -169,7 +169,7 @@ def heap_steps():
         if n in (14, 13, 12, 8, 4, 1):
             b = a[:n + 1]
             fr.append(frame(heap_tree(b, hi2=tuple(p)) + array_rows([('', a[1:], {k: ('ok' if k >= n else 'cell') for k in range(15)})], 22, 0),
-                            f'شيلنا الأكبر وحطيناه في الآخر (الأخضر = مترتب نهائي). باقي في الـ heap {n} عنصر.'))
+                            f'شيلنا الأكبر وحطيناه في الآخر (الرمادي = مترتب نهائي). باقي في الـ heap {n} عنصر.'))
     F['heapsort-steps'] = ('steps', ''.join(fr))
 
 def binomial_fig():
@@ -293,6 +293,6 @@ def replacement_sel(M=5):
 def polyphase_table():
     rows = [('start', ['13', '8', '0'], {0: 'hi', 1: 'hi'}), ('1', ['5', '0', '8'], {2: 'hi2'}), ('2', ['0', '5', '3'], {1: 'hi2'}),
             ('3', ['3', '2', '0'], {0: 'hi2'}), ('4', ['1', '0', '2'], {2: 'hi2'}), ('5', ['0', '1', '1'], {1: 'hi2'}), ('6', ['1', '0', '0'], {0: 'ok'})]
-    F['polyphase'] = ('fig', fig(array_rows(rows, 44, 50), 'Polyphase على 3 شرايط و21 run (= 13 + 8، أرقام فيبوناتشي) — ده الخرج الحقيقي بتاع <code>polyphase.c</code>. في كل phase ندمج من الشريطين المليانين للفاضي لحد ما واحد منهم يخلص، والبنفسجي هو شريط الخرج. لاحظ: الأعمدة كلها أرقام فيبوناتشي، ومفيش أي نسخ زيادة.'))
+    F['polyphase'] = ('fig', fig(array_rows(rows, 44, 50), 'Polyphase على 3 شرايط و21 run (= 13 + 8، أرقام فيبوناتشي) — ده الخرج الحقيقي بتاع <code>polyphase.c</code>. في كل phase ندمج من الشريطين المليانين للفاضي لحد ما واحد منهم يخلص، والمحدّد هو شريط الخرج. لاحظ: الأعمدة كلها أرقام فيبوناتشي، ومفيش أي نسخ زيادة.'))
 
 for f in (split_interleave, replacement_sel, polyphase_table): f()

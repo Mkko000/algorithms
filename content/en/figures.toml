@@ -147,7 +147,7 @@ ar = "y (الباقي)"
 en = "y (the rest)"
 
 [[t]]
-ar = "الـ stack بعد كل رمز في <code>5 9 8 + 4 6 * * 7 + *</code> (قاعدة الـ stack على الشمال). الأزرق: رقم اتعمله push. البنفسجي: ناتج عملية (pop اتنين وpush واحد). آخر سطر: 2075."
+ar = "الـ stack بعد كل رمز في <code>5 9 8 + 4 6 * * 7 + *</code> (قاعدة الـ stack على الشمال). المظلّل: رقم اتعمله push. المحدّد: ناتج عملية (pop اتنين وpush واحد). آخر سطر: 2075."
 en = "The stack after each symbol of <code>5 9 8 + 4 6 * * 7 + *</code> (the bottom of the stack is on the left). Highlighted: a number that was pushed. Outlined: the result of an operator (pop two, push one). The last row: 2075."
 
 [[t]]
@@ -279,7 +279,7 @@ ar = "طلّعنا <b>1</b> (مسافته 2) وحطينا جيرانه الجد�
 en = "We took out <b>1</b> (distance 2) and added its new neighbors. The queue now: []"
 
 [[t]]
-ar = "الـ 15 حركة بتوع Hanoi لـ 4 أقراص (تمرين 5.22–5.23): صف «disk» هو نفسه علامات المسطرة (1 2 1 3 1 2 1 4 …)، والقرص اللي بيتحرك في الخطوة i = 1 + عدد الأصفار في آخر i بالـ binary. والأقراص الفردية (أزرق) دايمًا بتمشي في اتجاه واحد (←)، والزوجية (بنفسجي) في الاتجاه التاني (→)."
+ar = "الـ 15 حركة بتوع Hanoi لـ 4 أقراص (تمرين 5.22–5.23): صف «disk» هو نفسه علامات المسطرة (1 2 1 3 1 2 1 4 …)، والقرص اللي بيتحرك في الخطوة i = 1 + عدد الأصفار في آخر i بالـ binary. والأقراص الفردية (مظلّل) دايمًا بتمشي في اتجاه واحد (←)، والزوجية (محدّد) في الاتجاه التاني (→)."
 en = "The 15 moves of Hanoi with 4 disks (exercises 5.22 and 5.23): the \"disk\" row is exactly the ruler marks (1 2 1 3 1 2 1 4 …), and the disk moved at step i = 1 + the number of trailing zeros of i in binary. The odd disks (highlighted) always move in one direction (←), and the even disks (outlined) in the other (→)."
 
 [[t]]
@@ -287,17 +287,17 @@ ar = "شجرة Fibonacci ارتفاعها 5 (تمرين 5.73): تحت الجذر
 en = "A Fibonacci tree of height 5 (exercise 5.73): under the root is a Fibonacci tree of height 4 on the left and 3 on the right, and so on all the way down. It has 12 nodes and 13 external nodes (the dashed lines). So N + 1 = F<sub>7</sub> = 13. At every node, the heights of the left and right subtrees differ by exactly 1, which is the worst possible balance for an AVL tree."
 
 [[t]]
-ar = "شجرة divide-and-conquer لـ N = 11 (تمرين 5.74): كل node مكتوب فيها حجم المسألة، وبتتقسم ⌊N/2⌋ و⌈N/2⌉. الأوراق البنفسجي هي الـ 11 مسألة اللي حجمها 1. مجموع أعماقهم = 39، وده بين N lg N = 38.1 وN lg N + N = 49.1 (تمرين 5.75)."
+ar = "شجرة divide-and-conquer لـ N = 11 (تمرين 5.74): كل node مكتوب فيها حجم المسألة، وبتتقسم ⌊N/2⌋ و⌈N/2⌉. الأوراق المحدّد هي الـ 11 مسألة اللي حجمها 1. مجموع أعماقهم = 39، وده بين N lg N = 38.1 وN lg N + N = 49.1 (تمرين 5.75)."
 en = "The divide and conquer tree for N = 11 (exercise 5.74): each node shows the size of its problem, which splits into ⌊N/2⌋ and ⌈N/2⌉. The outlined leaves are the 11 problems of size 1. The sum of their depths = 39, which lies between N lg N = 38.1 and N lg N + N = 49.1 (exercise 5.75)."
 
 [[t]]
-ar = "Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، الأزرق هو الخانة i اللي اتحط فيها الأصغر، والبنفسجي هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا."
+ar = "Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، المظلّل هو الخانة i اللي اتحط فيها الأصغر، والمحدّد هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا."
 en = "Selection sort on <code>ASORTINGEXAMPLE</code>: in each row, the highlighted entry is position i, where the smallest item was placed, and the outlined entry is where that smallest item came from (they were exchanged). Faded entries are already in their final place. Notice: a faded entry is never touched again."
 
 [[t]]
-ar = "Insertion sort: في السطر i، العنصر الأزرق هو اللي «اتزق» شمال لحد مكانه، والبنفسجي هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات البنفسجي في كل سطر = عدد الـ inversions اللي اتصلحت."
+ar = "Insertion sort: في السطر i، العنصر المظلّل هو اللي «اتزق» شمال لحد مكانه، والمحدّد هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات المحدّد في كل سطر = عدد الـ inversions اللي اتصلحت."
 en = "Insertion sort: in row i, the highlighted item is the one pushed left into its place, and the outlined items are the ones that shifted one step right. The faded part on the right has not been touched yet. The number of outlined entries in each row = the number of inversions fixed."
 
 [[t]]
-ar = "Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (الأزرق). البنفسجي: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة."
+ar = "Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (المظلّل). المحدّد: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة."
 en = "Bubble sort: each pass from right to left brings the smallest remaining item to position i (highlighted). Outlined: items that moved during the pass. Notice how slowly the end improves: large items move only one step right per pass."

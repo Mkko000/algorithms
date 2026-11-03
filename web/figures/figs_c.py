@@ -99,7 +99,7 @@ def partR(h, k):
 def delete_steps():
     t = build_bst(KEYS); fr = []
     e = find(t, 'E'); mark(t, (), e); g = find(t, 'G'); g.cls = 'node hi2'
-    fr.append(frame(tree(t, dx=30, dy=44, r=14), 'عايزين نمسح E (الأزرق) وليها ولدين. الحل في Program 12.15: نجيب أصغر حاجة في الشجرة اليمين (G، البنفسجي) ونخلّيها مكان E.'))
+    fr.append(frame(tree(t, dx=30, dy=44, r=14), 'عايزين نمسح E (المظلّل) وليها ولدين. الحل في Program 12.15: نجيب أصغر حاجة في الشجرة اليمين (G، المحدّد) ونخلّيها مكان E.'))
     r = partR(e.r, 0)
     e.r = r; mark(t, (), e); find(t, 'G').cls = 'node hi2'
     fr.append(frame(tree(t, dx=30, dy=44, r=14), 'partR(E→r, 0): بالـ rotations طلّعنا أصغر عنصر في الشجرة اليمين (G) لجذرها. دلوقتي G مالهاش ولد شمال أكيد.'))
@@ -249,7 +249,7 @@ def skiplist_fig():
             if l > j: out.append(arrow(prev, y, x - 2, y, 'arr')); prev = x + w
         out.append(arrow(prev, y, prev + 20, y, 'arr')); out.append(text(prev + 28, y + 4, '∅', 'lab', 'middle', 11))
     W = xs[-1] + w + 50
-    F['skiplist'] = ('fig', fig(svg(W, H + 6, ''.join(out)), f'Skip list فيها {len(keys)} مفتاح. كل عقدة عدد links بتاعها عشوائي (احتمال ½ إنها تطلع مستوى كمان)، فحوالي نصهم مستوى 1، ربعهم مستوى 2… البحث عن {keys[7]} (الأزرق): ابدأ من أعلى مستوى في head، امشي يمين لحد ما الجاي يبقى أكبر، انزل مستوى، كرّر. كأنها binary search على قايمة.'))
+    F['skiplist'] = ('fig', fig(svg(W, H + 6, ''.join(out)), f'Skip list فيها {len(keys)} مفتاح. كل عقدة عدد links بتاعها عشوائي (احتمال ½ إنها تطلع مستوى كمان)، فحوالي نصهم مستوى 1، ربعهم مستوى 2… البحث عن {keys[7]} (المظلّل): ابدأ من أعلى مستوى في head، امشي يمين لحد ما الجاي يبقى أكبر، انزل مستوى، كرّر. كأنها binary search على قايمة.'))
 
 # ---------------- chapter 14 ----------------
 BOOKH = dict(zip('ASERCHINGXMPL', [7, 3, 9, 9, 8, 4, 11, 7, 10, 12, 0, 8, 6]))

@@ -90,3 +90,10 @@ class FiguresTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CaptionColorTest(unittest.TestCase):
+    def test_no_stale_color_names(self):
+        stale = re.compile("الأزرق|البنفسجي|البرتقالي|الأخضر|أزرق|بنفسجي|برتقالي|أخضر")
+        for f in all_figures().values():
+            self.assertIsNone(stale.search(f.html), f.name)

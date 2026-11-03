@@ -93,7 +93,7 @@ def postfix_trace():
         else:
             b, a = st.pop(), st.pop(); st.append(a + b if t == '+' else a * b); c = {len(st) - 1: 'hi2'}
         rows.append((t, [str(x) for x in st], c))
-    F['postfix'] = ('fig', fig(array_rows(rows, 40, 30), 'الـ stack بعد كل رمز في <code>5 9 8 + 4 6 * * 7 + *</code> (قاعدة الـ stack على الشمال). الأزرق: رقم اتعمله push. البنفسجي: ناتج عملية (pop اتنين وpush واحد). آخر سطر: 2075.'))
+    F['postfix'] = ('fig', fig(array_rows(rows, 40, 30), 'الـ stack بعد كل رمز في <code>5 9 8 + 4 6 * * 7 + *</code> (قاعدة الـ stack على الشمال). المظلّل: رقم اتعمله push. المحدّد: ناتج عملية (pop اتنين وpush واحد). آخر سطر: 2075.'))
 
 def circ_queue_steps():
     Nq = 8; q = [None] * Nq; head = tail = 0; fr = []
