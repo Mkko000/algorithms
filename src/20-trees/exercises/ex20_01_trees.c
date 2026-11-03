@@ -109,7 +109,7 @@ static void show_codes(const char *title, const char *spec, const char *want)
     Node *t = parse(spec);
     char buf[16], codes[8][16], line[128] = ""; const char *names[8]; int k = 0;
     leaf_codes(t, buf, 0, names, codes, &k);
-    for (int i = 0; i < k; i++) { char s[32]; snprintf(s, sizeof s, "%s=%s ", names[i], codes[i]); strcat(line, s); }
+    for (int i = 0; i < k; i++) { size_t L = strlen(line); if (snprintf(line + L, sizeof line - L, "%s=%s ", names[i], codes[i]) >= (int)(sizeof line - L)) break; }
     printf("RQ17 %s: %s\n", title, line);
     assert(!strcmp(line, want));
     /* prefix-free */

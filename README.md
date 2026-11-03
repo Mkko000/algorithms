@@ -135,17 +135,9 @@ algo_repo/
 ## Build · البناء
 
 ```bash
-# compile everything into bin/
-mkdir -p bin
-find src -name '*.c' | while read f; do
-  out=bin/${f#src/}; out=${out%.c}
-  mkdir -p "$(dirname "$out")"
-  gcc -std=c99 -Wall -Wextra -O2 "$f" -o "$out" -lm
-done
-
-# or, if you have make:
-make          # build all
-make test     # build + run every binary
+make c        # build every program into bin/
+make run      # build, then run every program
+make check-c  # build with -Werror, then run everything
 make clean
 ```
 

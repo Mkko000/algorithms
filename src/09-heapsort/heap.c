@@ -57,11 +57,29 @@ Item PQdelmax(void) {
     return pq[N + 1];
 }
 
+#define H(k) a[l + (k) - 1]
+
+static void fixDownAt(Item a[], int l, int k, int n) {
+    while (2 * k <= n) {
+        int j = 2 * k;
+        if (j < n && less(H(j), H(j + 1))) j++;
+        if (!less(H(k), H(j))) break;
+        exch(H(k), H(j));
+        k = j;
+    }
+}
+
+static void fixUpAt(Item a[], int l, int k) {
+    while (k > 1 && less(H(k / 2), H(k))) {
+        exch(H(k), H(k / 2));
+        k = k / 2;
+    }
+}
+
 void heapsort(Item a[], int l, int r) {
     int k, n = r - l + 1;
-    Item *h = a + l - 1;                  /* so h[1] is a[l] */
-    for (k = n / 2; k >= 1; k--) fixDown(h, k, n);
-    while (n > 1) { exch(h[1], h[n]); fixDown(h, 1, --n); }
+    for (k = n / 2; k >= 1; k--) fixDownAt(a, l, k, n);
+    while (n > 1) { exch(H(1), H(n)); fixDownAt(a, l, 1, --n); }
 }
 
 /* Program 9.6: sort by inserting everything into a PQ, then delmax */
@@ -76,19 +94,20 @@ void PQsort(Item a[], int l, int r) {
 /* Floyd: move the larger child up all the way to the bottom, then fixUp */
 void heapsort_floyd(Item a[], int l, int r) {
     int k, n = r - l + 1;
-    Item *h = a + l - 1;
-    for (k = n / 2; k >= 1; k--) fixDown(h, k, n);
+    for (k = n / 2; k >= 1; k--) fixDownAt(a, l, k, n);
     while (n > 1) {
-        Item v = h[n]; h[n] = h[1]; n--;
+        Item v = H(n); H(n) = H(1); n--;
         int j = 1;
         while (2 * j <= n) {                       /* hole goes to a leaf */
             int c = 2 * j;
-            if (c < n && less(h[c], h[c + 1])) c++;
-            h[j] = h[c]; j = c;
+            if (c < n && less(H(c), H(c + 1))) c++;
+            H(j) = H(c); j = c;
         }
-        h[j] = v; fixUp(h, j);                     /* usually rises little */
+        H(j) = v; fixUpAt(a, l, j);                /* usually rises little */
     }
 }
+
+#undef H
 
 static void check(Item *a, int n) { for (int i = 1; i < n; i++) if (a[i-1] > a[i]) { puts("BUG"); exit(1); } }
 
