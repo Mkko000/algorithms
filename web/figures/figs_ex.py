@@ -1,5 +1,5 @@
 """Figures for the solved-exercise (تمارين محلولة) lessons. Author: Mohammed El Sisi."""
-from svglib import *
+from web.lib.render import *
 F = {}
 
 # ---------- chapter 5 ----------
@@ -315,7 +315,7 @@ F['ex16-btree'] = ('fig', fig(ex16_btree(),
 def ex16_ext():
     # final table of 16.28: d = 4; pages: A = k4 (0100) {201,221,233}, B = k4 (0101) {240,273,274}, C = k1 (1) {401,562,771}
     # slots 0000-0011 -> empty pages created by one-way splits (0) ; show them as one dim page
-    from svglib import svg, rect, text, arrow, DEFS
+    from web.lib.render import svg, rect, text, arrow, DEFS
     out = [DEFS]
     pages = {'E0': (['(empty, k=2)'], 'dim'), 'E1': (['(empty, k=3)'], 'dim'), 'A': (['201', '221', '233'], 'hi'), 'B': (['240', '273', '274'], 'hi'),
              'E2': (['(empty, k=3)'], 'dim'), 'C': (['401', '562', '771'], 'hi2')}

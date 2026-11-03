@@ -2,17 +2,16 @@
 Every figure that shows a RESULT is checked against the real stdout of the compiled, tested C programs in
 src/23-heaps/ (or re-computed in Python and asserted equal to it)."""
 import os, re, subprocess
-from svglib import *
-from figs_ds2 import row, lab
+from web.lib.render import *
+from web.lib.csource import ROOT, run_output
+from web.figures.figs_ds2 import row, lab
 F = {}
-SRC = os.path.join(os.path.dirname(__file__), '..', 'src', '23-heaps')
-_bin = '/tmp/figbin23'; os.makedirs(_bin, exist_ok=True)
+SRC = str(ROOT / 'src' / '23-heaps')
+CH = 'src/23-heaps'
 _cache = {}
 def c_out(name):
     if name not in _cache:
-        exe = os.path.join(_bin, os.path.basename(name))
-        subprocess.run(['gcc', '-std=c99', '-O2', os.path.join(SRC, name + '.c'), '-o', exe, '-lm'], check=True)
-        _cache[name] = subprocess.run([exe], check=True, capture_output=True, text=True).stdout
+        _cache[name] = run_output(f'{CH}/{name}.c') + '\n'
     return _cache[name]
 def line_of(name, prefix):
     for l in c_out(name).splitlines():

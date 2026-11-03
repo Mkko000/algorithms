@@ -1,6 +1,6 @@
 """Figures for Data Structures chapters 20-21 (trees). Author: Mohammed El Sisi."""
-from svglib import *
-import svglib, heapq
+from web.lib.render import *
+import heapq
 F = {}
 
 def P(spec, hi=(), notes=None, cls='node'):

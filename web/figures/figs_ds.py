@@ -1,5 +1,5 @@
 """Figures for the Data Structures section (chapters 17-31). Author: Mohammed El Sisi."""
-from svglib import *
+from web.lib.render import *
 import math
 F = {}   # name -> ('fig'|'steps', html)
 

@@ -1,5 +1,5 @@
 """Figures for chapters 6-11 (sorting). Author: Mohammed El Sisi."""
-from svglib import *
+from web.lib.render import *
 F = {}
 S = list('ASORTINGEXAMPLE')
 

@@ -1,5 +1,5 @@
 """Figures for chapters 1-5. Author: Mohammed El Sisi."""
-from svglib import *
+from web.lib.render import *
 import math
 F = {}   # name -> ('fig'|'steps', html)
 

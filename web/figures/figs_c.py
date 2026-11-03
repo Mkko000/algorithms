@@ -1,7 +1,7 @@
 """Figures for chapters 12-16 (searching). Each trace is produced by
 simulating the book's algorithm, so the pictures are the real thing.
 Author: Mohammed El Sisi."""
-from svglib import *
+from web.lib.render import *
 import random
 F = {}
 KEYS = list('ASERCHINGXMPL')

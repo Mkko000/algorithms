@@ -2,18 +2,16 @@
 Every tree drawn here is written in the same text notation the C programs print, and every notation string that
 shows a RESULT is checked to appear verbatim in the (tested) C source or in the real output of the compiled program."""
 import os, re, subprocess
-from svglib import *
-from figs_ds2 import row, lab
+from web.lib.render import *
+from web.lib.csource import ROOT, run_output
+from web.figures.figs_ds2 import row, lab
 F = {}
-SRC = os.path.join(os.path.dirname(__file__), '..', 'src', '22-multiway-trees')
-_bin = '/tmp/figbin22'; os.makedirs(_bin, exist_ok=True)
+SRC = str(ROOT / 'src' / '22-multiway-trees')
+CH = 'src/22-multiway-trees'
 _cache = {}
 def c_out(name):
-    """compile src/22-multiway-trees/<name>.c and return its stdout (cached)"""
     if name not in _cache:
-        exe = os.path.join(_bin, os.path.basename(name))
-        subprocess.run(['gcc', '-std=c99', '-O2', os.path.join(SRC, name + '.c'), '-o', exe, '-lm'], check=True)
-        _cache[name] = subprocess.run([exe], check=True, capture_output=True, text=True).stdout
+        _cache[name] = run_output(f'{CH}/{name}.c') + '\n'
     return _cache[name]
 def in_src(name, s):
     txt = open(os.path.join(SRC, name + '.c')).read()

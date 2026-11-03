@@ -67,6 +67,13 @@ def _map_body(body: str) -> str:
     return _CLASS.sub(lambda m: f'class="{map_classes(m.group(1))}"', body)
 
 
+_SVG = re.compile(r"<svg[\s\S]*?</svg>")
+
+
+def map_svg_classes(html: str) -> str:
+    return _SVG.sub(lambda m: _map_body(m.group()), html)
+
+
 def svg(w, h, body, label="", cls="fsvg"):
     return (f'<svg class="{cls}" direction="ltr" viewBox="0 0 {w:g} {h:g}" width="{w:g}" height="{h:g}" '
             f'role="img" aria-label="{escape(label)}" xmlns="http://www.w3.org/2000/svg">{_map_body(body)}</svg>')

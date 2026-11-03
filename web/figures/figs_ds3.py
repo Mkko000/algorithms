@@ -1,8 +1,8 @@
 """Figures for Data Structures chapter 21 (efficient binary trees). Author: Mohammed El Sisi.
 Every figure that shows a RESULT of an algorithm re-runs that algorithm here in Python and asserts that it
 produces the same tree as the tested C program in src/21-efficient-trees/."""
-from svglib import *
-from figs_ds2 import P, row, lab
+from web.lib.render import *
+from web.figures.figs_ds2 import P, row, lab
 F = {}
 
 def pair(a, b):
@@ -95,7 +95,7 @@ def threads():
     spec = '1(2(4(8,9),5),3(6(10,11),7(.,12)))'
     t = P(spec)
     pos = {}
-    from svglib import _layout
+    from web.lib.render import _layout
     _layout(t, 0, [0], pos)
     dx, dy, r = 40, 54, 15
     byk = {}
