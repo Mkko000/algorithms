@@ -63,12 +63,13 @@
 
 ```
 src/
-  01-fundamentals/      union_find.c (5 نسخ), euclid.c
+  01-fundamentals/      union_find.c, euclid.c
   02-analysis/          recurrences.c, doubling_test.c, binary_search.c …
   03-data-structures/   linked_list.c, list_memory.c, strings.c, point_closest.c …
-  …                     (فولدر لكل فصل من الـ 16)
-  16-external-search/   btree_pages.c, isam.c, extendible_hash.c
-docs/                   ← الكورس اللي إنت فيه دلوقتي
+  …                     one folder per chapter, 23 in all
+  23-heaps/             binheap.c, leftist.c, binomial.c, fibheap.c, minmax.c
+content/                the lessons you are reading, in Arabic and English
+web/                    the code that builds this site
 ```
 
 كل ملف C فيه `main()` صغير يتشغّل لوحده ويطبع أرقام تقارنها بالكلام اللي في الدرس. ابنِ أي ملف كده:
@@ -76,8 +77,7 @@ docs/                   ← الكورس اللي إنت فيه دلوقتي
 ```
 gcc -std=c99 -Wall -O2 src/07-quicksort/quicksort.c -o qs
 ./qs
-# أو كله مرة واحدة:
-make && make test
+make c && make run
 ```
 
 * [src/07-quicksort/quicksort.c](src:src/07-quicksort/quicksort.c)

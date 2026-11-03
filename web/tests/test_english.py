@@ -81,3 +81,11 @@ class EnglishContentTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StalePathTest(unittest.TestCase):
+    def test_no_lesson_points_at_the_old_site_folder(self):
+        for lang in ("ar", "en"):
+            for p in sorted((ROOT / "content" / lang).glob("*.md")):
+                with self.subTest(page=f"{lang}/{p.name}"):
+                    self.assertNotRegex(p.read_text(encoding="utf-8"), r"(?m)^docs/|\bdocs/lessons|make test\b")
