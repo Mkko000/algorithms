@@ -7,7 +7,6 @@ slug = "intro"
 kind = "lesson"
 chapter = 1
 minutes = 15
-old_file = "01-intro.html"
 title = { ar = "ليه الخوارزميات؟ وخريطة الكتاب", en = "Why algorithms? A map of the book" }
 
 [[part.lesson]]
@@ -15,7 +14,6 @@ slug = "union-find"
 kind = "lesson"
 chapter = 1
 minutes = 40
-old_file = "02-union-find.html"
 title = { ar = "Union-Find: مشكلة التوصيل بكل أنواعها", en = "Union find: every flavor of the connectivity problem" }
 
 [[part.lesson]]
@@ -23,7 +21,6 @@ slug = "ex-ch1"
 kind = "exercises"
 chapter = 1
 minutes = 30
-old_file = "ex-01-union-find.html"
 title = { ar = "تمارين محلولة: الفصل 1", en = "Solved exercises: chapter 1" }
 
 [[part.lesson]]
@@ -31,7 +28,6 @@ slug = "analysis"
 kind = "lesson"
 chapter = 2
 minutes = 30
-old_file = "03-analysis.html"
 title = { ar = "تحليل الخوارزميات: القياس ونمو الدوال و Big-Oh", en = "Analyzing algorithms: measurement, growth and Big Oh" }
 
 [[part.lesson]]
@@ -39,7 +35,6 @@ slug = "recurrences"
 kind = "lesson"
 chapter = 2
 minutes = 35
-old_file = "04-recurrences.html"
 title = { ar = "الـ Recurrences والبحث والضمانات والـ Amortized", en = "Recurrences, searching, guarantees and amortized cost" }
 
 [[part.lesson]]
@@ -47,7 +42,6 @@ slug = "ex-ch2"
 kind = "exercises"
 chapter = 2
 minutes = 30
-old_file = "ex-02-analysis.html"
 title = { ar = "تمارين محلولة: الفصل 2", en = "Solved exercises: chapter 2" }
 
 [[part]]
@@ -59,7 +53,6 @@ slug = "data-structs"
 kind = "lesson"
 chapter = 3
 minutes = 25
-old_file = "05-data-structures.html"
 title = { ar = "الأنواع والمصفوفات: الأساس اللي تحت كل حاجة", en = "Types and arrays: the ground everything stands on" }
 
 [[part.lesson]]
@@ -67,7 +60,6 @@ slug = "linked-lists"
 kind = "lesson"
 chapter = 3
 minutes = 40
-old_file = "06-linked-lists.html"
 title = { ar = "القوائم المتصلة ومعالجتها والذاكرة", en = "Linked lists, list processing and memory" }
 
 [[part.lesson]]
@@ -75,7 +67,6 @@ slug = "strings-compound"
 kind = "lesson"
 chapter = 3
 minutes = 30
-old_file = "07-strings-compound.html"
 title = { ar = "النصوص والهياكل المركّبة والجرافات", en = "Strings, compound structures and graphs" }
 
 [[part.lesson]]
@@ -83,7 +74,6 @@ slug = "ex-ch3"
 kind = "exercises"
 chapter = 3
 minutes = 35
-old_file = "ex-03-data-structures.html"
 title = { ar = "تمارين محلولة: الفصل 3", en = "Solved exercises: chapter 3" }
 
 [[part.lesson]]
@@ -91,7 +81,6 @@ slug = "adt"
 kind = "lesson"
 chapter = 4
 minutes = 35
-old_file = "08-adt.html"
 title = { ar = "فكرة الـ ADT والـ Stack وتطبيقاته", en = "The idea of an ADT, the stack and what it is good for" }
 
 [[part.lesson]]
@@ -99,7 +88,6 @@ slug = "queues-adt"
 kind = "lesson"
 chapter = 4
 minutes = 35
-old_file = "09-queues-adt.html"
 title = { ar = "Generic ADTs والـ Queues والتكرار", en = "Generic ADTs, queues and duplicate items" }
 
 [[part.lesson]]
@@ -107,7 +95,6 @@ slug = "first-class"
 kind = "lesson"
 chapter = 4
 minutes = 30
-old_file = "10-first-class-adt.html"
 title = { ar = "First-class ADTs: الأعداد المركّبة وكثيرات الحدود", en = "First class ADTs: complex numbers and polynomials" }
 
 [[part.lesson]]
@@ -115,7 +102,6 @@ slug = "ex-ch4"
 kind = "exercises"
 chapter = 4
 minutes = 35
-old_file = "ex-04-adt.html"
 title = { ar = "تمارين محلولة: الفصل 4", en = "Solved exercises: chapter 4" }
 
 [[part]]
@@ -127,7 +113,6 @@ slug = "recursion"
 kind = "lesson"
 chapter = 5
 minutes = 35
-old_file = "11-recursion.html"
 title = { ar = "الريكيرشن و Divide-and-Conquer", en = "Recursion and divide and conquer" }
 
 [[part.lesson]]
@@ -135,7 +120,6 @@ slug = "dp"
 kind = "lesson"
 chapter = 5
 minutes = 35
-old_file = "12-dynamic-programming.html"
 title = { ar = "Dynamic Programming", en = "Dynamic programming" }
 
 [[part.lesson]]
@@ -143,7 +127,6 @@ slug = "trees"
 kind = "lesson"
 chapter = 5
 minutes = 40
-old_file = "13-trees.html"
 title = { ar = "الشجر: تعريفات وخصائص ولفّ", en = "Trees: definitions, properties and traversal" }
 
 [[part.lesson]]
@@ -151,7 +134,6 @@ slug = "graph-traversal"
 kind = "lesson"
 chapter = 5
 minutes = 35
-old_file = "14-graph-traversal.html"
 title = { ar = "DFS و BFS", en = "DFS and BFS" }
 
 [[part.lesson]]
@@ -159,7 +141,6 @@ slug = "ex-ch5"
 kind = "exercises"
 chapter = 5
 minutes = 40
-old_file = "ex-05-recursion-trees.html"
 title = { ar = "تمارين محلولة: الفصل 5", en = "Solved exercises: chapter 5" }
 
 [[part]]
@@ -171,7 +152,6 @@ slug = "elem-sort"
 kind = "lesson"
 chapter = 6
 minutes = 35
-old_file = "15-elementary-sorts.html"
 title = { ar = "Selection و Insertion و Bubble", en = "Selection, insertion and bubble sort" }
 
 [[part.lesson]]
@@ -179,7 +159,6 @@ slug = "shellsort-more"
 kind = "lesson"
 chapter = 6
 minutes = 40
-old_file = "16-shellsort-and-more.html"
 title = { ar = "Shellsort وترتيب الـ records والقوائم والعدّ", en = "Shellsort, sorting records and lists, and counting" }
 
 [[part.lesson]]
@@ -187,7 +166,6 @@ slug = "ex-ch6"
 kind = "exercises"
 chapter = 6
 minutes = 35
-old_file = "ex-06-elementary-sorts.html"
 title = { ar = "تمارين محلولة: الفصل 6", en = "Solved exercises: chapter 6" }
 
 [[part.lesson]]
@@ -195,7 +173,6 @@ slug = "quicksort"
 kind = "lesson"
 chapter = 7
 minutes = 35
-old_file = "17-quicksort.html"
 title = { ar = "Quicksort من الجوّه", en = "Quicksort from the inside" }
 
 [[part.lesson]]
@@ -203,7 +180,6 @@ slug = "quicksort-plus"
 kind = "lesson"
 chapter = 7
 minutes = 40
-old_file = "18-quicksort-improvements.html"
 title = { ar = "تحسينات Quicksort و Selection", en = "Improving quicksort, and selection" }
 
 [[part.lesson]]
@@ -211,7 +187,6 @@ slug = "ex-ch7"
 kind = "exercises"
 chapter = 7
 minutes = 35
-old_file = "ex-07-quicksort.html"
 title = { ar = "تمارين محلولة: الفصل 7", en = "Solved exercises: chapter 7" }
 
 [[part.lesson]]
@@ -219,7 +194,6 @@ slug = "mergesort"
 kind = "lesson"
 chapter = 8
 minutes = 35
-old_file = "19-mergesort.html"
 title = { ar = "Mergesort: الدمج والتحليل", en = "Mergesort: merging and its analysis" }
 
 [[part.lesson]]
@@ -227,7 +201,6 @@ slug = "mergesort-plus"
 kind = "lesson"
 chapter = 8
 minutes = 35
-old_file = "20-mergesort-more.html"
 title = { ar = "Bottom-up والقوائم والأداء", en = "Bottom up, lists and performance" }
 
 [[part.lesson]]
@@ -235,7 +208,6 @@ slug = "ex-ch8"
 kind = "exercises"
 chapter = 8
 minutes = 35
-old_file = "ex-08-mergesort.html"
 title = { ar = "تمارين محلولة: الفصل 8", en = "Solved exercises: chapter 8" }
 
 [[part.lesson]]
@@ -243,7 +215,6 @@ slug = "heapsort"
 kind = "lesson"
 chapter = 9
 minutes = 40
-old_file = "21-heapsort.html"
 title = { ar = "الـ Heap و Heapsort", en = "Heaps and heapsort" }
 
 [[part.lesson]]
@@ -251,7 +222,6 @@ slug = "pq-advanced"
 kind = "lesson"
 chapter = 9
 minutes = 40
-old_file = "22-priority-queues.html"
 title = { ar = "PQ ADT كامل و Index heaps و Binomial queues", en = "The full PQ ADT, index heaps and binomial queues" }
 
 [[part.lesson]]
@@ -259,7 +229,6 @@ slug = "ex-ch9"
 kind = "exercises"
 chapter = 9
 minutes = 35
-old_file = "ex-09-priority-queues.html"
 title = { ar = "تمارين محلولة: الفصل 9", en = "Solved exercises: chapter 9" }
 
 [[part.lesson]]
@@ -267,7 +236,6 @@ slug = "radix-sort"
 kind = "lesson"
 chapter = 10
 minutes = 35
-old_file = "23-radix-sort.html"
 title = { ar = "Radix Sort: البتات والـ MSD", en = "Radix sort: bits and MSD" }
 
 [[part.lesson]]
@@ -275,7 +243,6 @@ slug = "radix-more"
 kind = "lesson"
 chapter = 10
 minutes = 40
-old_file = "24-radix-more.html"
 title = { ar = "3-way radix quicksort و LSD والأداء", en = "Three way radix quicksort, LSD and performance" }
 
 [[part.lesson]]
@@ -283,7 +250,6 @@ slug = "ex-ch10"
 kind = "exercises"
 chapter = 10
 minutes = 35
-old_file = "ex-10-radix-sort.html"
 title = { ar = "تمارين محلولة: الفصل 10", en = "Solved exercises: chapter 10" }
 
 [[part.lesson]]
@@ -291,7 +257,6 @@ slug = "special"
 kind = "lesson"
 chapter = 11
 minutes = 35
-old_file = "25-special-sorts.html"
 title = { ar = "Batcher وشبكات الترتيب", en = "Batcher and sorting networks" }
 
 [[part.lesson]]
@@ -299,7 +264,6 @@ slug = "external-sort"
 kind = "lesson"
 chapter = 11
 minutes = 40
-old_file = "26-external-sort.html"
 title = { ar = "الترتيب الخارجي والـ Polyphase والمعالجات المتوازية", en = "External sorting, polyphase merging and parallel processors" }
 
 [[part.lesson]]
@@ -307,7 +271,6 @@ slug = "ex-ch11"
 kind = "exercises"
 chapter = 11
 minutes = 35
-old_file = "ex-11-special-sorts.html"
 title = { ar = "تمارين محلولة: الفصل 11", en = "Solved exercises: chapter 11" }
 
 [[part]]
@@ -319,7 +282,6 @@ slug = "symbol-tables"
 kind = "lesson"
 chapter = 12
 minutes = 40
-old_file = "27-symbol-tables.html"
 title = { ar = "الـ Symbol Table و Key-indexed و Binary search", en = "Symbol tables, key indexed search and binary search" }
 
 [[part.lesson]]
@@ -327,7 +289,6 @@ slug = "bst"
 kind = "lesson"
 chapter = 12
 minutes = 40
-old_file = "28-bst.html"
 title = { ar = "Binary Search Trees: البحث والإضافة والأداء", en = "Binary search trees: search, insertion and performance" }
 
 [[part.lesson]]
@@ -335,7 +296,6 @@ slug = "bst-ops"
 kind = "lesson"
 chapter = 12
 minutes = 40
-old_file = "29-bst-operations.html"
 title = { ar = "Root insertion و Select والحذف والـ Join", en = "Root insertion, select, deletion and join" }
 
 [[part.lesson]]
@@ -343,7 +303,6 @@ slug = "ex-ch12"
 kind = "exercises"
 chapter = 12
 minutes = 40
-old_file = "ex-12-symbol-tables.html"
 title = { ar = "تمارين محلولة: الفصل 12", en = "Solved exercises: chapter 12" }
 
 [[part.lesson]]
@@ -351,7 +310,6 @@ slug = "balanced"
 kind = "lesson"
 chapter = 13
 minutes = 40
-old_file = "30-balanced.html"
 title = { ar = "Randomized BSTs و Splay trees", en = "Randomized BSTs and splay trees" }
 
 [[part.lesson]]
@@ -359,7 +317,6 @@ slug = "rb-trees"
 kind = "lesson"
 chapter = 13
 minutes = 45
-old_file = "31-red-black.html"
 title = { ar = "شجر 2-3-4 و Red-Black", en = "2-3-4 trees and red black trees" }
 
 [[part.lesson]]
@@ -367,7 +324,6 @@ slug = "skip-lists"
 kind = "lesson"
 chapter = 13
 minutes = 35
-old_file = "32-skip-lists.html"
 title = { ar = "Skip lists ومقارنة كل الطرق", en = "Skip lists, and comparing every method" }
 
 [[part.lesson]]
@@ -375,7 +331,6 @@ slug = "ex-ch13"
 kind = "exercises"
 chapter = 13
 minutes = 40
-old_file = "ex-13-balanced-trees.html"
 title = { ar = "تمارين محلولة: الفصل 13", en = "Solved exercises: chapter 13" }
 
 [[part.lesson]]
@@ -383,7 +338,6 @@ slug = "hashing"
 kind = "lesson"
 chapter = 14
 minutes = 35
-old_file = "33-hashing.html"
 title = { ar = "دوال الـ Hash و Separate chaining", en = "Hash functions and separate chaining" }
 
 [[part.lesson]]
@@ -391,7 +345,6 @@ slug = "open-addressing"
 kind = "lesson"
 chapter = 14
 minutes = 40
-old_file = "34-open-addressing.html"
 title = { ar = "Linear probing و Double hashing و Dynamic tables", en = "Linear probing, double hashing and dynamic tables" }
 
 [[part.lesson]]
@@ -399,7 +352,6 @@ slug = "ex-ch14"
 kind = "exercises"
 chapter = 14
 minutes = 35
-old_file = "ex-14-hashing.html"
 title = { ar = "تمارين محلولة: الفصل 14", en = "Solved exercises: chapter 14" }
 
 [[part.lesson]]
@@ -407,7 +359,6 @@ slug = "tries"
 kind = "lesson"
 chapter = 15
 minutes = 35
-old_file = "35-tries.html"
 title = { ar = "Digital search trees والـ Tries", en = "Digital search trees and tries" }
 
 [[part.lesson]]
@@ -415,7 +366,6 @@ slug = "patricia"
 kind = "lesson"
 chapter = 15
 minutes = 35
-old_file = "36-patricia.html"
 title = { ar = "Patricia tries", en = "Patricia tries" }
 
 [[part.lesson]]
@@ -423,7 +373,6 @@ slug = "tst"
 kind = "lesson"
 chapter = 15
 minutes = 40
-old_file = "37-tst.html"
 title = { ar = "Multiway tries و TSTs وتطبيقات النصوص", en = "Multiway tries, TSTs and text applications" }
 
 [[part.lesson]]
@@ -431,7 +380,6 @@ slug = "ex-ch15"
 kind = "exercises"
 chapter = 15
 minutes = 45
-old_file = "ex-15-radix-search.html"
 title = { ar = "تمارين محلولة: الفصل 15", en = "Solved exercises: chapter 15" }
 
 [[part.lesson]]
@@ -439,7 +387,6 @@ slug = "btree"
 kind = "lesson"
 chapter = 16
 minutes = 40
-old_file = "38-btree.html"
 title = { ar = "البحث الخارجي: ISAM و B-trees", en = "External searching: ISAM and B trees" }
 
 [[part.lesson]]
@@ -447,7 +394,6 @@ slug = "extendible"
 kind = "lesson"
 chapter = 16
 minutes = 35
-old_file = "39-extendible-hashing.html"
 title = { ar = "Extendible hashing والـ Perspective", en = "Extendible hashing, and perspective" }
 
 [[part.lesson]]
@@ -455,7 +401,6 @@ slug = "ex-ch16"
 kind = "exercises"
 chapter = 16
 minutes = 40
-old_file = "ex-16-external-searching.html"
 title = { ar = "تمارين محلولة: الفصل 16", en = "Solved exercises: chapter 16" }
 
 [[part]]
@@ -467,7 +412,6 @@ slug = "arrays-matrices"
 kind = "lesson"
 chapter = 17
 minutes = 40
-old_file = "41-arrays-matrices.html"
 title = { ar = "Arrays والمصفوفات: العناوين والـ Sparse والمثلثية", en = "Arrays and matrices: addresses, sparse and triangular" }
 
 [[part.lesson]]
@@ -475,7 +419,6 @@ slug = "ex-ch17"
 kind = "exercises"
 chapter = 17
 minutes = 40
-old_file = "ex-17-arrays-matrices.html"
 title = { ar = "تمارين محلولة: الفصل 17", en = "Solved exercises: chapter 17" }
 
 [[part.lesson]]
@@ -483,7 +426,6 @@ slug = "linked-variants"
 kind = "lesson"
 chapter = 18
 minutes = 45
-old_file = "42-linked-variants.html"
 title = { ar = "قوايم Header و Circular و Doubly و Cursor وكثيرات الحدود", en = "Header, circular, doubly linked and cursor lists, and polynomials" }
 
 [[part.lesson]]
@@ -491,7 +433,6 @@ slug = "ex-ch18"
 kind = "exercises"
 chapter = 18
 minutes = 45
-old_file = "ex-18-linked-variants.html"
 title = { ar = "تمارين محلولة: الفصل 18", en = "Solved exercises: chapter 18" }
 
 [[part.lesson]]
@@ -499,7 +440,6 @@ slug = "stacks-queues-apps"
 kind = "lesson"
 chapter = 19
 minutes = 50
-old_file = "43-stacks-queues-apps.html"
 title = { ar = "Stacks وQueues: التعبيرات والتطبيقات والـ call stack والـ deque", en = "Stacks and queues: expressions, the call stack and the deque" }
 
 [[part.lesson]]
@@ -507,7 +447,6 @@ slug = "ex-ch19"
 kind = "exercises"
 chapter = 19
 minutes = 45
-old_file = "ex-19-stacks-queues.html"
 title = { ar = "تمارين محلولة: الفصل 19", en = "Solved exercises: chapter 19" }
 
 [[part.lesson]]
@@ -515,7 +454,6 @@ slug = "binary-trees"
 kind = "lesson"
 chapter = 20
 minutes = 55
-old_file = "44-binary-trees.html"
 title = { ar = "الشجر الثنائي: التمثيل والـ traversals وشجر التعبير وHuffman", en = "Binary trees: representation, traversals, expression trees and Huffman" }
 
 [[part.lesson]]
@@ -523,7 +461,6 @@ slug = "ex-ch20"
 kind = "exercises"
 chapter = 20
 minutes = 45
-old_file = "ex-20-trees.html"
 title = { ar = "تمارين محلولة: الفصل 20", en = "Solved exercises: chapter 20" }
 
 [[part.lesson]]
@@ -531,7 +468,6 @@ slug = "efficient-trees"
 kind = "lesson"
 chapter = 21
 minutes = 60
-old_file = "45-efficient-trees.html"
 title = { ar = "BST وThreaded وAVL وRed-Black وSplay", en = "BST, threaded, AVL, red black and splay trees" }
 
 [[part.lesson]]
@@ -539,7 +475,6 @@ slug = "ex-ch21"
 kind = "exercises"
 chapter = 21
 minutes = 55
-old_file = "ex-21-efficient-trees.html"
 title = { ar = "تمارين محلولة: الفصل 21", en = "Solved exercises: chapter 21" }
 
 [[part.lesson]]
@@ -547,7 +482,6 @@ slug = "multiway-trees"
 kind = "lesson"
 chapter = 22
 minutes = 70
-old_file = "46-multiway-trees.html"
 title = { ar = "الأشجار متعددة الفروع: M-way وB وB+ و2-3 وTrie", en = "Multiway trees: M way, B, B+, 2-3 and tries" }
 
 [[part.lesson]]
@@ -555,7 +489,6 @@ slug = "ex-ch22"
 kind = "exercises"
 chapter = 22
 minutes = 60
-old_file = "ex-22-multiway.html"
 title = { ar = "تمارين الفصل 22", en = "Solved exercises: chapter 22" }
 
 [[part.lesson]]
@@ -563,7 +496,6 @@ slug = "heaps"
 kind = "lesson"
 chapter = 23
 minutes = 60
-old_file = "47-heaps.html"
 title = { ar = "Heaps: binary وd-heap وleftist وbinomial وFibonacci", en = "Heaps: binary, d heaps, leftist, binomial and Fibonacci" }
 
 [[part.lesson]]
@@ -571,7 +503,6 @@ slug = "ex-ch23"
 kind = "exercises"
 chapter = 23
 minutes = 35
-old_file = "ex-23-heaps.html"
 title = { ar = "تمارين الفصل 23", en = "Solved exercises: chapter 23" }
 
 [[part]]
@@ -582,5 +513,4 @@ title = { ar = "الخاتمة", en = "Closing" }
 slug = "practice"
 kind = "lesson"
 minutes = 30
-old_file = "40-practice.html"
 title = { ar = "تختار إيه إمتى؟ ومشاريع تطبيقية", en = "What to use when, and projects to build" }
