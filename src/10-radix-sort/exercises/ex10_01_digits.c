@@ -64,6 +64,7 @@ int main(void)
     clock_t c1 = clock();
     for (long i = 0; i < n; i++) { x = x * 1664525u + 1013904223u; sink += (x / (B * B)) % B; }
     clock_t c2 = clock();
+    (void)sink;
     double ts = (double)(c1 - c0) / CLOCKS_PER_SEC, ta = (double)(c2 - c1) / CLOCKS_PER_SEC;
     printf("10.4 %ld digit extractions: shift/mask %.3f s (%.0f M/s), divide/mod %.3f s (%.0f M/s), ratio %.1fx\n",
            n, ts, n / ts / 1e6, ta, n / ta / 1e6, ta / ts);

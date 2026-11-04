@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<script>try{var t=localStorage.getItem("algo-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}document.documentElement.classList.add("js")</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="{{assets}}css/tokens.css">
+<link rel="stylesheet" href="{{assets}}css/base.css">
+<link rel="stylesheet" href="{{assets}}css/figures.css">
+<link rel="stylesheet" href="{{assets}}css/components.css">
+<link rel="icon" href="{{assets}}img/mark.svg" type="image/svg+xml">
+{{alternate}}
+</head>
+<body>
+<a class="skip" href="#main">{{skip}}</a>
+<header class="site-head">
+<div class="wrap head-row">
+<a class="brand" href="{{home}}" dir="ltr"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>{{site_name}}</a>
+<nav class="head-nav" aria-label="{{nav_label}}">
+<a href="{{home}}">{{contents}}</a>
+<a href="{{code_index}}">{{code_index_label}}</a>
+</nav>
+<div class="head-tools">
+<span class="progress" data-total="{{total}}" data-tpl="{{progress_tpl}}"></span>
+<a class="lang-switch" href="{{switch_href}}" hreflang="{{switch_lang}}" lang="{{switch_lang}}">{{switch_label}}</a>
+<button type="button" class="theme-toggle" data-auto="{{theme_auto}}" data-light="{{theme_light}}" data-dark="{{theme_dark}}">{{theme_auto}}</button>
+</div>
+<button type="button" class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="{{menu_label}}"><span></span><span></span><span></span></button>
+</div>
+<div class="menu-panel" id="menu">
+<div class="wrap">
+<nav class="menu-nav" aria-label="{{nav_label}}">
+<a href="{{home}}">{{contents}}</a>
+<a href="{{code_index}}">{{code_index_label}}</a>
+</nav>
+{{menu_toc}}
+<div class="menu-tools">
+<a class="lang-switch" href="{{switch_href}}" hreflang="{{switch_lang}}" lang="{{switch_lang}}">{{switch_label}}</a>
+<button type="button" class="theme-toggle" data-auto="{{theme_auto}}" data-light="{{theme_light}}" data-dark="{{theme_dark}}">{{theme_auto}}</button>
+</div>
+</div>
+</div>
+</header>
+{{main}}
+<footer class="site-foot">
+<div class="wrap foot-top">
+<div class="foot-about">
+<p class="foot-name"><span dir="ltr">{{site_name}}</span></p>
+<p class="foot-credit">{{credit}}</p>
+</div>
+<nav class="foot-links" aria-label="{{nav_label}}">
+<a href="{{home}}">{{contents}}</a>
+<a href="{{code_index}}">{{code_index_label}}</a>
+<a href="https://github.com/Mkko000/algorithms">{{repo}}</a>
+</nav>
+</div>
+<div class="wrap foot-bottom">
+<p>{{built_by}}</p>
+</div>
+</footer>
+<script type="application/json" id="ui">{{ui_json}}</script>
+<script src="{{assets}}js/app.js" defer></script>
+<script src="{{assets}}js/bigoh.js" defer></script>
+</body>
+</html>

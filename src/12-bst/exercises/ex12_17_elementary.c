@@ -88,6 +88,7 @@ int main(void)
         double ti = (double)(clock() - c0) / ins / 2;
         c0 = clock();
         for (int r = 0; r < ins * 1000; r++) { rs = rs * 6364136223846793005ULL + 1; int v = (int)(rs >> 33) % N * 2; sink += bsearch_count(a, N, v); }
+        (void)sink;
         double ts = (double)(clock() - c0) / ins;
         double model = (N / 2.0) / (N / 2.0 + 1000 * log2(N));      /* moves vs compares, unit cost each */
         printf("     N=%7d: model (N/2 moves vs 1000 lg N compares) %5.1f%%   measured time %5.1f%%\n", N, 100 * model, 100 * ti / (ti + ts));

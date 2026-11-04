@@ -271,7 +271,7 @@ int main(void)
     }
     /* PE 11 and 12 */
     {
-        cqueue a = {{0}, 0, 0}, b = {{0}, 0, 0}, c = {{0}, 0, 0}; int x;
+        cqueue a = {{0}, 0, 0}, b = {{0}, 0, 0}, c = {{0}, 0, 0}; int x = 0;
         for (int i = 1; i <= 5; i++) { cq_put(&a, i); cq_put(&b, i); }
         cq_get(&a, &x); cq_put(&a, x);                                          /* a: 1 2 3 4 5 -> 2 3 4 5 1 (wrapped around the array) */
         for (int i = 2; i <= 5; i++) cq_put(&c, i);

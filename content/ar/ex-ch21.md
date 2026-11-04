@@ -1,0 +1,233 @@
+تمارين محلولة · الفصل 21 (BST، AVL، threaded، red-black، splay) · Thareja ف10: Review Questions 1–19 + Programming Exercises 1–2 · أسئلة الاختيار وصح/غلط والفراغات (بمفتاح الكتاب Appendix G)
+
+الحلول في `exercises/ex21_01_efficient_trees.c` (BST وAVL وthreaded) و`exercises/ex21_02_rb_splay.c` (red-black وsplay)، وبيعملوا `#include` لبرامج الدرس (`bst_ops.c` وavl.c وthreaded.c وrbtree.c وsplay.c) فمفيش كود متكرر. كل نتيجة **assert** مش بس مطبوعة. الأسئلة اللي معتمدة على صورة في الكتاب (Q12 وQ13 وQ16 وQ17) نقلت شجرتها من صورة الصفحة الأصلية.
+
+:::goal هدف الصفحة:
+تحل أي سؤال BST / AVL / threaded / red-black / splay: ارسم الشجرة بعد كل عملية، وسمّي الـ rotation، وتأكد من النتيجة بالكود.
+:::
+
+* [src/21-efficient-trees/exercises/ex21\_01\_efficient\_trees.c](src:src/21-efficient-trees/exercises/ex21_01_efficient_trees.c)
+* [src/21-efficient-trees/exercises/ex21\_02\_rb\_splay.c](src:src/21-efficient-trees/exercises/ex21_02_rb_splay.c)
+* [src/21-efficient-trees/bst\_ops.c](src:src/21-efficient-trees/bst_ops.c)
+* [src/21-efficient-trees/avl.c](src:src/21-efficient-trees/avl.c)
+* [src/21-efficient-trees/threaded.c](src:src/21-efficient-trees/threaded.c)
+* [src/21-efficient-trees/rbtree.c](src:src/21-efficient-trees/rbtree.c)
+* [src/21-efficient-trees/splay.c](src:src/21-efficient-trees/splay.c)
+* [src/21-efficient-trees/bst\_analysis.c](src:src/21-efficient-trees/bst_analysis.c)
+
+### خريطة التمارين
+
+<table class="comp-table">
+<tr><th>تمرين (Thareja ف10)</th><th>الموضوع</th><th>الحل في</th></tr>
+<tr><td>RQ 1، 2، 3</td><td>نظري: BST وعملياتها وأثر الارتفاع</td><td>الصفحة دي (تحت)</td></tr>
+<tr><td>RQ 4</td><td>complete tree بـ 27 عقدة</td><td>ex21_01: <code>RQ4</code></td></tr>
+<tr><td>RQ 5، 6</td><td>threaded trees ومزاياها</td><td>الصفحة دي</td></tr>
+<tr><td>RQ 7، 8، 9، 10</td><td>مزايا AVL، AVL مقابل BST، red-black مقابل BST، splay</td><td>الصفحة دي · ex21_02: <code>RQ9</code></td></tr>
+<tr><td>RQ 11</td><td>BST من 13 مفتاح + إدخالات وحذوفات</td><td>bst_ops: main (Q11)</td></tr>
+<tr><td>RQ 12</td><td>BST: traversals، حذف الجذر، 7 إدخالات</td><td>bst_ops: main (Q12)</td></tr>
+<tr><td>RQ 13</td><td>AVL: 8 إدخالات ثم 4 حذوفات</td><td>avl: main (Q13) · <code>avldelete</code></td></tr>
+<tr><td>RQ 14</td><td>خصائص red-black وحالات الإدخال</td><td>ex21_02: <code>RQ14</code></td></tr>
+<tr><td>RQ 15</td><td>splay trees مع أمثلة</td><td>ex21_02: <code>RQ15</code> · splay: <code>splayops</code></td></tr>
+<tr><td>RQ 16</td><td>تمثيل الذاكرة + one-way in-order وpre-order وtwo-way threading</td><td>threaded: <code>arrays</code></td></tr>
+<tr><td>RQ 17</td><td>وازن شجرتين AVL</td><td>avl: main (Q17)</td></tr>
+<tr><td>RQ 18</td><td>AVL من 16, 27, 9, 11, 36, 54, 81, 63, 72</td><td>avl: main (Q18) · الشكل <code>ds21-avl18</code></td></tr>
+<tr><td>RQ 19</td><td>كل BSTs لـ {7, 9, 11}</td><td>bst_ops: <code>allbst</code></td></tr>
+<tr><td>PE 1، 2</td><td>إدخال وحذف وعدّ العقد في BST</td><td>bst_ops: <code>basic</code>, <code>delete</code> · ex21_01: <code>PE</code></td></tr>
+<tr><td>MCQ / T-F / FIB</td><td>5 + 10 + 10 سؤال</td><td>الجدول تحت + <code>objective</code></td></tr>
+</table>
+
+### RQ 1 و 2 و 3 و 5 و 6: أسئلة نظرية
+
+:::solution
+**1)** BST: شجرة ثنائية، كل مفتاح أكبر من كل اللي في شماله وأصغر من كل اللي في يمينه (من غير ما نكرر الـ duplicates). in-order يطلّع المفاتيح مرتبة. التعريف recursive.
+
+**2)** *search*: قارن مع الجذر وانزل شمال/يمين. *insert*: ابحث لحد ما توصل لـ NULL وحط العقدة هناك (دايمًا ورقة). *delete*: 3 حالات (ورقة / ابن واحد / ابنين: استبدل بـ predecessor أو successor). كمان: أصغر وأكبر مفتاح (أقصى شمال وأقصى يمين)، الارتفاع، عدّ العقد، mirror image، حذف الشجرة كلها. كلهم في `bst_ops.c`.
+
+**3)** كل العمليات O(ارتفاع الشجرة). متوسط عشوائي ≈ 1.39 log₂ n؛ مرتب = chain بارتفاع n (قياس: 1024 مفتاح عشوائي بمتوسط عمق 11.09 مقابل 511 للمرتب، راجع `bst_analysis.c`). عشان كده بنوازن (AVL / red-black) أو نتأقلم (splay).
+
+**5) Threaded binary tree:** شجرة بتستعمل الـ NULL pointers (عددهم n+1) كـ threads بتشاور على جيران in-order: الـ right thread على الـ successor، والـ left thread على الـ predecessor. بنميّز الـ thread عن الابن بـ flag. أنواعها: one-way (right threads فقط) وtwo-way (الاتنين)، in-order أو pre-order.
+
+**6) ليه efficient:** الـ traversal من غير stack ولا recursion (O(1) مساحة)، وإيجاد الـ successor والـ predecessor في O(1) تقريبًا من غير ما نطلع للأب، واستغلال مؤشرات كانت ضايعة. عيوبها: الإدخال والحذف أعقد، وعدد flags زيادة.
+:::
+
+### RQ 4: complete tree بـ 27 عقدة
+
+::code src="src/21-efficient-trees/exercises/ex21_01_efficient_trees.c" region="RQ4"
+
+:::solution
+المستويات 0–3 فيها 1 + 2 + 4 + 8 = 15 عقدة، فالباقي 27 − 15 = **12 عقدة في المستوى الأخير** (سعته 16)، والارتفاع **5** = ⌈log₂ 28⌉.
+:::
+
+### RQ 7 و 8 و 9 و 10: AVL وred-black وsplay (مقارنات)
+
+:::solution
+**7) مزايا AVL:** ارتفاع مضمون ≤ 1.44 log₂(n+2) فالبحث والإدخال والحذف O(log n) في أسوأ حالة، توازن صارم يخلّي البحث أسرع ما يمكن بين الأشجار الموزونة، وإعادة التوازن بعدد صغير من الـ rotations (واحدة أو اتنين للإدخال).
+
+**8) AVL مقابل BST:** BST العادي ممكن يبقى chain (O(n)) حسب ترتيب الإدخال، أما AVL فبيصلّح نفسه بعد كل تعديل فالارتفاع دايمًا O(log n). الثمن: تخزين الارتفاع/BF وrotations.
+
+**9) red-black مقابل BST:** القواعد الأربعة بتحط حد للارتفاع 2 log₂(n+1). في الكود: 1024 مفتاح مرتب → BST ارتفاعها 1024 وred-black ارتفاعها 18 (الحد 22).
+
+**10) splay:** *مزايا*: كود بسيط، من غير مساحة إضافية، amortised O(log n)، بيتأقلم مع نمط الاستعمال (الأكتر استعمالًا قريب من الجذر)، وبيدعم عمليات زي split/join. *عيوب*: عملية واحدة ممكن تبقى O(n)، والقراءة بتعدّل الشجرة (مش آمنة للـ concurrency)، وما بتضمنش ارتفاع صغير لو الوصول منتظم.
+:::
+
+::code src="src/21-efficient-trees/exercises/ex21_02_rb_splay.c" region="RQ9"
+
+### RQ 11: BST من `98, 2, 48, 12, 56, 32, 4, 67, 23, 87, 23, 55, 46`
+
+:::think
+الإدخال بالترتيب والمكرر (23 التانية) بيروح **يمين** (طريقة الكتاب). بعد كده (a) أدخل 21، 39، 45، 54، 63. (b) احذف 23، 56، 2، 45 باستعمال الـ predecessor للعقد ذات الابنين.
+:::
+
+::code src="src/21-efficient-trees/bst_ops.c" region="delete"
+
+:::solution
+الشجرة الأولى: `98(2(.,48(12(4,32(23(.,23),46)),56(55,67(.,87)))),.)`<br> بعد إدخال 21, 39, 45, 54, 63: `98(2(.,48(12(4,32(23(21,23),46(39(.,45),.))),56(55(54,.),67(63,87)))),.)`<br> بعد حذف 23, 56, 2, 45: `98(48(12(4,32(21(.,23),46(39,.))),55(54,67(63,87))),.)`
+
+(حذف 23 الأولى: عقدة بابنين 21 و23 فالـ predecessor = 21؛ حذف 56 بالـ predecessor = 55؛ حذف 2 بابن واحد (48)؛ حذف 45 ورقة.) **لو استعملت الـ successor** النتيجة هتختلف وكلها صح، فاعمل اللي المدرّس طالبه.
+:::
+
+### RQ 12: BST `45(39(12(10,34(32,.)),.),56(54,78(67,89(81,.))))`
+
+:::solution
+**Traversals:** in = `10 12 32 34 39 45 54 56 67 78 81 89` (مرتبة ✓) · pre = `45 39 12 10 34 32 56 54 78 67 89 81` · post = `10 32 34 12 39 54 67 81 89 78 56 45`.
+
+**حذف الجذر 45** (ابنين → predecessor = 39، أكبر مفتاح في الشمال): النتيجة `39(12(10,34(32,.)),56(54,78(67,89(81,.))))`.
+
+**إدخال 11, 22, 33, 44, 55, 66, 77** في الشجرة الأخيرة: `39(12(10(.,11),34(32(22,33),.)),56(54(44,55),78(67(66,77),89(81,.))))` (18 عقدة، واتأكدنا بـ assert من عدد العقد والـ in-order).
+:::
+
+### RQ 13: AVL — إدخال 18, 81, 29, 15, 19, 25, 26, 1 ثم حذف 39, 63, 15, 1
+
+الشجرة اللي بدأنا بيها `45(36(27,39),63(54,72(70,.)))` وbalance factors (BF = شمال − يمين): `45(−1) 36(0) 63(−1) 27(0) 39(0) 54(0) 72(+1) 70(0)`.
+
+::code src="src/21-efficient-trees/avl.c" region="avlinsert"
+
+:::solution
+الناتج `45(27(18(15(1,.),25(19,26)),36(29,39)),63(54,72(70,81)))` بعد rotation اتنين: **LL@36** (بعد إدخال 15: الـ critical node هو 36 فبنعمل rotation يمين) و**RR@19** (بعد إدخال 26). الرقم بعد @ هو مفتاح الـ critical node وقت الإصلاح. in-order بعد الإدخالات: `1 15 18 19 25 26 27 29 36 39 45 54 63 70 72 81` (16 مفتاح).
+:::
+
+:::solution
+بالترتيب 39 ثم 63 (ابنين: predecessor = 54) ثم 15 ثم 1. الناتج `45(27(25(18(.,19),26),36(29,.)),72(54(.,70),81))` بعد rotations **L0@54** و**L0@18** (الاتنين single rotation من غير نقص في الارتفاع). in-order النهائي: `18 19 25 26 27 29 36 45 54 70 72 81`.
+:::
+
+::output src="src/21-efficient-trees/avl.c" lines="12"
+
+### RQ 14 و 15: red-black وsplay
+
+:::solution
+(1) الجذر أسود. (2) كل NIL leaf أسود. (3) العقدة الحمراء ابناها أسودين (مفيش أحمرين ورا بعض). (4) نفس عدد العقد السودا على كل مسار من أي عقدة لأي NIL تحتها. وهي بتضمن الارتفاع ≤ 2 log₂(n+1). الإدخال: العقدة الجديدة حمراء ونعالج بالـ uncle: **I1** (uncle أحمر): recolour، **I2** (uncle أسود triangle): rotation تحوّلها لـ I3، **I3** (uncle أسود line): recolour + rotation.
+:::
+
+::code src="src/21-efficient-trees/exercises/ex21_02_rb_splay.c" region="RQ14"
+
+::figure ds21-rb7
+
+:::solution
+3 خطوات: zig / zig-zig / zig-zag. المثال: إدخال 1..7 يطلع chain، وsearch(1) بيعمل zig-zig ثلاث مرات والنتيجة `1(.,6(4(2(.,3),5),7))` (الارتفاع نزل من 7 لـ 5)، وبعدها search(2) يعمل zig-zig ثم zig: `2(1,4(3,6(5,7)))` (ارتفاع 4).
+:::
+
+::code src="src/21-efficient-trees/exercises/ex21_02_rb_splay.c" region="RQ15"
+
+::figure ds21-splay
+
+### RQ 16: threading شجرة 12 عقدة
+
+الشجرة `1(2(4(8,9),5),3(6(10,11),7(.,12)))`. in-order = `8 4 9 2 5 1 10 6 11 3 7 12`، وpre-order = `1 2 4 8 9 5 3 6 10 11 7 12`. الجدول التالي هو التمثيل في الذاكرة (LEFT/RIGHT بأرقام العقد، `−1` = NULL، وحرف `T` بعد الرقم = thread):
+
+::output src="src/21-efficient-trees/threaded.c" lines="50"
+
+::figure ds21-thread
+
+:::solution
+**one-way in-order:** right threads بس: 5→1، 8→4، 9→2، 10→6، 11→3 (والعقدة 12 آخر عقدة in-order فـ right = NULL). **one-way pre-order:** 5→3، 8→9، 9→5، 10→11، 11→7 (right thread يشاور على الـ pre-order successor). **two-way in-order:** الـ left threads: 5→2، 7→3، 9→4، 10→1، 11→6، 12→7 (والعقدة 8 أول in-order فـ left = NULL). **لاحظ** إن عدد الـ threads = عدد الـ NULLs الأصلية = 13 = 12 + 1 في الـ two-way (5 right + 6 left + 2 NULL متبقية).
+:::
+
+### RQ 17: وازن شجرتين AVL
+
+الشجرتين من الكتاب: T1 = `72(54(45(36,.),63),81)` وT2 = `72(54(45,63(.,67)),81)`.
+
+:::solution
+**T1:** العقدة 72 BF = +2 وابنها 54 BF = +1 (شمال-شمال) → **LL**: rotation يمين على 72 → `54(45(36,.),72(63,81))`. **T2:** 72 BF = +2 وابنها 54 BF = −1 (شمال-يمين) → **LR**: rotation شمال على 54 ثم يمين على 72 → `63(54(45,.),72(67,81))`. (الاتنين اتأكدوا في avl.c.)
+:::
+
+### RQ 18: AVL من `16, 27, 9, 11, 36, 54, 81, 63, 72`
+
+::figure ds21-avl18
+
+:::solution
+`16(9(.,11),63(36(27,54),81(72,.)))` بالـ rotations: **RR@27** (بعد إدخال 36)، **RL@54** (بعد 63)، **RR@36** (بعد 72). الرسم بيعيد الخوارزمية في بايثون وبيتأكد إنه نفس شجرة C.
+:::
+
+### RQ 19 و PE 1 و 2
+
+::code src="src/21-efficient-trees/bst_ops.c" region="allbst"
+
+:::solution
+خمس أشجار: `7(.,9(.,11))` · `7(.,11(9,.))` · `9(7,11)` · `11(7(.,9),.)` · `11(9(7,.),.)`. (الصيغة C(3) = 5.)
+:::
+
+::code src="src/21-efficient-trees/exercises/ex21_01_efficient_trees.c" region="PE"
+
+:::solution
+الإدخال والحذف هما `bst_insert` و`bst_delete` وعدّ العقد `bst_nodes` (في `bst_ops.c`). الاختبار فوق: 7 عقد، حذف الجذر (ابنين)، ورقة، ابن واحد → 4 عقد ومفاتيحها مرتبة `40 60 70 80`.
+:::
+
+::output src="src/21-efficient-trees/exercises/ex21_01_efficient_trees.c" lines="10"
+
+::output src="src/21-efficient-trees/exercises/ex21_02_rb_splay.c" lines="12"
+
+### الاختيار وصح/غلط والفراغات (Thareja ف10، بمفتاح Appendix G)
+
+::code src="src/21-efficient-trees/exercises/ex21_01_efficient_trees.c" region="objective"
+
+<table class="comp-table">
+<tr><th>#</th><th>إجابة الكتاب</th><th>ليه</th></tr>
+<tr><td colspan="3"><b>اختيار من متعدد</b></td></tr>
+<tr><td>1</td><td>(a) O(n)</td><td>أسوأ حالة BST = chain (100 إدخال مرتب → ارتفاع 100).</td></tr>
+<tr><td>2</td><td>(b) O(log n)</td><td>AVL ارتفاعه ≤ 1.44 log₂(n+2): 1000 مفتاح → ≤ 14.</td></tr>
+<tr><td>3</td><td>(b) 1</td><td>شمال أعلى من اليمين بمستوى → BF = +1 (BF = ارتفاع الشمال − اليمين).</td></tr>
+<tr><td>4</td><td>(d) RR</td><td>إدخال في يمين يمين العقدة الحرجة → RR (rotation شمال). اتأكد بإدخال 1 2 3.</td></tr>
+<tr><td>5</td><td>(a) Root</td><td>أي عقدة بنوصل لها بتتـ splay لحد ما تبقى الجذر.</td></tr>
+<tr><td colspan="3"><b>صح/غلط</b></td></tr>
+<tr><td>1</td><td>True</td><td>تعريف BST.</td></tr>
+<tr><td>2</td><td>False</td><td>ترتيب إدخال مختلف يدّي أشجار مختلفة (اتأكد بـ 2(1,3) مقابل 1-2-3).</td></tr>
+<tr><td>3</td><td>False</td><td>العقدة الجديدة بتتحط كـ <b>ورقة</b> (external → node)، يعني مش داخلية وقت الإدخال.</td></tr>
+<tr><td>4</td><td>True</td><td>mirror image = تبديل الشمال واليمين عند كل عقدة (والنتيجة BST للترتيب المعكوس).</td></tr>
+<tr><td>5</td><td>True</td><td>right thread = in-order successor.</td></tr>
+<tr><td>6</td><td>False</td><td>حذف من شمال A بيخلّي A ثقيل يمين فالعلاج L rotation (L0 / L1 / L−1) مش R.</td></tr>
+<tr><td>7</td><td>True</td><td>الارتفاع O(log n).</td></tr>
+<tr><td>8</td><td>False</td><td>الـ critical node قيمته |BF| = 2: هي أقرب جد اتخل توازنه، مش −1/0/1.</td></tr>
+<tr><td>9</td><td>False</td><td>يمين-يمين = RR مش RL.</td></tr>
+<tr><td>10</td><td>False</td><td>حسب المفتاح. <b>ملاحظة صريحة:</b> الأوراق الحقيقية (العقد بدون أبناء) ممكن تكون حمراء (راجع <code>5b(1r,10r)</code> فوق: 1 و10 ورقتين حمرا). الجملة بتبقى False فقط لو «leaf» معناها الـ NIL الخارجية (دايمًا سودا، قاعدة 2). فالمفتاح مظبوط على اصطلاح الكتاب، وفي لغة تانية الجملة True.</td></tr>
+<tr><td colspan="3"><b>الفراغات</b></td></tr>
+<tr><td>1</td><td>Two-way threaded binary tree</td><td>الـ fully threaded.</td></tr>
+<tr><td>2</td><td>Right sub-tree</td><td>أكبر مفتاح = أقصى يمين الـ <b>right sub-tree</b> (من الجذر).</td></tr>
+<tr><td>3</td><td>In-order successor</td><td>اتجاه الـ right thread.</td></tr>
+<tr><td>4</td><td>ارتفاع الشمال − ارتفاع اليمين</td><td>تعريف BF.</td></tr>
+<tr><td>5</td><td>الشمال أقل من اليمين بمستوى واحد</td><td>BF = −1.</td></tr>
+<tr><td>6</td><td>O(log n)</td><td>بحث AVL.</td></tr>
+<tr><td>7</td><td>LL</td><td>شمال-شمال.</td></tr>
+<tr><td>8</td><td>Black and black</td><td>الجذر أسود والـ NIL leaves سودا.</td></tr>
+<tr><td>9</td><td>P (أب n) هو جذر الـ splay tree</td><td>خطوة zig: rotation واحدة.</td></tr>
+<tr><td>10</td><td>Splay</td><td>rotation في splay trees شبيهة بعملية splay.</td></tr>
+</table>
+
+:::quiz
+حذفنا عقدة من شمال A فبقى BF(A) = −2 وBF(ابن A اليمين) = 0. إيه اسم الحالة؟
+
+1. [ ] R0
+2. [x] L0 (rotation شمال واحدة والارتفاع ما بيقلش)
+3. [ ] L−1
+
+> حذف من الشمال → L، وBF(B) = 0 → L0. rotation واحدة وارتفاع الشجرة الفرعية ثابت فنقف.
+:::
+
+:::quiz
+إدخال 10, 20, 30 بالترتيب في BST عادي وفي AVL: إيه ارتفاع الشجرتين؟
+
+1. [ ] 3 و3
+2. [x] 3 و2
+3. [ ] 2 و2
+
+> BST عادي: chain ارتفاعها 3. AVL: RR@10 فتبقى 20(10,30) بارتفاع 2.
+:::
