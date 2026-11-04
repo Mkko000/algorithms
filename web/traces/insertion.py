@@ -1,5 +1,5 @@
 from web.lib.trace import Trace, run_c_harness
-from web.traces.common import SORT_PRESETS, line_with, printed_letters, snippet, sort_driver, sort_frames
+from web.traces.common import SORT_PRESETS, line_with, match_events, printed_letters, snippet, sort_driver, sort_frames
 
 SOURCE = "src/06-sorting/insertion_sort.c"
 FN = "insertion"
@@ -13,9 +13,31 @@ def rules(snip):
     }
 
 
+def expected(values):
+    a = list(values)
+    l, r = 0, len(a) - 1
+    out = []
+    for i in range(r, l, -1):
+        out.append(("less", i, i - 1, {"vars": {"i": i}}))
+        if a[i] < a[i - 1]:
+            a[i - 1], a[i] = a[i], a[i - 1]
+            out.append(("exch", i - 1, i, {"vars": {"i": i}}))
+    for i in range(l + 2, r + 1):
+        j, v = i, a[i]
+        while True:
+            out.append(("less", None, j - 1, {"vars": {"i": i, "v": v}, "ptr": {"i": i}, "args": {}}))
+            if not v < a[j - 1]:
+                break
+            a[j] = a[j - 1]
+            j -= 1
+        a[j] = v
+    return out
+
+
 def run(values, as_letters, snip):
     events = run_c_harness(SOURCE, [FN], sort_driver(FN, values))
-    return sort_frames(events, values, as_letters, rules(snip))
+    extras = match_events(events, expected(values), SOURCE)
+    return sort_frames(events, values, as_letters, rules(snip), extras=extras)
 
 
 def build() -> Trace:

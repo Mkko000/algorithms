@@ -27,7 +27,7 @@ done = "Sorted. Every key is in its final place."
 
 [shellsort]
 start = "{n} keys. Shellsort runs insertion sort on keys h apart, for shrinking h, ending with h = 1."
-shift = "v = {x} is smaller than a[{q}] = {y}, h places to the left, so {y} moves h places right."
+shift = "v = {x} is smaller than a[{q}] = {y}, {h} places to the left, so {y} moves {h} places right."
 place = "v = {x} is not smaller than a[{q}] = {y}, so v drops into the gap."
 done = "Sorted. The last pass with h = 1 had very little left to do."
 
@@ -92,7 +92,9 @@ return = "F({n}) = {a} + {b} = {v}."
 done = "F({n}) = {v}, after {c} calls. Look how often the same small values are computed again."
 
 [mergesort]
-start = "{n} keys. Sort each half, then merge the two sorted halves through the aux array."
-take_left = "{x} is smaller than {y}, so {x} goes next into a."
-take_right = "{x} is not smaller than {y}, so {y} goes next into a."
-done = "Sorted. Each merge pass doubled the length of the sorted runs."
+start = "{n} keys. Mergesort sorts each half, then merges the two sorted halves through aux."
+merge_start = "Merge a[{l}..{m}] with a[{m1}..{r}]: both halves are already sorted."
+copied = "Copy a[{l}..{r}] into aux, with the right half reversed, so the two halves meet in the middle and need no end tests."
+take_left = "aux[i] = {x} is less than aux[j] = {y}, so {x} goes into a[{k}]."
+take_right = "aux[i] = {x} is not less than aux[j] = {y}, so {y} goes into a[{k}]."
+done = "Sorted, after {c} compares."
