@@ -1,7 +1,7 @@
 import re
 import unittest
 
-from web.lib.render import (array_rows, bars, build_bst, cells, graph, llist, map_classes, mtree, M,
+from web.lib.render import (array_rows, bars, build_bst, cell_rows, cells, graph, llist, map_classes, mtree, M,
                             svg, tree, VOCABULARY)
 
 COLOR = re.compile(r'(fill|stroke)="#')
@@ -70,6 +70,20 @@ class RenderTest(unittest.TestCase):
     def test_index_row(self):
         s = cells([5, 6, 7])
         self.assertEqual(len(re.findall(r'class="t-idx"', s)), 3)
+
+    def test_cell_rows(self):
+        s = cell_rows([("a", [1, 2, 3], {0: "s-focus"}, {"k": 0}), ("aux", ["·", 5, 6], {}, {"i": 1, "j": 2})], index_base=0)
+        self.assertEqual(len(re.findall(r'class="t-val"', s)), 6)
+        self.assertIn(">aux<", s)
+        self.assertIn(">k<", s)
+        self.assertIn(">j<", s)
+        ys = sorted({float(y) for y in re.findall(r'<rect x="[\d.]+" y="([\d.]+)"', s)})
+        self.assertEqual(len(ys), 2)
+        self.assertLessEqual(classes(s), VOCABULARY)
+
+    def test_cells_index_base(self):
+        s = cells([7, 8], index_base=1)
+        self.assertEqual(re.findall(r'class="t-idx"[^>]*>(\d+)<', s), ["1", "2"])
 
     def test_ltr(self):
         for s in self.samples():

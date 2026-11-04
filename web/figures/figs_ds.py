@@ -105,7 +105,7 @@ def circ_header():
         out.append(rect(x, y, w, h, 'cell dim' if i == 0 else 'cell', 4))
         out.append(line(x + w * 0.7, y, x + w * 0.7, y + h, 'sep'))
         out.append(text(x + w * 0.35, y + h * 0.68, v, 'tc', 'middle', 13))
-    out.append(text(xs[0] + w / 2, y - 8, 'header: عدد العقد', 'lab', 'middle', 10))
+    out.append(text(xs[0], y - 8, 'header: عدد العقد', 'lab', 'start', 10))
     for i in range(len(labels) - 1):
         out.append(arrow(xs[i] + w * 0.85, y + h / 2, xs[i + 1], y + h / 2))
     out.append(path_arrow(f"M{xs[-1] + w * 0.85},{y + h} C{xs[-1] + w * 0.85},{y + h + 36} {xs[0] + w * 0.85},{y + h + 36} {xs[0] + w * 0.85},{y + h + 1}"))
@@ -178,7 +178,7 @@ def ds19_ring():
     import math
     n = 8
     def ring(items, fr_i, rr_i, title):
-        cx, cy, R = 100, 100, 70
+        cx, cy, R = 116, 116, 70
         o = [DEFS]
         for i in range(n):
             ang = -math.pi / 2 + i * 2 * math.pi / n
@@ -191,7 +191,7 @@ def ds19_ring():
         if fr_i is not None: lab.append('front=%d' % fr_i)
         if rr_i is not None: lab.append('rear=%d' % rr_i)
         o.append(text(cx, cy + 4, ' '.join(lab) or 'فاضي', 'lab', 'middle', 11))
-        return svg(210, 210, ''.join(o), title)
+        return svg(232, 232, ''.join(o), title)
     p1 = ['', '', '', 'C', 'D', 'E', 'F', '']
     p2 = ['H', 'I', '', 'C', 'D', 'E', 'F', 'G']
     p3 = ['H', 'I', 'J', 'C', 'D', 'E', 'F', 'G']

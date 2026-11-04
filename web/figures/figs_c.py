@@ -512,7 +512,7 @@ def extendible_fig():
             for t, key in enumerate(sorted(p.keys)): out.append(text(170 + 19 + t * 38, y + 17, format(key, '03o'), 'tc', 'middle', 11))
         for i in range(D):
             j = pages.index(dirs[i]); out.append(arrow(60, 32 + i * rowh, 128, 32 + j * rowh))
-        out.append(text(35, 12, f'directory d={d[0]}', 'elab', 'middle', 10))
+        out.append(text(8, 12, f'directory d={d[0]}', 'elab', 'start', 10))
         fr.append(frame(svg(340, H, ''.join(out)), cap))
     for n, key in enumerate(BKEYS[:14]):
         ev = []

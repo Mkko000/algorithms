@@ -80,8 +80,8 @@ def reverse_steps():
     items = ['1', '2', '3', '4']; fr = []
     for k in range(len(items) + 1):
         r = items[:k][::-1]; y = items[k:]
-        a = llist(r, {0: 'hi'} if r else {}, null=True) if r else svg(80, 40, text(40, 25, 'r = NULL', 'lab'))
-        b = llist(y, {0: 'hi2'} if y else {}, null=True) if y else svg(80, 40, text(40, 25, 'y = NULL', 'lab'))
+        a = llist(r, {0: 'hi'} if r else {}, null=True) if r else svg(90, 40, text(45, 25, 'r = NULL', 'lab', 'middle', 12))
+        b = llist(y, {0: 'hi2'} if y else {}, null=True) if y else svg(90, 40, text(45, 25, 'y = NULL', 'lab', 'middle', 12))
         fr.append(frame(f'<div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;direction:ltr"><div><small>r (اللي اتعكس)</small><br>{a}</div><div><small>y (الباقي)</small><br>{b}</div></div>',
                         'البداية: r فاضية وy هي القايمة كلها.' if k == 0 else (f'خطوة {k}: خدنا أول عقدة من y ({items[k-1]}) وخلّيناها تشاور على r. سهم واحد اتقلب.' if k < len(items) else 'y خلصت: r هي القايمة معكوسة. كل عقدة اتلمست مرة واحدة → O(N).')))
     F['list-reverse'] = ('steps', ''.join(fr))

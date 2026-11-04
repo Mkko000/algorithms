@@ -133,3 +133,6 @@ html:not(.js) .trace-ctl,html:not(.js) .stepbar{display:none}
 .bigoh-scene{display:block;min-height:0}
 .bigoh-svg{display:block;width:100%;height:auto;max-width:100%;touch-action:pan-y}
 .bigoh-svg:focus-visible{outline-offset:4px}
+.fside{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:1.25rem 2rem;max-width:100%}
+.fside-item{display:flex;flex-direction:column;align-items:center;gap:.5rem;font-size:.9rem}
+.fside-item>b,.fside-item>small{font-weight:600;color:var(--muted);text-align:center;unicode-bidi:plaintext}
