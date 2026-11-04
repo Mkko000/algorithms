@@ -19,3 +19,5 @@
 .a-head{fill:var(--ink)}
 .e-active+.a-head,.a.e-active{stroke:var(--accent)}
 .dot{fill:var(--muted)}
+.e-grid{stroke:var(--rule);stroke-width:1;fill:none}
+.plot-area{fill:none;stroke:none}
