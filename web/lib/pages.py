@@ -16,7 +16,7 @@ MAINTAINER_URL = "https://github.com/saeeedhany"
 PLACEHOLDER = re.compile(r"\{\{(\w+)\}\}")
 JS_UI_KEYS = ("step", "play", "pause", "reset", "step_back", "step_forward", "theme_auto", "theme_light",
               "theme_dark", "progress", "done", "mark_done", "start", "continue", "bigoh_title", "bigoh_n",
-              "bigoh_focus", "bigoh_at", "bigoh_big")
+              "bigoh_focus", "bigoh_at", "bigoh_big", "bigoh_scale", "bigoh_log", "bigoh_linear")
 
 
 @dataclass

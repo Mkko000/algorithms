@@ -28,6 +28,8 @@ void shellsort(Item a[], int l, int r)
 
 ::figure shell-trace
 
+::trace shellsort
+
 ### المتتابعة هي كل حاجة
 
 قسنا عدد المقارنات على N = 32768:

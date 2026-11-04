@@ -1,5 +1,5 @@
 from web.lib.csource import run_output
-from web.lib.render import N as Node, tree
+from web.lib.render import line, svg, text
 from web.lib.trace import Frame, Trace
 from web.traces.common import line_with, snippet
 
@@ -39,15 +39,42 @@ def run(n, code):
     walk(root)
     seen, done = set(), set()
 
+    pos = {}
+    leaf = [0]
+    col, dy, pad, h = 54, 54, 8, 26
+
+    def place(c, d):
+        if not c.kids:
+            x = leaf[0]
+            leaf[0] += 1
+        else:
+            xs = [place(k, d + 1) for k in c.kids]
+            x = sum(xs) / len(xs)
+        pos[c.id] = (pad + col / 2 + x * col, pad + h / 2 + d * dy, c)
+        return x
+
+    place(root, 0)
+    width = leaf[0] * col + 2 * pad
+    depth = max(y for _, y, _ in pos.values())
+    height = depth + h / 2 + pad
+
     def draw(focus):
-        def conv(c):
-            if c.id not in seen:
-                return None
-            kids = [conv(k) for k in c.kids]
-            state = "s-focus" if c.id == focus else ("s-done" if c.id in done else "s-idle")
-            label = f"{c.n}" if c.id not in done else f"{c.value}"
-            return Node(label, kids[0] if kids else None, kids[1] if len(kids) > 1 else None, cls=state)
-        return tree(conv(root), dx=30, dy=46, r=14)
+        parts = []
+        for cid, (x, y, c) in pos.items():
+            if cid not in seen:
+                continue
+            for k in c.kids:
+                if k.id in seen:
+                    kx, ky, _ = pos[k.id]
+                    parts.append(line(x, y, kx, ky, "e"))
+        for cid, (x, y, c) in pos.items():
+            if cid not in seen:
+                continue
+            state = "s-focus" if cid == focus else ("s-done" if cid in done else "s-idle")
+            parts.append(f'<rect x="{x - 23:.1f}" y="{y - h / 2:.1f}" width="46" height="{h}" rx="{h / 2}" class="{state}"/>')
+            label = f"F{c.n}={c.value}" if cid in done else f"F{c.n}"
+            parts.append(text(x, y + 4.5, label, "t-val", "middle", 12))
+        return svg(width, height, "".join(parts), cls="fsvg scene")
 
     out = []
     calls = 0

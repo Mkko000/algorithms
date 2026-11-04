@@ -123,3 +123,16 @@ html:not(.js) .trace-ctl,html:not(.js) .stepbar{display:none}
 .lesson-body h2{padding-block-start:.25rem}
 .menu-toc .toc-title{margin-block-end:.6rem}
 @media (max-width:40rem){.pager{grid-template-columns:minmax(0,1fr);gap:1.1rem}.pager .next{grid-column:auto;text-align:start}.done-btn{justify-self:start}}
+.bigoh-ctl{gap:.6rem 1.25rem;font-family:var(--font-text);font-size:.92rem}
+.bigoh-title{font-weight:600;margin-inline-end:auto}
+.bigoh-n{font-family:var(--font-mono);font-size:.85rem;min-width:2ch;color:var(--ink)}
+.bigoh-scale{display:inline-flex;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden}
+.trace-ctl .bigoh-scale button{border:0;border-radius:0;min-height:2rem}
+.trace-ctl .bigoh-scale button+button{border-inline-start:1px solid var(--rule)}
+.trace-ctl button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.bigoh-scene{display:block;min-height:0}
+.bigoh-svg{display:block;width:100%;height:auto;max-width:100%;touch-action:pan-y}
+.bigoh-svg:focus-visible{outline-offset:4px}
+.fside{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:1.25rem 2rem;max-width:100%}
+.fside-item{display:flex;flex-direction:column;align-items:center;gap:.5rem;font-size:.9rem}
+.fside-item>b,.fside-item>small{font-weight:600;color:var(--muted);text-align:center;unicode-bidi:plaintext}

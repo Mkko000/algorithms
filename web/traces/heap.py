@@ -1,4 +1,4 @@
-from web.lib.render import N as Node, cells, svg, tree
+from web.lib.render import line, row_parts, svg, text
 from web.lib.trace import Frame, Trace, run_c_harness, span
 from web.traces.common import c_array, letters, line_with, one, seeded
 
@@ -24,16 +24,41 @@ def driver(values, deletes):
             f"  T_mark(\"end\", __LINE__, 0, N); return 0; }}\n")
 
 
-def heap_svg(a, size, as_letters, states):
-    if size <= 0:
-        return svg(60, 40, "")
+def heap_svg(a, size, as_letters, states, capacity):
+    levels = max(1, capacity.bit_length())
+    cell = 38
+    width = max(capacity * cell, (1 << (levels - 1)) * 40)
+    pad, dy, r = 8, 54, 15
+    parts = []
 
-    def node(k):
-        if k > size:
-            return None
-        return Node(one(a[k], as_letters), node(2 * k), node(2 * k + 1), cls=states.get(k, "s-idle"))
+    def pos(k):
+        d = k.bit_length() - 1
+        slot = width / (1 << d)
+        return pad + (k - (1 << d) + 0.5) * slot, pad + r + 4 + d * dy
 
-    return tree(node(1), dx=34, dy=48, r=15)
+    for k in range(2, size + 1):
+        (x1, y1), (x2, y2) = pos(k // 2), pos(k)
+        parts.append(line(x1, y1, x2, y2, "e"))
+    for k in range(1, size + 1):
+        x, y = pos(k)
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{states.get(k, "s-idle")}"/>')
+        parts.append(text(x, y + 5, one(a[k], as_letters), "t-val", "middle", 13))
+    top = pad + r + 4 + (levels - 1) * dy + r + 22
+    values, row_states = [], {}
+    for k in range(1, capacity + 1):
+        filled = a[k] != 0 or k <= size
+        values.append(one(a[k], as_letters) if filled else "·")
+        if k <= size:
+            row_states[k - 1] = states.get(k, "s-idle")
+        elif filled:
+            row_states[k - 1] = "s-done"
+        else:
+            row_states[k - 1] = "s-faded"
+    x0 = pad + (width - capacity * cell) / 2
+    row, w, h = row_parts(values, row_states, {}, x0, top, cell, True, 1)
+    parts.append(text(x0 - 8, top + cell * 0.62, "pq", "t-lab", "end", 12))
+    parts += row
+    return svg(width + 2 * pad, top + h + pad, "".join(parts), cls="fsvg scene")
 
 
 def run(values, as_letters, deletes, code):
@@ -49,9 +74,9 @@ def run(values, as_letters, deletes, code):
     counts = {"compares": 0}
     removed = []
 
-    def add(line, a, say, states=None, **args):
+    def add(line_no, a, say, states=None, **args):
         states = dict(states or {})
-        out.append(Frame(line, heap_svg(a, size, as_letters, states),
+        out.append(Frame(line_no, heap_svg(a, size, as_letters, states, len(values)),
                          {"N": str(size), "compares": str(counts["compares"]),
                           "removed": " ".join(removed) or "none"}, say, args))
 

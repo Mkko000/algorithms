@@ -219,8 +219,14 @@ class M:
 def mtree(t, kw=22, gap=14, dy=58, title="", edge_labels=False):
     widths = {}
 
+    def bw_of(n):
+        if hasattr(n, "bw"):
+            return n.bw
+        longest = max((len(str(k)) for k in n.keys), default=1)
+        return max(kw, 7.4 * longest + 10)
+
     def width(n):
-        w_self = max(1, len(n.keys)) * getattr(n, "bw", kw) + 6
+        w_self = max(1, len(n.keys)) * bw_of(n) + 6
         if not n.kids:
             widths[id(n)] = w_self
             return w_self
@@ -234,7 +240,7 @@ def mtree(t, kw=22, gap=14, dy=58, title="", edge_labels=False):
 
     def place(n, x0, d):
         maxd[0] = max(maxd[0], d)
-        bw = getattr(n, "bw", kw)
+        bw = bw_of(n)
         w = widths[id(n)]
         nw = max(1, len(n.keys)) * bw
         cx = x0 + w / 2
@@ -288,8 +294,9 @@ def llist(items, cls=None, title="", extra=None, null=True, w=44, h=28, gap=26, 
             out.append(arrow(x + w * 0.89, 14 + h / 2, x + w + gap - 2, 14 + h / 2))
         x += w + gap
     if null:
-        out.append(text(x + 6, 14 + h * 0.68, "NULL" if null is True else null, "lab", "start", 11))
-        x += 40
+        label = "NULL" if null is True else null
+        out.append(text(x + 6, 14 + h * 0.68, label, "lab", "start", 11))
+        x += max(40, 7 * len(str(label)) + 12)
     if extra:
         out.append(extra)
     return svg(x + 10, h + 40 + extra_h, "".join(out), title)
@@ -323,22 +330,19 @@ def fig(svg_s, cap):
     return f'{svg_s}<figcaption>{cap}</figcaption>'
 
 
-def cells(values, states=None, pointers=None, index_row=True, cell=42, title=""):
+def row_parts(values, states, pointers, x0, y0, cell=42, index_row=True, index_base=0):
     states = states or {}
     pointers = pointers or {}
     n = len(values)
-    pad = 6
-    W = n * cell + 2 * pad
-    y0 = pad
     out = []
     for i, v in enumerate(values):
-        x = pad + i * cell
+        x = x0 + i * cell
         out.append(rect(x, y0, cell, cell, states.get(i, "s-idle"), 0))
-        out.append(text(x + cell / 2, y0 + cell * 0.62, v, "t-val", "middle", 15))
+        out.append(text(x + cell / 2, y0 + cell * 0.62, v, "t-val", "middle", 15 if cell >= 40 else 13))
     y = y0 + cell
     if index_row:
         for i in range(n):
-            out.append(text(pad + i * cell + cell / 2, y + 16, i, "t-idx", "middle", 11))
+            out.append(text(x0 + i * cell + cell / 2, y + 16, i + index_base, "t-idx", "middle", 11))
         y += 20
     by_index = {}
     for name, idx in pointers.items():
@@ -346,12 +350,33 @@ def cells(values, states=None, pointers=None, index_row=True, cell=42, title="")
             by_index.setdefault(idx, []).append(name)
     depth = max((len(v) for v in by_index.values()), default=0)
     for idx, names in by_index.items():
-        x = pad + idx * cell + cell / 2
+        x = x0 + idx * cell + cell / 2
         out.append(text(x, y + 14, "▲", "t-ptr", "middle", 12))
         for k, name in enumerate(names):
             out.append(text(x, y + 30 + 15 * k, name, "t-ptr", "middle", 13))
-    H = y + (18 + 15 * depth if depth else 0) + pad
-    return svg(W, H, "".join(out), title, cls="fsvg scene")
+    y += 18 + 15 * depth if depth else 0
+    return out, n * cell, y - y0
+
+
+def cells(values, states=None, pointers=None, index_row=True, cell=42, title="", index_base=0):
+    pad = 6
+    out, w, h = row_parts(values, states, pointers, pad, pad, cell, index_row, index_base)
+    return svg(w + 2 * pad, h + 2 * pad, "".join(out), title, cls="fsvg scene")
+
+
+def cell_rows(rows, cell=38, label_w=44, index_base=0, gap=10, title=""):
+    pad = 6
+    out = []
+    y = pad
+    width = 0
+    for label, values, states, pointers in rows:
+        if label:
+            out.append(text(pad + label_w - 8, y + cell * 0.62, label, "t-lab", "end", 12))
+        parts, w, h = row_parts(values, states, pointers, pad + label_w, y, cell, True, index_base)
+        out += parts
+        width = max(width, w)
+        y += h + gap
+    return svg(pad + label_w + width + pad, y - gap + pad, "".join(out), title, cls="fsvg scene")
 
 
 def bars(values, states=None, width=12, height=120, gap=3, title=""):
