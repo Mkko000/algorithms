@@ -2,12 +2,13 @@ import json
 import re
 import tomllib
 from dataclasses import dataclass, field
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 
 from web.lib.bidi import isolate_latin
 from web.lib.csource import ROOT, header_comment, run_output, whole_file
 from web.lib.highlight import highlight_c
+from web.lib.margin import build_rows
 
 TEMPLATES = ROOT / "web" / "templates"
 GITHUB = "https://github.com/Mkko000/algorithms/blob/main/"
@@ -16,7 +17,8 @@ MAINTAINER_URL = "https://github.com/saeeedhany"
 PLACEHOLDER = re.compile(r"\{\{(\w+)\}\}")
 JS_UI_KEYS = ("step", "play", "pause", "reset", "step_back", "step_forward", "theme_auto", "theme_light",
               "theme_dark", "progress", "done", "mark_done", "start", "continue", "bigoh_title", "bigoh_n",
-              "bigoh_focus", "bigoh_at", "bigoh_big", "bigoh_scale", "bigoh_log", "bigoh_linear")
+              "bigoh_focus", "bigoh_at", "bigoh_big", "bigoh_scale", "bigoh_log", "bigoh_linear", "copy", "copied",
+              "quiz_title", "quiz_n", "quiz_score", "quiz_retry", "no_results")
 
 
 @dataclass
@@ -72,8 +74,13 @@ def code_url(site: Site, lang: str, path: str) -> str:
     return url(site, lang, "code", code_slug(path))
 
 
-def page(site: Site, lang: str, title: str, main: str, twin: str, description: str = "", menu_toc: str = "") -> str:
+def page(site: Site, lang: str, title: str, main: str, twin: str, description: str = "", menu_toc: str = "",
+         nav: str = "") -> str:
     ui = site.ui[lang]
+    marks = {"home": "", "code": ""}
+    if nav:
+        key, _, state = nav.partition(":")
+        marks[key] = f'aria-current="{state or "page"}"'
     o = other(lang)
     alternate = (f'<link rel="alternate" hreflang="{lang}" href="{escape(url_self(twin, lang, o))}">\n'
                  f'<link rel="alternate" hreflang="{o}" href="{escape(twin)}">')
@@ -92,6 +99,7 @@ def page(site: Site, lang: str, title: str, main: str, twin: str, description: s
         code_index_label=escape(ui["code_index"]), repo=escape(ui["repo"]), ui_json=ui_json,
         contents=escape(ui["contents"]), nav_label=escape(ui["nav_label"]), menu_label=escape(ui["menu_label"]),
         menu_toc=menu_toc, built_by=_linked(ui["built_by"], "name", ui["maintainer_name"], MAINTAINER_URL),
+        home_current=marks["home"], code_current=marks["code"],
     )
     if lang == "ar":
         head, _, body = html.partition("<body>")
@@ -107,7 +115,15 @@ def lesson_number(site: Site, lesson) -> int:
     return site.course.lessons.index(lesson) + 1
 
 
-def render_home(site: Site, lang: str) -> str:
+def _stats(ui: dict, stats: dict | None) -> str:
+    if not stats:
+        return ""
+    items = "".join(f'<div><dt>{int(stats[k])}</dt><dd>{escape(ui["stat_" + k])}</dd></div>'
+                    for k in ("lessons", "programs", "traces") if stats.get(k))
+    return f'<dl class="stats">{items}</dl>' if items else ""
+
+
+def render_home(site: Site, lang: str, stats: dict | None = None) -> str:
     ui = site.ui[lang]
     parts = []
     n = 0
@@ -125,14 +141,14 @@ def render_home(site: Site, lang: str) -> str:
                 f'<span class="num">{n}</span><span class="t">{escape(l.title[lang])}{note}</span>'
                 f'<span class="lead" aria-hidden="true"></span>'
                 f'<span class="min">{escape(ui["minutes"].format(n=l.minutes))}</span></a></li>')
-        parts.append(f'<h2>{escape(part.title[lang])}</h2>\n<ol>{"".join(rows)}</ol>')
+        parts.append(f'<h2><span>{escape(part.title[lang])}</span></h2>\n<ol>{"".join(rows)}</ol>')
     first = site.course.lessons[0]
     main = fill(template("home"), site_name=escape(ui["site_name"]), tagline=escape(ui["tagline"]),
                 intro=escape(ui["intro"]), first_href=url(site, lang, first.slug),
                 start_tpl=escape(ui["start"]), continue_tpl=escape(ui["continue"]),
                 start_text=escape(ui["start"].format(title=first.title[lang])),
-                contents=escape(ui["contents"]), parts="\n".join(parts))
-    return page(site, lang, ui["site_name"], main, url(site, other(lang)))
+                contents=escape(ui["contents"]), parts="\n".join(parts), stats=_stats(ui, stats))
+    return page(site, lang, ui["site_name"], main, url(site, other(lang)), nav="home")
 
 
 def _toc_list(rendered) -> str:
@@ -157,6 +173,69 @@ def _menu_toc(rendered, ui) -> str:
     return f'<div class="menu-toc"><p class="toc-title">{escape(ui["on_this_page"])}</p><ol>{lis}</ol></div>'
 
 
+BOOK_SECTIONS = re.compile(r"\A\s*<p>([^<:]+):\s*(.+?)</p>\s*", re.S)
+SECTION_SPLIT = {"ar": re.compile(r"\s+·\s+"), "en": re.compile(r",\s+(?=\d+\.\d+\s)")}
+SECTION_ITEM = re.compile(r"\A(\d+\.\d+)\s+(.+?)(?:\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\))?\Z", re.S)
+
+
+def parse_sections(html: str, lang: str, ui: dict) -> tuple:
+    m = BOOK_SECTIONS.match(html)
+    if not m or m.group(1).strip() != ui["book_sections"]:
+        return [], html
+    entries = []
+    for part in SECTION_SPLIT[lang].split(m.group(2).strip()):
+        item = SECTION_ITEM.match(part.strip())
+        if item:
+            entries.append((item.group(1), item.group(2), item.group(3) or ""))
+        else:
+            entries.append(("", part.strip(), ""))
+    return entries, html[m.end():]
+
+
+def _sections_list(entries: list, ui: dict) -> str:
+    if not entries:
+        return ""
+    lis = "".join(
+        f'<li><span class="sec-n">{num}</span><span class="sec-t">{title}{f" <small>{note}</small>" if note else ""}</span></li>'
+        for num, title, note in entries)
+    nums = escape(ui["sep"].join(num for num, _, _ in entries if num))
+    return (f'<details class="book-sections"><summary><span class="bs-label">{escape(ui["book_sections"])}</span>'
+            f'<span class="bs-nums">{nums}</span></summary><ol>{lis}</ol></details>')
+
+
+TAG = re.compile(r"<[^>]+>")
+H2_TEXT = re.compile(r'<h2 id="([^"]+)">(.*?)</h2>', re.S)
+
+
+def _heading_notes(html: str, entries: list, ui: dict) -> tuple:
+    notes, used = {}, set()
+    for m in H2_TEXT.finditer(html):
+        text = unescape(TAG.sub("", m.group(2))).strip()
+        for k, (num, title, note) in enumerate(entries):
+            if num and k not in used and text.startswith(num + " "):
+                sub = f'<p class="n-sub">{note}</p>' if note else ""
+                notes[m.group(1)] = (f'<div class="note book"><p class="n-label">{escape(ui["book"])}</p>'
+                                     f'<p><b>{num}</b> {title}</p>{sub}</div>')
+                used.add(k)
+                break
+    return notes, [e for k, e in enumerate(entries) if k not in used]
+
+
+SRC_LIST = re.compile(r'<ul>(\s*<li><a href="[^"]*/code/[^"]*">(?:(?!</a>).)*</a></li>)+\s*</ul>', re.S)
+
+
+HEAD_ID = re.compile(r'<h([23]) id="([^"]+)">(.*?)</h\1>', re.S)
+
+
+def _anchors(html: str, label: str) -> str:
+    return HEAD_ID.sub(lambda m: (f'<h{m.group(1)} id="{m.group(2)}">{m.group(3)}'
+                                  f'<a class="h-anchor" href="#{m.group(2)}" aria-label="{escape(label)}">#</a></h{m.group(1)}>'), html)
+
+
+def _source_lists(html: str) -> str:
+    return SRC_LIST.sub(lambda m: m.group(0).replace("<ul>", '<ul class="src-links">', 1), html)
+
+
 def _pager_link(site, lang, lesson, cls, label) -> str:
     if lesson is None:
         return "<span></span>"
@@ -175,8 +254,11 @@ def render_lesson(site: Site, lang: str, lesson, rendered) -> str:
     if lesson.chapter:
         context += f"{escape(ui['sep'])}{escape(ui['chapter'].format(n=lesson.chapter))}"
     meta = f'{ui["lesson_n_of"].format(n=i + 1, total=len(lessons))}{ui["sep"]}{ui["about_minutes"].format(n=lesson.minutes)}'
+    entries, body = parse_sections(rendered.html, lang, ui)
+    heading_notes, rest = _heading_notes(body, entries, ui)
+    body = build_rows(_source_lists(resolve_sources(body, site, lang)), heading_notes)
     main = fill(template("lesson"), context=context, title=escape(lesson.title[lang]), meta=escape(meta),
-                body=resolve_sources(rendered.html, site, lang),
+                sections=_sections_list(rest, ui), body=_anchors(body, ui["section_link"]),
                 prev=_pager_link(site, lang, prev, "prev", ui["prev"]),
                 next=_pager_link(site, lang, nxt, "next", ui["next"]),
                 slug=lesson.slug, mark_done=escape(ui["mark_done"]), done=escape(ui["done"]),
@@ -188,7 +270,8 @@ def render_lesson(site: Site, lang: str, lesson, rendered) -> str:
 def render_missing(site: Site, lesson) -> str:
     ui = site.ui["en"]
     main = fill(template("missing"), title=escape(lesson.title["en"]), message=escape(ui["not_translated"]),
-                href=url(site, "ar", lesson.slug), lang="ar", link=escape(ui["read_in_arabic"]))
+                href=url(site, "ar", lesson.slug), lang="ar", link=escape(ui["read_in_arabic"]),
+                extra=f'<a href="{url(site, "en")}">{escape(ui["go_home"])}</a>')
     return page(site, "en", f'{lesson.title["en"]} | {ui["site_name"]}', main, url(site, "ar", lesson.slug))
 
 
@@ -236,7 +319,8 @@ def render_code_page(site: Site, lang: str, path: str, used_by: list) -> str:
               f'<pre>{escape(out)}</pre></figure>')
     used = ""
     if used_by:
-        items = "".join(f'<li><a href="{url(site, lang, l.slug)}">{escape(l.title[lang])}</a></li>' for l in used_by)
+        items = "".join(f'<li><a href="{url(site, lang, l.slug)}"><span class="num">{lesson_number(site, l)}</span>'
+                        f'<span class="t">{escape(l.title[lang])}</span></a></li>' for l in used_by)
         used = f'<h2>{escape(ui["used_in"])}</h2><ul class="used-in">{items}</ul>'
     name = Path(path).name
     main = fill(template("code"), index_href=url(site, lang, "code"), index_label=escape(ui["code_index"]),
@@ -244,28 +328,43 @@ def render_code_page(site: Site, lang: str, path: str, used_by: list) -> str:
                 source=source, output_label=escape(ui["output_of"]), output=output, used=used,
                 github=GITHUB + path, github_label=escape(ui["view_on_github"]))
     return page(site, lang, f'{name} | {ui["site_name"]}', main, code_url(site, other(lang), path),
-                description=about.split("\n")[0] if about else "")
+                description=about.split("\n")[0] if about else "", nav="code:true")
 
 
-def render_code_index(site: Site, lang: str, paths: list) -> str:
+def _program_row(site: Site, lang: str, path: str, used: dict) -> str:
+    name = Path(path).name
+    lessons = used.get(path) or []
+    uses = f'<span class="uses">{escape(lessons[0].title[lang])}</span>' if lessons else '<span class="uses"></span>'
+    return (f'<li><a class="prog" href="{code_url(site, lang, path)}"><code dir="ltr">{escape(name)}</code>'
+            f'<span class="lead" aria-hidden="true"></span>{uses}</a></li>')
+
+
+def render_code_index(site: Site, lang: str, paths: list, used: dict | None = None) -> str:
     ui = site.ui[lang]
+    used = used or {}
     groups = {}
     for p in sorted(paths):
         groups.setdefault(Path(p).parts[1], []).append(p)
     blocks = []
     for folder, items in groups.items():
-        lis = "".join(f'<li><a href="{code_url(site, lang, p)}">{escape(code_slug(p).split("/", 1)[1])}.c</a></li>'
-                      for p in items)
-        blocks.append(f'<h2 dir="ltr">{escape(folder)}</h2><ul class="code-list" dir="ltr">{lis}</ul>')
+        num, _, _ = folder.partition("-")
+        title = escape(ui["chapter"].format(n=int(num))) if num.isdigit() else escape(folder)
+        main_items = [p for p in items if "/exercises/" not in p]
+        ex_items = [p for p in items if "/exercises/" in p]
+        body = f'<ol class="prog-list">{"".join(_program_row(site, lang, p, used) for p in main_items)}</ol>'
+        if ex_items:
+            body += (f'<p class="prog-sub">{escape(ui["exercises_label"])}</p>'
+                     f'<ol class="prog-list">{"".join(_program_row(site, lang, p, used) for p in ex_items)}</ol>')
+        blocks.append(f'<section class="prog-group"><h2>{title}<small dir="ltr">{escape(folder)}</small></h2>{body}</section>')
     main = fill(template("codeindex"), title=escape(ui["code_index"]), intro=escape(ui["code_index_intro"]),
-                groups="\n".join(blocks))
-    return page(site, lang, f'{ui["code_index"]} | {ui["site_name"]}', main, url(site, other(lang), "code"))
+                groups="\n".join(blocks), filter_label=escape(ui["filter_programs"]), no_results=escape(ui["no_results"]))
+    return page(site, lang, f'{ui["code_index"]} | {ui["site_name"]}', main, url(site, other(lang), "code"), nav="code")
 
 
 def render_not_found(site: Site) -> str:
     ui = site.ui["en"]
     main = fill(template("missing"), title=escape(ui["not_found"]), message="", href=url(site, "en"), lang="en",
-                link=escape(ui["go_home"]))
+                link=escape(ui["go_home"]), extra="")
     return page(site, "en", ui["site_name"], main, url(site, "ar"))
 
 

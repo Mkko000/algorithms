@@ -1,7 +1,10 @@
 <main id="main" class="wrap">
-<section class="missing">
-<h1>{{title}}</h1>
-<p>{{message}}</p>
-<p><a href="{{href}}" hreflang="{{lang}}" lang="{{lang}}">{{link}}</a></p>
-</section>
+  <section class="missing">
+    <h1>{{title}}</h1>
+    <p class="missing-msg">{{message}}</p>
+    <p class="missing-go">
+      <a class="button" href="{{href}}" hreflang="{{lang}}" lang="{{lang}}">{{link}}</a>
+      {{extra}}
+    </p>
+  </section>
 </main>

@@ -6,12 +6,20 @@ from web.lib.csource import ROOT
 CSS = ROOT / "web" / "assets" / "css"
 FONTS = ROOT / "web" / "assets" / "fonts"
 
-LIGHT = {"--bg": "#faf8f3", "--ink": "#1f1d1a", "--muted": "#6b655c", "--code-bg": "#f0ece2",
-         "--rule": "#e2dccd", "--accent": "#b4441f", "--fill": "#1f1d1a14", "--hl": "#e9dfc6"}
-DARK = {"--bg": "#1c1a17", "--ink": "#e9e4da", "--muted": "#9c958a", "--code-bg": "#24211d",
-        "--rule": "#34302a", "--accent": "#e0754f", "--fill": "#e9e4da1f", "--hl": "#3a342b"}
-PROPS = ["--bg", "--ink", "--muted", "--code-bg", "--rule", "--accent", "--fill", "--hl",
-         "--measure", "--gutter", "--font-text", "--font-ar", "--font-mono"]
+LIGHT = {"--bg": "#fdfcf9", "--ink": "#1c1b19", "--accent": "#b4441f", "--mark": "#fde68a",
+         "--muted": "#686865", "--frame": "#989794", "--hatch": "#bab8b6", "--rule": "#dddcda",
+         "--fill": "#e9e8e5", "--code-bg": "#f4f3f0", "--hl": "#fdf2c7"}
+DARK = {"--bg": "#161513", "--ink": "#ece9e2", "--accent": "#e0754f", "--mark": "#6a5814",
+        "--muted": "#a3a19c", "--frame": "#767470", "--hatch": "#565551", "--rule": "#343330",
+        "--fill": "#292826", "--code-bg": "#1f1d1b", "--hl": "#3c3313"}
+FROM_INK = {"--muted": .66, "--frame": .45, "--hatch": .30, "--rule": .14, "--fill": .09, "--code-bg": .04}
+PROPS = ["--bg", "--ink", "--muted", "--code-bg", "--rule", "--accent", "--fill", "--hl", "--mark", "--hatch",
+         "--frame", "--font-hand", "--wobble", "--measure", "--gutter", "--font-text", "--font-ar", "--font-mono"]
+
+
+def read_css(name):
+    text = (CSS / name).read_text(encoding="utf-8")
+    return re.sub(r":\s+", ":", re.sub(r"\s*([{};,>])\s*", r"\1", text))
 
 
 def block(css, selector_regex):
@@ -30,6 +38,12 @@ def lum(hexv):
     return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
 
 
+def mix(a, b, p):
+    ca = [int(a.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    cb = [int(b.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    return "#" + "".join(f"{round(x * p + y * (1 - p)):02x}" for x, y in zip(ca, cb))
+
+
 def contrast(a, b):
     la, lb = sorted([lum(a), lum(b)], reverse=True)
     return (la + 0.05) / (lb + 0.05)
@@ -37,7 +51,7 @@ def contrast(a, b):
 
 class TokensTest(unittest.TestCase):
     def setUp(self):
-        self.tokens = (CSS / "tokens.css").read_text(encoding="utf-8")
+        self.tokens = read_css("tokens.css")
 
     def test_tokens_both_themes(self):
         light = props(block(self.tokens, r":root"))
@@ -45,7 +59,7 @@ class TokensTest(unittest.TestCase):
             self.assertIn(p, light, p)
         for k, v in LIGHT.items():
             self.assertEqual(light[k].strip().lower(), v, k)
-        media = re.search(r"@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme=\"light\"\]\)\s*\{([^{}]*)\}",
+        media = re.search(r"@media \(prefers-color-scheme:dark\)\s*\{\s*:root:not\(\[data-theme=\"light\"\]\)\s*\{([^{}]*)\}",
                           self.tokens)
         self.assertIsNotNone(media)
         forced = props(block(self.tokens, r':root\[data-theme="dark"\]'))
@@ -79,22 +93,68 @@ class TokensTest(unittest.TestCase):
             self.assertGreaterEqual(contrast(muted, code), 4.5)
             self.assertGreaterEqual(contrast(accent, bg), 3.0)
             self.assertGreaterEqual(contrast(bg, accent), 3.0)
+            self.assertGreaterEqual(contrast(ink, theme["--mark"]), 4.5)
+
+    def test_derived_from_ink(self):
+        for theme in (LIGHT, DARK):
+            for k, p in FROM_INK.items():
+                self.assertEqual(theme[k], mix(theme["--ink"], theme["--bg"], p), k)
+            self.assertEqual(theme["--hl"], mix(theme["--mark"], theme["--bg"], .45))
+
+    def test_hand_font(self):
+        light = props(block(self.tokens, r":root"))
+        self.assertTrue(light["--font-hand"].strip().startswith('"Kalam"'))
+        ar = re.search(r":lang\(ar\)\s*\{([^{}]*)\}", self.tokens)
+        self.assertIsNotNone(ar)
+        self.assertTrue(props(ar.group(1))["--font-hand"].strip().startswith('"Aref Ruqaa"'))
 
     def test_logical_properties(self):
         for name in ("base.css", "components.css"):
-            text = (CSS / name).read_text(encoding="utf-8")
+            text = read_css(name)
             self.assertNotRegex(text, r"(margin|padding|border)-(left|right)\s*:", name)
             self.assertNotRegex(text, r"(?<![\w-])(left|right)\s*:", name)
             self.assertNotRegex(text, r"text-align\s*:\s*(left|right)", name)
             self.assertNotRegex(text, r"float\s*:\s*(left|right)", name)
 
     def test_reduced_motion(self):
-        text = (CSS / "base.css").read_text(encoding="utf-8")
-        self.assertIn("prefers-reduced-motion: reduce", text)
+        text = read_css("base.css")
+        self.assertIn("prefers-reduced-motion:reduce", text)
 
     def test_no_comments(self):
         for f in CSS.glob("*.css"):
             self.assertNotIn("/*", f.read_text(encoding="utf-8"), f.name)
+
+    def test_state_marks(self):
+        css = read_css("figures.css")
+        self.assertIn("fill:var(--mark)", block(css, r"\.s-focus"))
+        look = block(css, r"\.s-look")
+        self.assertIn("stroke:var(--accent)", look)
+        self.assertNotIn("fill:var(--accent)", look)
+        self.assertIn("fill:var(--fill)", block(css, r"\.s-done"))
+        for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+            for w in re.findall(r"stroke-width:([^;}]+)", body):
+                if w.strip() != "var(--stroke)":
+                    self.assertTrue(all(k.strip() in (".e-strong", ".s-red", ".e-grid") for k in sel.split(",")), sel)
+        self.assertIn("font-family:var(--font-hand)", block(css, r"\.t-lab"))
+        fsvg = block(css, r"\.fsvg")
+        self.assertIn("max-width:100%", fsvg)
+        self.assertIn("height:auto", fsvg)
+        self.assertNotIn("sk-", css)
+
+    def test_handmade_rules(self):
+        comp = read_css("components.css")
+        base = read_css("base.css")
+        self.assertIn("border-radius:var(--wobble)", block(comp, r"\.figure,\.steps"))
+        self.assertIn("text-decoration-style:wavy", block(base, r"\.lesson-body :is\(p,li\) a"))
+        rules = re.findall(r"([^{}]+)\{([^{}]*)\}", comp)
+        for target in (".callout-title", ".n-label", ".lesson-head .context"):
+            self.assertTrue(any(target in sel and "font-family:var(--font-hand)" in body for sel, body in rules), target)
+
+    def test_centered_overflow_stays_reachable(self):
+        for f in (ROOT / "web" / "figures").glob("*.py"):
+            self.assertNotRegex(f.read_text(encoding="utf-8"), r"justify-content\s*:\s*center", f.name)
+        css = read_css("components.css")
+        self.assertIn("justify-content:safe center", block(css, r"\.fside"))
 
 
 if __name__ == "__main__":

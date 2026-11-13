@@ -25,7 +25,7 @@ def run(values, as_letters, code):
     def frame(line, say, a_states, aux_states, a_ptr, aux_ptr, **args):
         rows = [("a", shown(a, as_letters), a_states, a_ptr),
                 ("aux", [EMPTY if v is None else one(v, as_letters) for v in aux], aux_states, aux_ptr)]
-        out.append(Frame(line, cell_rows(rows, cell=36), {"compares": str(count["compares"])}, say, args))
+        out.append(Frame(line, cell_rows(rows), {"compares": str(count["compares"])}, say, args))
 
     def outside(l, r):
         return {k: "s-faded" for k in range(n) if k < l or k > r}

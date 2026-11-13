@@ -1,4 +1,4 @@
-from web.lib.render import line, row_parts, svg, text
+from web.lib.render import CELL, LABEL_SIZE, NODE_R, line, node, row_parts, svg, text
 from web.lib.trace import Frame, Trace, run_c_harness, span
 from web.traces.common import c_array, letters, line_with, one, seeded
 
@@ -26,9 +26,9 @@ def driver(values, deletes):
 
 def heap_svg(a, size, as_letters, states, capacity):
     levels = max(1, capacity.bit_length())
-    cell = 38
+    cell = CELL
     width = max(capacity * cell, (1 << (levels - 1)) * 40)
-    pad, dy, r = 8, 54, 15
+    pad, dy, r = 8, 54, NODE_R
     parts = []
 
     def pos(k):
@@ -41,8 +41,7 @@ def heap_svg(a, size, as_letters, states, capacity):
         parts.append(line(x1, y1, x2, y2, "e"))
     for k in range(1, size + 1):
         x, y = pos(k)
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{states.get(k, "s-idle")}"/>')
-        parts.append(text(x, y + 5, one(a[k], as_letters), "t-val", "middle", 13))
+        parts.append(node(x, y, one(a[k], as_letters), states.get(k, "s-idle")))
     top = pad + r + 4 + (levels - 1) * dy + r + 22
     values, row_states = [], {}
     for k in range(1, capacity + 1):
@@ -55,8 +54,8 @@ def heap_svg(a, size, as_letters, states, capacity):
         else:
             row_states[k - 1] = "s-faded"
     x0 = pad + (width - capacity * cell) / 2
-    row, w, h = row_parts(values, row_states, {}, x0, top, cell, True, 1)
-    parts.append(text(x0 - 8, top + cell * 0.62, "pq", "t-lab", "end", 12))
+    row, w, h = row_parts(values, row_states, {}, x0, top, True, 1)
+    parts.append(text(x0 - 8, top + cell * 0.62, "pq", "t-lab", "end", LABEL_SIZE))
     parts += row
     return svg(width + 2 * pad, top + h + pad, "".join(parts), cls="fsvg scene")
 

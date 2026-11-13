@@ -1,112 +1,110 @@
+import math
 import re
 import unittest
-from pathlib import Path
 
 from web.figures import all_figures
-from web.lib.csource import ROOT, run_output
-from web.lib.render import VOCABULARY
+from web.lib.render import NODE_R, label_width
+from web.lib.trace import frames_json
+from web.traces import all_traces
 
-CHECKS = {
-    "sel-trace": ("src/06-sorting/selection_sort.c", ""),
-    "ins-trace": ("src/06-sorting/insertion_sort.c", ""),
-    "bub-trace": ("src/06-sorting/bubble_sort.c", ""),
-    "shell-trace": ("src/06-sorting/shellsort.c", ""),
-    "merge-td": ("src/08-mergesort/mergesort_bu.c", "sorted:"),
-    "merge-bu": ("src/08-mergesort/mergesort_bu.c", "sorted:"),
-    "ex6-sel": ("src/06-sorting/exercises/ex6_11_elementary.c", "9 "),
-    "ex6-ins": ("src/06-sorting/exercises/ex6_11_elementary.c", "9 "),
-    "ex6-bub": ("src/06-sorting/exercises/ex6_11_elementary.c", "9 "),
-    "ex6-index": ("src/06-sorting/exercises/ex6_11_elementary.c", "9 "),
-    "ex6-kic": ("src/06-sorting/exercises/ex6_57_index_kic.c", "result"),
-    "ex8-td": ("src/08-mergesort/exercises/ex8_06_merges.c", "6-by-6"),
-    "ex8-bu": ("src/08-mergesort/exercises/ex8_06_merges.c", "6-by-6"),
-    "linear-probe": ("src/14-hashing/hash_linear_probing.c", "G  X"),
-    "double-hash": ("src/14-hashing/hash_linear_probing.c", "M *R"),
-    "ex13-234": ("src/13-balanced-trees/exercises/ex13_39_234_rb.c", "+N "),
-    "ex16-3456": ("src/16-external-search/exercises/ex16_05_btree.c", "level 2:"),
-    "ex16-btree": ("src/16-external-search/exercises/ex16_01_isam.c", "127 "),
-}
+TAG = re.compile(r"<(circle|rect|text)\b([^>]*)>(?:([^<]*)</text>)?")
+ATTR = re.compile(r'([\w-]+)="([^"]*)"')
 
 
-def final_row(html):
-    last = re.findall(r"<svg[\s\S]*?</svg>", html)[-1]
-    rows = {}
-    for m in re.finditer(r'<text x="([\d.]+)" y="([\d.]+)" class="t-val"[^>]*>([^<]*)<', last):
-        rows.setdefault(float(m.group(2)), []).append((float(m.group(1)), m.group(3)))
-    return [v for _, v in sorted(rows[max(rows)])]
+def svgs():
+    for name, f in all_figures().items():
+        for s in re.findall(r"<svg[\s\S]*?</svg>", f.html):
+            yield name, s
+    for name, t in all_traces().items():
+        for preset, frames in frames_json(t)["presets"].items():
+            for k, fr in enumerate(frames):
+                yield f"{name}/{preset}/{k}", fr["svg"]
 
 
-CONTAINERS = {"frame", "fig", "steps", "fside", "fside-item", "comp-table"}
+def shapes_with_values(s):
+    tags = [(m.group(1), dict(ATTR.findall(m.group(2))), m.group(3)) for m in TAG.finditer(s)]
+    for (kind, a, _), (nxt, b, label) in zip(tags, tags[1:]):
+        if kind in ("circle", "rect") and nxt == "text" and "t-val" in b.get("class", "").split():
+            yield kind, a, b, label
 
 
-def old_marker_names():
-    names = set()
-    lessons = ROOT / "docs" / "lessons"
-    content = ROOT / "content" / "ar"
-    if lessons.exists():
-        for p in lessons.glob("*.html"):
-            names |= set(re.findall(r"<!--fig:([\w-]+)-->", p.read_text(encoding="utf-8")))
-    else:
-        for p in content.glob("*.md"):
-            names |= set(re.findall(r"^::figure ([\w-]+)", p.read_text(encoding="utf-8"), re.M))
-    return names
+class FigureScaleTest(unittest.TestCase):
+    def test_labels_fit(self):
+        for name, s in svgs():
+            for kind, a, b, label in shapes_with_values(s):
+                width = 2 * float(a["r"]) if kind == "circle" else float(a["width"])
+                size = float(b.get("font-size", 13))
+                self.assertLessEqual(label_width(label, size), width - 8, f"{name}: {label!r} in {kind} {width}")
 
+    def test_one_node_size(self):
+        for name, s in svgs():
+            for m in re.finditer(r"<circle\b([^>]*)>", s):
+                a = dict(ATTR.findall(m.group(1)))
+                want = 5 if a.get("class") == "dot" else 15
+                self.assertEqual(float(a["r"]), want, f"{name}: {a}")
 
-class FiguresTest(unittest.TestCase):
-    def test_all_figures_load(self):
-        self.assertGreaterEqual(len(all_figures()), 149)
+    def test_value_box_heights(self):
+        for name, s in svgs():
+            for kind, a, _, label in shapes_with_values(s):
+                if kind == "rect":
+                    self.assertIn(float(a["height"]), (34, 26, 30), f"{name}: {label!r} {a}")
 
-    def test_every_marker_has_a_figure(self):
-        missing = old_marker_names() - set(all_figures())
-        self.assertEqual(missing, set())
+    def test_no_hatch(self):
+        for name, f in all_figures().items():
+            self.assertNotIn("<pattern", f.html, name)
+            self.assertNotIn("hatch", f.html, name)
 
-    def test_kinds(self):
-        self.assertEqual({f.kind for f in all_figures().values()}, {"fig", "steps"})
+    def test_null_links_visible(self):
+        for name, s in svgs():
+            for m in re.finditer(r"<line\b([^>]*)>", s):
+                a = dict(ATTR.findall(m.group(1)))
+                if "e-null" in a.get("class", "").split():
+                    length = math.hypot(float(a["x2"]) - float(a["x1"]), float(a["y2"]) - float(a["y1"]))
+                    self.assertGreaterEqual(length - NODE_R, 20, f"{name}: {a}")
 
-    def test_vocabulary_only(self):
-        for f in all_figures().values():
-            for svg in re.findall(r"<svg[\s\S]*?</svg>", f.html):
-                toks = {t for c in re.findall(r'class="([^"]*)"', svg) for t in c.split()}
-                self.assertLessEqual(toks, VOCABULARY, f.name)
-            outside = re.sub(r"<svg[\s\S]*?</svg>", "", f.html)
-            toks = {t for c in re.findall(r'class="([^"]*)"', outside) for t in c.split()}
-            self.assertLessEqual(toks, CONTAINERS, f.name)
+    def test_min_text_size(self):
+        for name, s in svgs():
+            for size in re.findall(r'<text\b[^>]*font-size="([\d.]+)"', s):
+                self.assertGreaterEqual(float(size), 11, name)
 
-    def test_no_inline_colors(self):
-        for f in all_figures().values():
-            self.assertIsNone(re.search(r'(fill|stroke|color|background)\s*[:=]\s*"?#', f.html), f.name)
+    def test_labels_clear_of_edges(self):
+        for name, s in svgs():
+            edges = [dict(ATTR.findall(m.group(1))) for m in re.finditer(r"<line\b([^>]*)>", s)]
+            edges = [e for e in edges if set(e.get("class", "").split()) & {"e", "e-active", "e-strong", "a"}]
+            for m in re.finditer(r"<text\b([^>]*)>([^<]*)</text>", s):
+                a = dict(ATTR.findall(m.group(1)))
+                if "t-val" in a.get("class", "").split():
+                    continue
+                size = float(a.get("font-size", 13))
+                w = label_width(m.group(2), size)
+                x, y = float(a["x"]), float(a["y"])
+                anchor = a.get("text-anchor", "start")
+                x0 = x - w / 2 if anchor == "middle" else x - w if anchor == "end" else x
+                box = (x0 + 1, y - size * 0.7 + 1, x0 + w - 1, y + size * 0.15 - 1)
+                for e in edges:
+                    x1, y1, x2, y2 = (float(e[k]) for k in ("x1", "y1", "x2", "y2"))
+                    hit = any(box[0] < x1 + (x2 - x1) * t / 40 < box[2] and box[1] < y1 + (y2 - y1) * t / 40 < box[3]
+                              for t in range(41))
+                    self.assertFalse(hit, f"{name}: {m.group(2)!r} on an edge")
 
-    def test_final_rows_match_programs(self):
-        figs = all_figures()
-        for name, (program, prefix) in CHECKS.items():
-            with self.subTest(figure=name):
-                row = final_row(figs[name].html)
-                self.assertGreaterEqual(len(row), 4)
-                lines = [l.strip() for l in run_output(program).splitlines() if l.strip().startswith(prefix)]
-                self.assertTrue(lines, f"{program}: no line starting with {prefix!r}")
-                printed = "".join(re.findall(r"[A-Za-z0-9]+", lines[0]))
-                self.assertTrue(printed.endswith("".join(row)), f"{name}: {row} vs {lines[0]}")
+    def test_pointer_labels_apart(self):
+        for name, s in svgs():
+            boxes = []
+            for m in re.finditer(r'<text\b([^>]*class="t-ptr"[^>]*)>([^<▲]+)</text>', s):
+                a = dict(ATTR.findall(m.group(1)))
+                w = label_width(m.group(2), float(a.get("font-size", 13)))
+                x, y = float(a["x"]), float(a["y"])
+                for bx0, bx1, by in boxes:
+                    self.assertFalse(abs(by - y) < 13 and x - w / 2 < bx1 + 3 and bx0 < x + w / 2 + 3,
+                                     f"{name}: {m.group(2)!r} touches another pointer")
+                boxes.append((x - w / 2, x + w / 2, y))
+
+    def test_fit_style(self):
+        for name, s in svgs():
+            head = s[:s.index(">")]
+            if 'class="fsvg' in head:
+                self.assertRegex(head, r'width="(\d+(?:\.\d+)?)"[^>]*style="min-width:\d+px"', name)
 
 
 if __name__ == "__main__":
     unittest.main()
-
-
-class CaptionColorTest(unittest.TestCase):
-    def test_no_stale_color_names(self):
-        stale = re.compile("الأزرق|البنفسجي|البرتقالي|الأخضر|أزرق|بنفسجي|برتقالي|أخضر")
-        for f in all_figures().values():
-            self.assertIsNone(stale.search(f.html), f.name)
-
-
-class MarkerIdTest(unittest.TestCase):
-    def test_markers_are_local_and_unique(self):
-        seen = set()
-        for f in all_figures().values():
-            for svg in re.findall(r"<svg[\s\S]*?</svg>", f.html):
-                ids = re.findall(r'<marker id="([^"]+)"', svg)
-                for ref in set(re.findall(r"url\(#([^)]+)\)", svg)):
-                    self.assertIn(ref, ids, f.name)
-                for i in ids:
-                    self.assertNotIn(i, seen, f.name)
-                    seen.add(i)

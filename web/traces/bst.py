@@ -1,5 +1,5 @@
 from web.lib.csource import run_output
-from web.lib.render import line, svg, text
+from web.lib.render import line, node, node_width, svg, text
 from web.lib.trace import Frame, Trace
 from web.traces.common import line_with, snippet
 
@@ -11,11 +11,6 @@ PRESETS = {"book": list("ASERCHINGXMPL"), "words": WORDS}
 class T:
     def __init__(self, key):
         self.key, self.l, self.r = key, None, None
-
-
-def node_width(key):
-    k = str(key)
-    return 30 if len(k) <= 2 else 9 * len(k) + 18
 
 
 def draw(root, states, all_keys, max_levels=1):
@@ -52,13 +47,7 @@ def draw(root, states, all_keys, max_levels=1):
     edges(root)
     for key, d in depth.items():
         x, y = pos(key)
-        w = node_width(key)
-        cls = states.get(key, "s-idle")
-        if w == 30:
-            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="15" class="{cls}"/>')
-        else:
-            parts.append(f'<rect x="{x - w / 2:.1f}" y="{y - h / 2:.1f}" width="{w}" height="{h}" rx="{h / 2}" class="{cls}"/>')
-        parts.append(text(x, y + 5, key, "t-val", "middle", 13))
+        parts.append(node(x, y, key, states.get(key, "s-idle")))
     total_levels = max(levels, max_levels)
     return svg(len(order) * col + 2 * pad, pad * 2 + h + (total_levels - 1) * dy, "".join(parts), cls="fsvg scene")
 

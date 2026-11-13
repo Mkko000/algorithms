@@ -35,6 +35,7 @@ class Rendered:
     sources: set = field(default_factory=set)
     figures: list = field(default_factory=list)
     traces: list = field(default_factory=list)
+    sidenotes: int = 0
 
 
 @dataclass
@@ -223,11 +224,54 @@ def _quiz(node: Node, ctx: RenderContext) -> str:
             f'<div class="why" hidden>{why_html}</div></div>')
 
 
+CODE_SPAN = re.compile(r"(`+).*?\1", re.S)
+
+
+def _sidenotes(text: str, out: Rendered) -> str:
+    if "^[" not in text:
+        return text
+    parts, last = [], 0
+    for m in CODE_SPAN.finditer(text):
+        parts.append((text[last:m.start()], True))
+        parts.append((m.group(0), False))
+        last = m.end()
+    parts.append((text[last:], True))
+    result = []
+    for chunk, live in parts:
+        if not live:
+            result.append(chunk)
+            continue
+        i = 0
+        while True:
+            j = chunk.find("^[", i)
+            if j < 0:
+                result.append(chunk[i:])
+                break
+            depth, k = 0, j + 1
+            while k < len(chunk):
+                if chunk[k] == "[":
+                    depth += 1
+                elif chunk[k] == "]":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                k += 1
+            if k >= len(chunk):
+                result.append(chunk[i:])
+                break
+            out.sidenotes += 1
+            inner = _md.renderInline(chunk[j + 2:k].strip())
+            result.append(chunk[i:j])
+            result.append(f'<span class="sn"><sup class="m">{out.sidenotes}</sup><span class="sn-t">{inner}</span></span>')
+            i = k + 1
+    return "".join(result)
+
+
 def _render_nodes(nodes: list, ctx: RenderContext, out: Rendered) -> str:
     html = []
     for node in nodes:
         if node.kind == "md":
-            html.append(_md.render(node.text))
+            html.append(_md.render(_sidenotes(node.text, out)))
         elif node.kind == "fence":
             html.append(_fence(node, ctx))
         elif node.kind == "leaf":

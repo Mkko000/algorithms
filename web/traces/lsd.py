@@ -11,8 +11,7 @@ PRESETS = {
 
 
 def picture(words, col):
-    return array_rows([(str(k), list(w), {col: "hi"} if col is not None else {}) for k, w in enumerate(words)],
-                      24, 26)
+    return array_rows([(str(k), list(w), {col: "hi"} if col is not None else {}) for k, w in enumerate(words)], 26)
 
 
 def run(words, code):

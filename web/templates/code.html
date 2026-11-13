@@ -1,18 +1,17 @@
 <main id="main" class="wrap layout">
-<article class="reading">
-<header class="lesson-head">
-<p class="context"><a href="{{index_href}}">{{index_label}}</a></p>
-<h1 dir="ltr">{{name}}</h1>
-<p class="meta" dir="ltr">{{path}}</p>
-</header>
-<div class="lesson-body">
-{{about}}
-<h2>{{source_label}}</h2>
-{{source}}
-<h2>{{output_label}}</h2>
-{{output}}
-{{used}}
-<p><a href="{{github}}">{{github_label}}</a></p>
-</div>
-</article>
+  <article class="reading">
+    <header class="lesson-head">
+      <p class="context"><a href="{{index_href}}">{{index_label}}</a></p>
+      <h1><span dir="ltr">{{name}}</span></h1>
+      <p class="meta"><span dir="ltr">{{path}}</span></p>
+    </header>
+    <div class="lesson-body">
+      {{about}}
+      <h2>{{source_label}}</h2>
+      {{source}}
+      <h2>{{output_label}}</h2>
+      {{output}} {{used}}
+      <p class="code-actions"><a class="button ghost" href="{{github}}">{{github_label}}</a></p>
+    </div>
+  </article>
 </main>
