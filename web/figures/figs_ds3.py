@@ -35,7 +35,7 @@ def bst_delete():
         t = P(base, hi=hi)
         got = ser(delete(P(base), k))
         assert got == want, (got, want)
-        parts.append(lab(title, pair(tree(t, 24, 40, 11, 'قبل'), tree(P(want), 24, 40, 11, 'بعد'))))
+        parts.append(lab(title, pair(tree(t, 24, 40, 'قبل'), tree(P(want), 24, 40, 'بعد'))))
     F['ds21-bstdel'] = ('fig', row(*parts, gap=26) + '<figcaption>الحالات التلاتة لحذف عقدة من BST (Thareja 10.1.4). الحالة 3 ممكن تستعمل الـ predecessor (زي هنا وزي RQ 12) أو الـ successor؛ الاتنين بيحافظوا على ترتيب الـ in-order.</figcaption>')
 
 # ---------------------------------------------------------------- AVL rotations
@@ -46,8 +46,8 @@ def rotations():
           ('RL: يمين ثم شمال → <b>rotation يمين على الابن ثم شمال</b>', '10(.,30(20,.))', '20(10,30)', {'10'})]
     out = []
     for title, a, b, crit in cs:
-        out.append(lab(title, pair(tree(P(a, hi=crit, notes={list(crit)[0]: 'critical'}), 44, 42, 12, 'قبل'),
-                                  tree(P(b), 44, 42, 12, 'بعد'))))
+        out.append(lab(title, pair(tree(P(a, hi=crit, notes={list(crit)[0]: 'critical'}), 44, 42, 'قبل'),
+                                  tree(P(b), 44, 42, 'بعد'))))
     F['ds21-rot'] = ('fig', row(*out, gap=28) + '<figcaption>الـ <b>critical node</b> هو أقرب جد للعقدة الجديدة اللي balance factor بتاعه بقى ±2. في الأربع حالات الجذر الجديد هو العقدة الوسطى (20) والترتيب in-order ما اتغيرش: 10 20 30.</figcaption>')
 
 # ---------------------------------------------------------------- AVL build (Q18)
@@ -85,7 +85,7 @@ def avl_q18():
             if a is None: return None
             return N(f'{a.key}', n2(a.l), n2(a.r), cls='node hi' if a.key == k else 'node')
         cap = f'أدخلنا <b>{k}</b>' + (' فحصل عدم توازن وصلحناه بـ <b>%s</b>.' % ' ثم '.join(log) if log else ' (التوازن سليم، مفيش rotation).')
-        frames.append(frame(tree(n2(root), 28, 44, 12, 'AVL'), cap))
+        frames.append(frame(tree(n2(root), 28, 44, 'AVL'), cap))
     assert ser(to_n(root)) == '16(9(.,11),63(36(27,54),81(72,.)))', ser(to_n(root))
     assert allrot == ['RR@27', 'RL@54', 'RR@36'], allrot
     F['ds21-avl18'] = ('steps', ''.join(frames))
@@ -97,7 +97,7 @@ def threads():
     pos = {}
     from web.lib.render import _layout
     _layout(t, 0, [0], pos)
-    dx, dy, r = 40, 54, 15
+    dx, dy, r = 40, 54, NODE_R
     byk = {}
     def collect(n):
         if n:
@@ -114,7 +114,7 @@ def threads():
     for a, b in right: assert inord[inord.index(a) + 1] == b
     for a, b in left: assert inord[inord.index(a) - 1] == b
     def with_threads(lst, cls, dash, depth):
-        base = tree(t, dx, dy, r, 'threaded')
+        base = tree(t, dx, dy, 'threaded')
         xy = lambda k: (10 + dx / 2 + byk[str(k)][0] * dx, 10 + r + byk[str(k)][1] * dy)
         ex = []
         for a, c in lst:
@@ -130,7 +130,7 @@ def threads():
 
 def with_threads_both(t, byk, dx, dy, r, right, left):
     import re
-    base = tree(t, dx, dy, r, 'threaded')
+    base = tree(t, dx, dy, 'threaded')
     xy = lambda k: (10 + dx / 2 + byk[str(k)][0] * dx, 10 + r + byk[str(k)][1] * dy)
     ex = []
     for a, c in right:
@@ -200,7 +200,7 @@ def rb_seven():
         c = []
         root = rb_insert(root, k, c); allc += c
         cap = f'أدخلنا <b>{k}</b>' + (' وصلّحنا بالحالات: <b>%s</b>' % ' ثم '.join(c) if c else (' (جذر أسود)' if k == 1 else ' (الأب أسود: مفيش مشكلة)'))
-        frames.append(frame(tree(rb_to_n(root), 30, 46, 13, 'red-black'), cap))
+        frames.append(frame(tree(rb_to_n(root), 30, 46, 'red-black'), cap))
     assert rb_ser(root) == '2b(1b,4r(3b,6b(5r,7r)))', rb_ser(root)
     assert allc == ['I3', 'I1', 'I3', 'I1', 'I3'], allc
     F['ds21-rb7'] = ('steps', ''.join(frames))
@@ -238,7 +238,7 @@ def splay_steps():
     for k in range(2, 8):
         nodes[k].l = nodes[k - 1]; nodes[k - 1].p = nodes[k]
     assert s_ser(nodes[7]) == '7(6(5(4(3(2(1,.),.),.),.),.),.)'
-    frames = [frame(tree(s_to_n(nodes[7], 1), 24, 40, 11, 'chain'), 'الحالة الابتدائية بعد إدخال 1..7 (كل إدخال بيعمل splay للمفتاح الجديد للجذر فبيطلع chain شمالي): عمق 1 = 6.')]
+    frames = [frame(tree(s_to_n(nodes[7], 1), 24, 40, 'chain'), 'الحالة الابتدائية بعد إدخال 1..7 (كل إدخال بيعمل splay للمفتاح الجديد للجذر فبيطلع chain شمالي): عمق 1 = 6.')]
     def splay(x, tag):
         steps = []
         while x.p:
@@ -246,7 +246,7 @@ def splay_steps():
             if g is None: s_rot(x); steps.append('zig')
             elif (g.l is p) == (p.l is x): s_rot(p); s_rot(x); steps.append('zig-zig')
             else: s_rot(x); s_rot(x); steps.append('zig-zag')
-            frames.append(frame(tree(s_to_n(s_root(x), x.key), 24, 40, 11, 'splay'), f'{tag}: بعد الخطوة <b>{steps[-1]}</b> المفتاح {x.key} أقرب للجذر.'))
+            frames.append(frame(tree(s_to_n(s_root(x), x.key), 24, 40, 'splay'), f'{tag}: بعد الخطوة <b>{steps[-1]}</b> المفتاح {x.key} أقرب للجذر.'))
         return steps
     st = splay(nodes[1], 'search(1)')
     assert st == ['zig-zig'] * 3 and s_ser(nodes[1]) == '1(.,6(4(2(.,3),5),7))', s_ser(nodes[1])

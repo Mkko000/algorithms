@@ -87,7 +87,8 @@ def build(out: Path, base: str = "/", only: str | None = None) -> dict:
                     used[src].append(lesson)
             write(target, render_lesson(site, lang, lesson, rendered))
             pages += 1
-        write(out / lang / "index.html", render_home(site, lang))
+        stats = {"lessons": len(course.lessons), "programs": len(programs()), "traces": len(traces)}
+        write(out / lang / "index.html", render_home(site, lang, stats))
         pages += 1
 
     paths = programs()
@@ -97,7 +98,8 @@ def build(out: Path, base: str = "/", only: str | None = None) -> dict:
             lessons = sorted(used.get(path, []), key=lambda l: order[l.slug])
             write(out / lang / "code" / code_slug(path) / "index.html", render_code_page(site, lang, path, lessons))
             pages += 1
-        write(out / lang / "code" / "index.html", render_code_index(site, lang, paths))
+        by_path = {p: sorted(used.get(p, []), key=lambda l: order[l.slug]) for p in paths}
+        write(out / lang / "code" / "index.html", render_code_index(site, lang, paths, by_path))
         pages += 1
     write(out / "index.html", render_root(site))
     write(out / "404.html", render_not_found(site))

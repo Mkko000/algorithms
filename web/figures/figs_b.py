@@ -10,7 +10,7 @@ def selection_trace():
         a[i], a[m] = a[m], a[i]
         c = {k: 'dim' for k in range(i)}; c[i] = 'hi'; c[m] = 'hi2' if m != i else 'hi'
         rows.append((str(i), a[:], c))
-    F['sel-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، المظلّل هو الخانة i اللي اتحط فيها الأصغر، والمحدّد هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا.'))
+    F['sel-trace'] = ('fig', fig(array_rows(rows, 26), 'Selection sort على <code>ASORTINGEXAMPLE</code>: في كل سطر، المظلّل هو الخانة i اللي اتحط فيها الأصغر، والمحدّد هو المكان اللي الأصغر كان فيه (اتبدّلوا). الباهت خلاص في مكانه النهائي. خلّي بالك: الباهت مابيتلمسش تاني أبدًا.'))
 
 def insertion_trace():
     a = S[:]; rows = [('', a[:], {})]
@@ -22,7 +22,7 @@ def insertion_trace():
         for k in range(j + 1, i + 1): c[k] = 'hi2'
         c[j] = 'hi'
         rows.append((str(i), a[:], c))
-    F['ins-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Insertion sort: في السطر i، العنصر المظلّل هو اللي «اتزق» شمال لحد مكانه، والمحدّد هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات المحدّد في كل سطر = عدد الـ inversions اللي اتصلحت.'))
+    F['ins-trace'] = ('fig', fig(array_rows(rows, 26), 'Insertion sort: في السطر i، العنصر المظلّل هو اللي «اتزق» شمال لحد مكانه، والمحدّد هم اللي اتزحزحوا خطوة يمين. الجزء الباهت على اليمين لسه ماتلمسش. عدد الخانات المحدّد في كل سطر = عدد الـ inversions اللي اتصلحت.'))
 
 def bubble_trace():
     a = S[:]; rows = [('', a[:], {})]
@@ -35,7 +35,7 @@ def bubble_trace():
         for k in moved:
             if k > i: c[k] = 'hi2'
         rows.append((str(i), a[:], c))
-    F['bub-trace'] = ('fig', fig(array_rows(rows, 24, 26), 'Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (المظلّل). المحدّد: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة.'))
+    F['bub-trace'] = ('fig', fig(array_rows(rows, 26), 'Bubble sort: كل لفّة من اليمين للشمال بتطلّع أصغر عنصر باقي للخانة i (المظلّل). المحدّد: عناصر اتحركت في اللفّة. لاحظ إن الآخر بيتحسّن ببطء — العناصر الكبيرة بتمشي خطوة واحدة يمين في كل لفّة.'))
 
 def shell_trace():
     a = list('ASORTINGEXAMPLE'); rows = [('', a[:], {})]
@@ -45,7 +45,7 @@ def shell_trace():
             while j >= h and v < a[j - h]: a[j] = a[j - h]; j -= h
             a[j] = v
         rows.append((f'h={h}', a[:], {k: ('hi' if (k % h == 0 and h > 1) else 'cell') for k in range(len(a))}))
-    F['shell-trace'] = ('fig', fig(array_rows(rows, 24, 44), 'Shellsort بالزيادات 13، 4، 1: بعد 13-sort، بعد 4-sort (المظلّل متتابعة واحدة من الأربعة: الخانات 0، 4، 8، 12 — مترتبة جواها)، وبعد 1-sort. شوف قد إيه الملف «شبه مترتب» قبل اللفّة الأخيرة، فالـ insertion sort الأخير بيخلص بسرعة.'))
+    F['shell-trace'] = ('fig', fig(array_rows(rows, 44), 'Shellsort بالزيادات 13، 4، 1: بعد 13-sort، بعد 4-sort (المظلّل متتابعة واحدة من الأربعة: الخانات 0، 4، 8، 12 — مترتبة جواها)، وبعد 1-sort. شوف قد إيه الملف «شبه مترتب» قبل اللفّة الأخيرة، فالـ insertion sort الأخير بيخلص بسرعة.'))
 
 def kic_trace():
     a = list('31202130102'); R = 4
@@ -57,7 +57,7 @@ def kic_trace():
     b = [''] * len(a); c = cnt[:]
     for x in a: b[c[int(x)]] = x; c[int(x)] += 1
     rows = [('a', a, {}), ('cnt', c1, {i: 'hi2' for i in range(R + 1)}), ('start', c2, {i: 'hi' for i in range(R + 1)}), ('b', b, {i: 'ok' for i in range(len(b))})]
-    F['kic-trace'] = ('fig', fig(array_rows(rows, 30, 50), 'Key-indexed counting على مفاتيح من 0 لـ 3: (1) <code>cnt[k+1]</code> = عدد المفتاح k. (2) الجمع التراكمي يدّي <b>مكان بداية</b> كل مفتاح: الأصفار تبدأ من 0، الواحدات من 3، الاتنينات من 7… (3) التوزيع بالترتيب يدّي b مترتب ومستقر.'))
+    F['kic-trace'] = ('fig', fig(array_rows(rows, 50), 'Key-indexed counting على مفاتيح من 0 لـ 3: (1) <code>cnt[k+1]</code> = عدد المفتاح k. (2) الجمع التراكمي يدّي <b>مكان بداية</b> كل مفتاح: الأصفار تبدأ من 0، الواحدات من 3، الاتنينات من 7… (3) التوزيع بالترتيب يدّي b مترتب ومستقر.'))
 
 def partition_steps():
     a = S[:]; l, r = 0, len(a) - 1; v = a[r]; i, j = l - 1, r; fr = []
@@ -69,7 +69,7 @@ def partition_steps():
         idx = [''] * len(a)
         if 0 <= i < len(a): idx[i] = 'i'
         if 0 <= j < len(a): idx[j] = 'j' if j != i else 'ij'
-        fr.append(frame(array_rows([('', a[:], c), ('', idx, {k: 'dim' for k in range(len(a))})], 26, 0), cap))
+        fr.append(frame(array_rows([('', a[:], c), ('', idx, {k: 'dim' for k in range(len(a))})], 0), cap))
     snap(f'الـ pivot هو آخر عنصر <b>{v}</b> (مظلّل). i هيمشي من الشمال وj من اليمين.')
     while True:
         i += 1
@@ -105,14 +105,14 @@ def quick_trace():
         c = {k: 'dim' for k in range(len(a)) if k < l or k > r}; c[i] = 'piv'
         rows.append(('', a[:], c)); qs(l, i - 1); qs(i + 1, r)
     qs(0, len(a) - 1)
-    F['quick-trace'] = ('fig', fig(array_rows(rows, 22, 0), 'quicksort كامل على <code>ASORTINGEXAMPLE</code>: كل سطر partition واحد. المظلّل هو الـ pivot اللي استقر في مكانه، والجزء غير الباهت هو الملف الفرعي اللي اتقسم. السطور بعنصر رمادي واحد: ملفات حجمها 1 (خلصانة). اقرا العمود الأوسط من فوق لتحت: كل عنصر بيستقر مرة واحدة.'))
+    F['quick-trace'] = ('fig', fig(array_rows(rows, 0), 'quicksort كامل على <code>ASORTINGEXAMPLE</code>: كل سطر partition واحد. المظلّل هو الـ pivot اللي استقر في مكانه، والجزء غير الباهت هو الملف الفرعي اللي اتقسم. السطور بعنصر رمادي واحد: ملفات حجمها 1 (خلصانة). اقرا العمود الأوسط من فوق لتحت: كل عنصر بيستقر مرة واحدة.'))
 
 def three_way_steps():
     a = list('ABRACADABRACADABRA'); v = a[-1]
     lt = [x for x in a if x < v]; eq = [x for x in a if x == v]; gt = [x for x in a if x > v]
     res = lt + eq + gt
     rows = [('in', a, {len(a) - 1: 'piv'}), ('out', res, {**{k: 'hi' for k in range(len(lt))}, **{k: 'piv' for k in range(len(lt), len(lt) + len(eq))}, **{k: 'hi2' for k in range(len(lt) + len(eq), len(a))}})]
-    F['three-way'] = ('fig', fig(array_rows(rows, 24, 34), f'3-way partitioning بالـ pivot <b>{v}</b>: أصغر (مظلّل) | <b>مساوي</b> (مظلّل) | أكبر (محدّد). كل الـ {len(eq)} نسخ من {v} استقروا مرة واحدة وماحدش منهم هيدخل ريكيرشن تاني. ملف فيه مفاتيح متكررة كتير بيخلص بسرعة جدًا.'))
+    F['three-way'] = ('fig', fig(array_rows(rows, 34), f'3-way partitioning بالـ pivot <b>{v}</b>: أصغر (مظلّل) | <b>مساوي</b> (مظلّل) | أكبر (محدّد). كل الـ {len(eq)} نسخ من {v} استقروا مرة واحدة وماحدش منهم هيدخل ريكيرشن تاني. ملف فيه مفاتيح متكررة كتير بيخلص بسرعة جدًا.'))
 
 def merge_trace():
     a = list('ASORTINGEXAMPLE'); rows = [('', a[:], {})]
@@ -122,27 +122,27 @@ def merge_trace():
         a[l:r + 1] = sorted(a[l:r + 1])
         rows.append((f'{l}-{r}', a[:], {**{k: 'dim' for k in range(len(a)) if k < l or k > r}, **{k: 'hi' for k in range(l, r + 1)}}))
     ms(0, len(a) - 1)
-    F['merge-td'] = ('fig', fig(array_rows(rows, 22, 44), 'Top-down mergesort: كل سطر merge واحد للجزء المظلّل (الحدود على الشمال). لاحظ الترتيب: الشمال كله بيخلص قبل ما اليمين يبدأ — بالظبط ترتيب الـ postorder في شجرة الريكيرشن.'))
+    F['merge-td'] = ('fig', fig(array_rows(rows, 44), 'Top-down mergesort: كل سطر merge واحد للجزء المظلّل (الحدود على الشمال). لاحظ الترتيب: الشمال كله بيخلص قبل ما اليمين يبدأ — بالظبط ترتيب الـ postorder في شجرة الريكيرشن.'))
     a = list('ASORTINGEXAMPLE'); rows = [('', a[:], {})]; m = 1
     while m < len(a):
         for i in range(0, len(a) - m, 2 * m):
             a[i:min(i + 2 * m, len(a))] = sorted(a[i:min(i + 2 * m, len(a))])
         rows.append((f'm={m}', a[:], {k: ('hi' if (k // (2 * m)) % 2 == 0 else 'hi2') for k in range(len(a))})); m *= 2
-    F['merge-bu'] = ('fig', fig(array_rows(rows, 22, 44), 'Bottom-up mergesort: كل سطر لفّة كاملة. الألوان المتبادلة بتوضح الملفات المترتبة بعد اللفّة (حجمها 2، 4، 8، 16). 4 لفّات = ⌈lg 15⌉.'))
+    F['merge-bu'] = ('fig', fig(array_rows(rows, 44), 'Bottom-up mergesort: كل سطر لفّة كاملة. الألوان المتبادلة بتوضح الملفات المترتبة بعد اللفّة (حجمها 2، 4، 8، 16). 4 لفّات = ⌈lg 15⌉.'))
 
 def merge_tree():
     def mk(l, r):
         n = r - l + 1
         if n == 1: return N('1')
         m = (l + r) // 2; return N(str(n), mk(l, m), mk(m + 1, r))
-    F['merge-tree'] = ('fig', fig(tree(mk(0, 10), dx=26, dy=44, r=12), 'شجرة الـ divide-and-conquer لـ mergesort على N = 11: كل عقدة = حجم merge. مجموع الأرقام في كل مستوى ≤ N، وفيه ⌈lg N⌉ مستوى. وشكلها بيعتمد على N بس — مش على البيانات (Property 8.4).'))
+    F['merge-tree'] = ('fig', fig(tree(mk(0, 10), dx=26, dy=44), 'شجرة الـ divide-and-conquer لـ mergesort على N = 11: كل عقدة = حجم merge. مجموع الأرقام في كل مستوى ≤ N، وفيه ⌈lg N⌉ مستوى. وشكلها بيعتمد على N بس — مش على البيانات (Property 8.4).'))
 
 def heap_tree(a, hi=(), hi2=()):
     n = len(a) - 1
     def mk(k):
         if k > n: return None
         return N(a[k], mk(2 * k), mk(2 * k + 1), 'node hi' if k in hi else 'node hi2' if k in hi2 else 'node')
-    return tree(mk(1), dx=30, dy=46, r=14)
+    return tree(mk(1), dx=30, dy=46)
 
 def heap_steps():
     a = [None]; fr = []
@@ -168,7 +168,7 @@ def heap_steps():
         a[1], a[n] = a[n], a[1]; n -= 1; p = fixdown(1, n)
         if n in (14, 13, 12, 8, 4, 1):
             b = a[:n + 1]
-            fr.append(frame(heap_tree(b, hi2=tuple(p)) + array_rows([('', a[1:], {k: ('ok' if k >= n else 'cell') for k in range(15)})], 22, 0),
+            fr.append(frame(heap_tree(b, hi2=tuple(p)) + array_rows([('', a[1:], {k: ('ok' if k >= n else 'cell') for k in range(15)})], 0),
                             f'شيلنا الأكبر وحطيناه في الآخر (الرمادي = مترتب نهائي). باقي في الـ heap {n} عنصر.'))
     F['heapsort-steps'] = ('steps', ''.join(fr))
 
@@ -184,7 +184,7 @@ def binomial_fig():
             hs = nh
         return hs[0]
     t8 = p2(list('XTSRPONM')); t4 = p2(list('LIGE')); t1 = p2(['A'])
-    F['binomial'] = ('fig', fig(f'<div style="display:flex;gap:16px;justify-content:center;align-items:flex-start;flex-wrap:wrap;direction:ltr"><div><small>bq[3] (8)</small><br>{tree(t8, dx=26, dy=40, r=12)}</div><div><small>bq[2] (4)</small><br>{tree(t4, dx=26, dy=40, r=12)}</div><div><small>bq[0] (1)</small><br>{tree(t1, dx=26, dy=40, r=12)}</div></div>',
+    F['binomial'] = ('fig', fig(f'<div style="display:flex;gap:16px;justify-content:safe center;align-items:flex-start;flex-wrap:wrap;direction:ltr"><div><small>bq[3] (8)</small><br>{tree(t8, dx=26, dy=40)}</div><div><small>bq[2] (4)</small><br>{tree(t4, dx=26, dy=40)}</div><div><small>bq[0] (1)</small><br>{tree(t1, dx=26, dy=40)}</div></div>',
         'binomial queue فيه 13 عنصر = 1101 بالثنائي: power-of-2 heaps بأحجام 8 و4 و1، ومفيش heap بحجم 2 (الخانة bq[1] فاضية). كل جذر أكبر من كل اللي في شجرته الشمال، واليمين بتاع الجذر فاضي.'))
 
 def lsd_trace():
@@ -220,7 +220,7 @@ def msd_fig():
                 node = mk(g, d + 1); node.label = ch; kids.append(node)
         return M([], kids, 'mnode')
     t = mk(words, 0)
-    F['msd-trie'] = ('fig', fig(mtree(t, kw=20, gap=10, dy=52, edge_labels=True), 'شجرة الريكيرشن بتاعة MSD radix sort على كلمات الكتاب: كل نقطة = نداء على ملف فرعي، والحرف على الخط = الصندوق. الأوراق الملوّنة = مفتاح وصل لوحده فوقف (و«×2» يعني نسختين متطابقتين). دي نفسها شكل الـ trie (الدرس 35).'))
+    F['msd-trie'] = ('fig', fig(mtree(t, gap=10, dy=52, edge_labels=True), 'شجرة الريكيرشن بتاعة MSD radix sort على كلمات الكتاب: كل نقطة = نداء على ملف فرعي، والحرف على الخط = الصندوق. الأوراق الملوّنة = مفتاح وصل لوحده فوقف (و«×2» يعني نسختين متطابقتين). دي نفسها شكل الـ trie (الدرس 35).'))
 
 def batcher_fig(Nn=8):
     # exact comparator list printed by src/11-special-sorts/batcher_network.c for N = 8
@@ -231,12 +231,12 @@ def batcher_fig(Nn=8):
     for c, (i, j) in enumerate(comps):
         x = 32 + c * 22
         out.append(line(x, 15 + i * 26, x, 15 + j * 26, 'edge hi'))
-        out.append(f'<circle cx="{x}" cy="{15+i*26}" r="4" class="dot"/><circle cx="{x}" cy="{15+j*26}" r="4" class="dot"/>')
+        out.append(f'<circle cx="{x}" cy="{15+i*26}" r="5" class="dot"/><circle cx="{x}" cy="{15+j*26}" r="5" class="dot"/>')
     F['batcher-net'] = ('fig', fig(svg(W, H, ''.join(out)), f'شبكة Batcher لـ N = {Nn}: كل خط أفقي «سلك»، وكل خط رأسي comparator بيبدّل لو العلوي أكبر. {len(comps)} comparator. الترتيب ثابت مهما كانت البيانات (nonadaptive)، فالـ comparators اللي مابيلمسوش نفس الأسلاك ينفع يشتغلوا في نفس اللحظة.'))
 
 def runs_fig():
     rows = [('runs', ['1000'] * 8, {k: 'hi' for k in range(8)}), ('pass1', ['4000', '', '', '', '4000', '', '', ''], {0: 'hi2', 4: 'hi2'}), ('pass2', ['8000', '', '', '', '', '', '', ''], {0: 'ok'})]
-    F['ext-runs'] = ('fig', fig(array_rows(rows, 48, 50), 'Sort-merge خارجي بذاكرة M = 1000 ودمج 4-way: لفّة توزيع بتعمل runs مترتبة طولها M، وبعدين كل لفّة دمج بتضرب الطول في 4. عدد اللفّات 1 + ⌈log₄(N/M)⌉ (Property 11.4).'))
+    F['ext-runs'] = ('fig', fig(array_rows(rows, 50), 'Sort-merge خارجي بذاكرة M = 1000 ودمج 4-way: لفّة توزيع بتعمل runs مترتبة طولها M، وبعدين كل لفّة دمج بتضرب الطول في 4. عدد اللفّات 1 + ⌈log₄(N/M)⌉ (Property 11.4).'))
 
 for f in (selection_trace, insertion_trace, bubble_trace, shell_trace, kic_trace, partition_steps, quick_trace, three_way_steps,
           merge_trace, merge_tree, heap_steps, binomial_fig, lsd_trace, msd_fig, batcher_fig, runs_fig):
@@ -252,7 +252,7 @@ def split_interleave():
                 if top[c] > bot[c]: top[c], bot[c] = bot[c], top[c]
     fr = []
     def snap(cap):
-        fr.append(frame(array_rows([('', r, {}) for r in cur], 26, 0), cap))
+        fr.append(frame(array_rows([('', r, {}) for r in cur], 0), cap))
     snap('الملفّين المترتبين فوق بعض (كل صف مترتب).')
     ce(cur); snap('قارن كل عنصرين فوق بعض، والأصغر يطلع فوق. دلوقتي الصفوف والأعمدة مترتبين.')
     while len(cur[0]) > 1:
@@ -288,11 +288,11 @@ def replacement_sel(M=5):
         if r != run: run = r; runs.append([])
         runs[-1].append(k)
     rows = [('in', data, {})] + [(f'run{i}', r, {k: 'hi' if i % 2 == 0 else 'hi2' for k in range(len(r))}) for i, r in enumerate(runs)]
-    F['repl-sel'] = ('fig', fig(array_rows(rows, 22, 44), f'Replacement selection بـ heap حجمه {M} بس على {len(data)} مفتاح: طلّع {len(runs)} runs أطوالها {", ".join(str(len(r)) for r in runs)} — متوسط ≈ {len(data)/len(runs):.1f}، يعني حوالي ضعف حجم الذاكرة (Property 11.5). لو كنا رتّبنا 5 بـ 5 كان هيطلع {-(-len(data)//M)} runs.'))
+    F['repl-sel'] = ('fig', fig(array_rows(rows, 44), f'Replacement selection بـ heap حجمه {M} بس على {len(data)} مفتاح: طلّع {len(runs)} runs أطوالها {", ".join(str(len(r)) for r in runs)} — متوسط ≈ {len(data)/len(runs):.1f}، يعني حوالي ضعف حجم الذاكرة (Property 11.5). لو كنا رتّبنا 5 بـ 5 كان هيطلع {-(-len(data)//M)} runs.'))
 
 def polyphase_table():
     rows = [('start', ['13', '8', '0'], {0: 'hi', 1: 'hi'}), ('1', ['5', '0', '8'], {2: 'hi2'}), ('2', ['0', '5', '3'], {1: 'hi2'}),
             ('3', ['3', '2', '0'], {0: 'hi2'}), ('4', ['1', '0', '2'], {2: 'hi2'}), ('5', ['0', '1', '1'], {1: 'hi2'}), ('6', ['1', '0', '0'], {0: 'ok'})]
-    F['polyphase'] = ('fig', fig(array_rows(rows, 44, 50), 'Polyphase على 3 شرايط و21 run (= 13 + 8، أرقام فيبوناتشي) — ده الخرج الحقيقي بتاع <code>polyphase.c</code>. في كل phase ندمج من الشريطين المليانين للفاضي لحد ما واحد منهم يخلص، والمحدّد هو شريط الخرج. لاحظ: الأعمدة كلها أرقام فيبوناتشي، ومفيش أي نسخ زيادة.'))
+    F['polyphase'] = ('fig', fig(array_rows(rows, 50), 'Polyphase على 3 شرايط و21 run (= 13 + 8، أرقام فيبوناتشي) — ده الخرج الحقيقي بتاع <code>polyphase.c</code>. في كل phase ندمج من الشريطين المليانين للفاضي لحد ما واحد منهم يخلص، والمحدّد هو شريط الخرج. لاحظ: الأعمدة كلها أرقام فيبوناتشي، ومفيش أي نسخ زيادة.'))
 
 for f in (split_interleave, replacement_sel, polyphase_table): f()

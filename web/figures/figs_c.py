@@ -37,7 +37,7 @@ def bst_insert_steps():
         mark(root, path, new)
         dirs = ' ← '.join(p.key for p in path) if path else ''
         cap = f'insert <b>{k}</b>: ' + (f'مشينا في المسار {" → ".join(p.key for p in path)} ووقفنا عند link فاضي، فحطّينا {k} هناك.' if path else 'الشجرة فاضية، فـ A بقت الجذر.')
-        fr.append(frame(tree(root, dx=30, dy=46, r=14), cap))
+        fr.append(frame(tree(root, dx=30, dy=46), cap))
     F['bst-insert'] = ('steps', ''.join(fr))
     # search figure
     t = build_bst(KEYS)
@@ -48,8 +48,8 @@ def bst_insert_steps():
             if k == t.key: break
             t = t.l if k < t.key else t.r
         return p
-    p = path_to(t, 'H'); mark(t, p[:-1], p[-1]); a = tree(t, dx=28, dy=44, r=13)
-    t = build_bst(KEYS); p = path_to(t, 'Q'); mark(t, p, None); b = tree(t, dx=28, dy=44, r=13, show_null=True)
+    p = path_to(t, 'H'); mark(t, p[:-1], p[-1]); a = tree(t, dx=28, dy=44)
+    t = build_bst(KEYS); p = path_to(t, 'Q'); mark(t, p, None); b = tree(t, dx=28, dy=44, show_null=True)
     F['bst-search'] = ('fig', fig(side(('search H (hit)', a), ('search Q (miss)', b)),
         'البحث في BST: كل مقارنة بتنزّلنا مستوى. يمين: لقينا H بعد 5 مقارنات (A، S، E، R، H). شمال: Q مش موجود — عدّينا على A S E R H I N P ووصلنا لـ link فاضي (الخطوط المتقطعة). المكان ده بالظبط هو اللي هيتحط فيه Q لو عملنا insert.'))
 
@@ -76,7 +76,7 @@ def root_insert_steps():
         return h
     path = []; t = ins(t, 'G', path)
     g = find(t, 'G'); mark(t, path, g)
-    fr.append(frame(tree(t, dx=30, dy=44, r=14), 'الأول: G اتحطت تحت عادي (insert في الأوراق). المسار المعلّم هو اللي هنطلع فيه.'))
+    fr.append(frame(tree(t, dx=30, dy=44), 'الأول: G اتحطت تحت عادي (insert في الأوراق). المسار المعلّم هو اللي هنطلع فيه.'))
     while path:
         p = path.pop()
         parent = path[-1] if path else None
@@ -86,7 +86,7 @@ def root_insert_steps():
         elif parent.l is p: parent.l = nr
         else: parent.r = nr
         mark(t, path, g)
-        fr.append(frame(tree(t, dx=30, dy=44, r=14), f'{d}({p.key}): G طلعت مستوى فوق {p.key}.' + (' وصلت للجذر!' if parent is None else '')))
+        fr.append(frame(tree(t, dx=30, dy=44), f'{d}({p.key}): G طلعت مستوى فوق {p.key}.' + (' وصلت للجذر!' if parent is None else '')))
     F['root-insert'] = ('steps', ''.join(fr))
 
 def size(t): return 0 if t is None else 1 + size(t.l) + size(t.r)
@@ -99,12 +99,12 @@ def partR(h, k):
 def delete_steps():
     t = build_bst(KEYS); fr = []
     e = find(t, 'E'); mark(t, (), e); g = find(t, 'G'); g.cls = 'node hi2'
-    fr.append(frame(tree(t, dx=30, dy=44, r=14), 'عايزين نمسح E (المظلّل) وليها ولدين. الحل في Program 12.15: نجيب أصغر حاجة في الشجرة اليمين (G، المحدّد) ونخلّيها مكان E.'))
+    fr.append(frame(tree(t, dx=30, dy=44), 'عايزين نمسح E (المظلّل) وليها ولدين. الحل في Program 12.15: نجيب أصغر حاجة في الشجرة اليمين (G، المحدّد) ونخلّيها مكان E.'))
     r = partR(e.r, 0)
     e.r = r; mark(t, (), e); find(t, 'G').cls = 'node hi2'
-    fr.append(frame(tree(t, dx=30, dy=44, r=14), 'partR(E→r, 0): بالـ rotations طلّعنا أصغر عنصر في الشجرة اليمين (G) لجذرها. دلوقتي G مالهاش ولد شمال أكيد.'))
+    fr.append(frame(tree(t, dx=30, dy=44), 'partR(E→r, 0): بالـ rotations طلّعنا أصغر عنصر في الشجرة اليمين (G) لجذرها. دلوقتي G مالهاش ولد شمال أكيد.'))
     r.l = e.l; t.r.l = r; mark(t, (), r)
-    fr.append(frame(tree(t, dx=30, dy=44, r=14), 'joinLR: علّقنا الشجرة الشمال بتاعة E (اللي فيها C) شمال G، وG خدت مكان E. خلاص، E اتمسحت والـ BST لسه سليمة.'))
+    fr.append(frame(tree(t, dx=30, dy=44), 'joinLR: علّقنا الشجرة الشمال بتاعة E (اللي فيها C) شمال G، وG خدت مكان E. خلاص، E اتمسحت والـ BST لسه سليمة.'))
     F['bst-delete'] = ('steps', ''.join(fr))
 
 # ---------------- chapter 13 ----------------
@@ -130,7 +130,7 @@ def splay_fig():
     a = chain(); find(a, '1').cls = 'node hi'
     b = to_root(chain(), '1'); b.cls = 'node hi'
     c = splay(chain(), '1'); c.cls = 'node hi'
-    F['splay'] = ('fig', fig(side(('قبل: سلسلة (بعد insert بالترتيب)', tree(a, dx=24, dy=34, r=11)), ('rotate-to-root عادي', tree(b, dx=24, dy=34, r=11)), ('splay (rotations مزدوجة)', tree(c, dx=24, dy=34, r=11))),
+    F['splay'] = ('fig', fig(side(('قبل: سلسلة (بعد insert بالترتيب)', tree(a, dx=24, dy=34)), ('rotate-to-root عادي', tree(b, dx=24, dy=34)), ('splay (rotations مزدوجة)', tree(c, dx=24, dy=34))),
         'ليه الـ splay أحسن من مجرد «طلّعه للجذر»؟ بحثنا عن 1 في سلسلة طولها 8. الـ rotations العادية طلّعت 1 للجذر بس السلسلة فضلت بنفس الطول تقريبًا. الـ splay بيعمل rotations اتنين اتنين (zig-zig) من فوق — النتيجة إن كل عقدة على المسار عمقها <b>اتقسم تقريبًا على 2</b>. وده سر الـ amortized bound بتاع Property 13.5.'))
 
 class Node4:
@@ -165,7 +165,7 @@ def t234_steps():
         ev = []; root = t234_insert(root, k, ev)
         # find leaf containing new key (last placed)
         cap = f'insert <b>{k}</b>. ' + (' '.join(ev) if ev else 'مفيش 4-node في السكة، فدخل في الورقة على طول.')
-        fr.append(frame(mtree(to_m(root), kw=20, gap=10, dy=50), cap))
+        fr.append(frame(mtree(to_m(root), gap=10, dy=50), cap))
     F['t234-insert'] = ('steps', ''.join(fr))
     return root
 
@@ -198,7 +198,7 @@ def rb_steps():
         ev = []; root = rb_insert(root, k, False, ev)
         if root.red: root.red = False
         cap = f'insert <b>{k}</b>: ' + ('، '.join(ev) if ev else 'مفيش flips ولا rotations — دخل كعقدة حمرا في الآخر.')
-        fr.append(frame(tree(rb_to_n(root), dx=26, dy=46, r=13), cap))
+        fr.append(frame(tree(rb_to_n(root), dx=26, dy=46), cap))
     F['rb-insert'] = ('steps', ''.join(fr))
     out = []
     def ino(h):
@@ -236,12 +236,12 @@ def skiplist_fig():
         lv.append(j)
     L = max(lv); w = 40; gap = 16; out = [DEFS]; H = L * 34 + 30
     x0 = 10
-    for j in range(L): out.append(rect(x0, H - 30 - j * 34, 26, 24, 'cell hi2', 3))
-    out.append(text(x0 + 13, H - 4, 'head', 'lab', 'middle', 10))
+    for j in range(L): out.append(rect(x0, H - 30 - j * 34, 26, KEY_H, 'cell hi2', 0))
+    out.append(text(x0 + 13, H + 12, 'head', 'lab', 'middle', 11))
     xs = []
     for i, (k, l) in enumerate(zip(keys, lv)):
         x = x0 + 40 + i * (w + gap); xs.append(x)
-        for j in range(l): out.append(rect(x, H - 30 - j * 34, w, 24, 'cell hi' if (k == keys[7]) else 'cell', 3))
+        for j in range(l): out.append(rect(x, H - 30 - j * 34, w, KEY_H, 'cell hi' if (k == keys[7]) else 'cell', 0))
         out.append(text(x + w / 2, H - 13, k, 'tc', 'middle', 12))
     for j in range(L):
         prev = x0 + 26; y = H - 18 - j * 34
@@ -249,7 +249,7 @@ def skiplist_fig():
             if l > j: out.append(arrow(prev, y, x - 2, y, 'arr')); prev = x + w
         out.append(arrow(prev, y, prev + 20, y, 'arr')); out.append(text(prev + 28, y + 4, '∅', 'lab', 'middle', 11))
     W = xs[-1] + w + 50
-    F['skiplist'] = ('fig', fig(svg(W, H + 6, ''.join(out)), f'Skip list فيها {len(keys)} مفتاح. كل عقدة عدد links بتاعها عشوائي (احتمال ½ إنها تطلع مستوى كمان)، فحوالي نصهم مستوى 1، ربعهم مستوى 2… البحث عن {keys[7]} (المظلّل): ابدأ من أعلى مستوى في head، امشي يمين لحد ما الجاي يبقى أكبر، انزل مستوى، كرّر. كأنها binary search على قايمة.'))
+    F['skiplist'] = ('fig', fig(svg(W, H + 18, ''.join(out)), f'Skip list فيها {len(keys)} مفتاح. كل عقدة عدد links بتاعها عشوائي (احتمال ½ إنها تطلع مستوى كمان)، فحوالي نصهم مستوى 1، ربعهم مستوى 2… البحث عن {keys[7]} (المظلّل): ابدأ من أعلى مستوى في head، امشي يمين لحد ما الجاي يبقى أكبر، انزل مستوى، كرّر. كأنها binary search على قايمة.'))
 
 # ---------------- chapter 14 ----------------
 BOOKH = dict(zip('ASERCHINGXMPL', [7, 3, 9, 9, 8, 4, 11, 7, 10, 12, 0, 8, 6]))
@@ -262,10 +262,10 @@ def chaining_fig():
     out = [DEFS]; y0 = 10
     for i in range(Mb):
         y = y0 + i * 38
-        out.append(rect(10, y, 30, 28, 'cell hi2', 3)); out.append(text(25, y + 19, i, 'tc', 'middle', 12))
+        out.append(rect(10, y, 30, KEY_H, 'cell hi2', 0)); out.append(text(25, y + 17.7, i, 'tc', 'middle', VALUE_SIZE))
         x = 60; prev = 40
         for k in heads[i]:
-            out.append(arrow(prev, y + 14, x - 2, y + 14)); out.append(rect(x, y, 30, 28, 'cell', 3)); out.append(text(x + 15, y + 19, k, 'tc', 'middle', 12))
+            out.append(arrow(prev, y + 14, x - 2, y + 14)); out.append(rect(x, y, 30, KEY_H, 'cell', 0)); out.append(text(x + 15, y + 17.7, k, 'tc', 'middle', VALUE_SIZE))
             prev = x + 30; x += 50
         out.append(text(prev + 14, y + 19, '∅', 'lab', 'middle', 11))
     W = 60 + 50 * max(len(v) for v in heads.values()) + 30
@@ -280,7 +280,7 @@ def probe_steps(double=False):
         c = {p: 'bad' for p in probes}; c[i] = 'hi'
         hdr = list(range(Mt))
         cap = f'<b>{k}</b>: h = {BOOKH[k]}' + (f'، h₂ = {step}' if double else '') + (f'. اصطدم في {", ".join(map(str, probes))} ودخل في {i}.' if probes else f'. الخانة فاضية، دخل على طول.')
-        fr.append(frame(array_rows([('', hdr, {x: 'dim' for x in range(Mt)}), ('', [x or '' for x in T], c)], 28, 0), cap))
+        fr.append(frame(array_rows([('', hdr, {x: 'dim' for x in range(Mt)}), ('', [x or '' for x in T], c)], 0), cap))
     F['double-hash' if double else 'linear-probe'] = ('steps', ''.join(fr))
 
 # ---------------- chapter 15 ----------------
@@ -303,13 +303,14 @@ def dst_fig():
         return n
     F['dst'] = ('fig', fig(bintree_struct(root, lambda n: n.key), 'Digital search tree للمفاتيح A S E R C H I N G X M P (أكواد 5 بت: A=00001، S=10011…). كل مستوى بنبص على بت: البت الأول يقرّر شمال (0) ولا يمين (1) من الجذر، التاني من المستوى اللي بعده… لاحظ إن الشجرة <b>مش</b> BST: مثلًا الـ inorder مش مترتب. بس طولها محكوم بعدد البتات.'))
 
-def bintree_struct(root, label, cls=lambda n: 'node', dx=30, dy=46, r=14, edge_lab=True, leafbox=None):
+def bintree_struct(root, label, cls=lambda n: 'node', dx=30, dy=46, edge_lab=True, leafbox=None):
     """layout a binary tree by structure (each null keeps half the width)."""
     widths = {}
     def w(n, d):
         if n is None: return 1
         if n.l is None and n.r is None: return 2
         widths[id(n)] = w(n.l, d + 1) + w(n.r, d + 1); return widths[id(n)]
+    r = NODE_R
     total = w(root, 0); out = [DEFS]; maxd = [0]; U = dx / 2
     def place(n, x0, d):
         if n is None: return None
@@ -321,14 +322,15 @@ def bintree_struct(root, label, cls=lambda n: 'node', dx=30, dy=46, r=14, edge_l
                 if c is None: continue
                 pt = place(c, xx, d + 1)
                 out.insert(1, line(cx, cy, pt[0], pt[1], 'edge'))
-                if edge_lab: out.append(text((cx + pt[0]) / 2 + (-6 if b == '0' else 6), (cy + pt[1]) / 2, b, 'elab', 'middle', 10))
+                if edge_lab: out.append(text((cx + pt[0]) / 2 + (-6 if b == '0' else 6), (cy + pt[1]) / 2, b, 'elab', 'middle', 11))
         lab = label(n)
         if lab is None:
             out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" class="dot"/>')
         elif leafbox and n.l is None and n.r is None:
-            out.append(rect(cx - 13, cy - 12, 26, 24, 'cell hi', 3)); out.append(text(cx, cy + 5, lab, 'tc', 'middle', 12))
+            bw = max(KEY_H, label_width(lab) + 12)
+            out.append(rect(cx - bw / 2, cy - KEY_H / 2, bw, KEY_H, 'cell hi', 0)); out.append(text(cx, cy + 4.5, lab, 'tc', 'middle', VALUE_SIZE))
         else:
-            out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r}" class="{cls(n)}"/>'); out.append(text(cx, cy + 5, lab, 'tn', 'middle', 12))
+            out.append(node(cx, cy, lab, cls(n)))
         return (cx, cy)
     place(root, 0, 0)
     return svg(total * U + 20, (maxd[0] + 1) * dy + 20, ''.join(out))
@@ -393,7 +395,7 @@ def patricia_fig():
         n.up = ' '.join(ups); return n
     root = conv(head, head.l)
     def lab(n): return n.key
-    svgs = bintree_struct(root, lab, dx=44, dy=58, r=15)
+    svgs = bintree_struct(root, lab, dx=44, dy=58)
     # add bit numbers and up-link notes via a second pass is complex; list them in caption table
     rows = []
     def walk(n):
@@ -421,7 +423,7 @@ def tst_fig():
     def wd(h):
         if h is None: return 0
         s = wd(h.l) + wd(h.m) + wd(h.r); widths[id(h)] = max(1, s); return widths[id(h)]
-    total = wd(root); U = 30; dy = 40; out = [DEFS]; maxd = [0]
+    total = wd(root); U = 36; dy = 46; out = [DEFS]; maxd = [0]
     def place(h, x0, d):
         maxd[0] = max(maxd[0], d)
         ww = widths[id(h)]; xx = x0; cx = None
@@ -432,7 +434,7 @@ def tst_fig():
             elif kind == 'm' and h.l is None and h.r is None: pass
         cx = 10 + (x0 + ww / 2) * U; cy = 20 + d * dy
         for (px, py), kind in pts: out.insert(1, line(cx, cy, px, py, 'edge hi' if kind == 'm' else 'edge'))
-        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="12" class="node{" hi" if h.end else ""}"/>'); out.append(text(cx, cy + 5, h.c, 'tn', 'middle', 12))
+        out.append(node(cx, cy, h.c, f'node{" hi" if h.end else ""}'))
         return (cx, cy)
     place(root, 0, 0)
     F['tst'] = ('fig', fig(svg(total * U + 20, (maxd[0] + 1) * dy + 20, ''.join(out)), 'TST للكلمات she sells sea shells by the shore: كل عقدة حرف وتلات links — أصغر (شمال)، <b>مساوي</b> (الخط الملوّن: نتقدّم للحرف الجاي)، أكبر (يمين). العقد الزرقا آخر كلمة. البحث عن «shells»: s، h (مساوي)، e، l، l، s — بنقرا كل حرف مرة واحدة تقريبًا، ومفيش مصفوفات 27 link فاضية زي الـ multiway trie.'))
@@ -479,14 +481,14 @@ def btree_steps(Mp=4):
             return p
         hl = {leaf_of(root)}
         msg = f'insert <b>{format(key, "03o")}</b>.' + (ev if ev else '')
-        fr.append(frame(mtree(tom(root, hl), kw=30, gap=12, dy=56), msg))
+        fr.append(frame(mtree(tom(root, hl), gap=12, dy=56), msg))
     F['btree-insert'] = ('steps', ''.join(fr))
 
 def btree_split_fig():
     full = M(['153', '176', '373', '513'], [], 'mnode hi')
     a = M(['153', '176'], [], 'mnode hi'); b = M(['373', '513'], [], 'mnode hi2')
     par = M(['153', '373'], [a, b], 'mnode')
-    F['btree-split'] = ('fig', fig(side(('صفحة مليانة (M = 4 entries)', mtree(full, kw=34)), ('بعد الـ split', mtree(par, kw=34, dy=60))),
+    F['btree-split'] = ('fig', fig(side(('صفحة مليانة (M = 4 entries)', mtree(full)), ('بعد الـ split', mtree(par, dy=60))),
         'الـ split في B tree: لما صفحة توصل M entries، نقسمها نصّين، كل نص M/2، ونحط في الأب entry جديد بأول مفتاح في النص التاني ولينك ليه. لو الأب نفسه اتملى، نقسمه هو كمان، ولو الجذر اتقسم، الشجرة تطول من <b>فوق</b> — عشان كده كل الأوراق دايمًا على نفس العمق.'))
 
 def extendible_fig():
@@ -504,15 +506,15 @@ def extendible_fig():
         rowh = 30; H = max(D, len(pages)) * rowh + 30
         for i in range(D):
             y = 20 + i * rowh
-            out.append(rect(10, y, 50, 24, 'cell hi2', 3)); out.append(text(35, y + 17, format(i, f'0{d[0]}b') if d[0] else '·', 'tc', 'middle', 11))
+            out.append(rect(10, y, 50, KEY_H, 'cell hi2', 0)); out.append(text(35, y + 17.7, format(i, f'0{d[0]}b') if d[0] else '·', 'tc', 'middle', VALUE_SIZE))
         for j, p in enumerate(pages):
             y = 20 + j * rowh
-            out.append(rect(170, y, 4 * 38, 24, 'cell hi' if p is hi else 'cell', 3))
-            out.append(text(160, y + 17, f'k={p.k}', 'lab', 'end', 10))
+            out.append(rect(170, y, 4 * 38, KEY_H, 'cell hi' if p is hi else 'cell', 0))
+            out.append(text(160, y + 17, f'k={p.k}', 'lab', 'end', 11))
             for t, key in enumerate(sorted(p.keys)): out.append(text(170 + 19 + t * 38, y + 17, format(key, '03o'), 'tc', 'middle', 11))
         for i in range(D):
             j = pages.index(dirs[i]); out.append(arrow(60, 32 + i * rowh, 128, 32 + j * rowh))
-        out.append(text(8, 12, f'directory d={d[0]}', 'elab', 'start', 10))
+        out.append(text(8, 12, f'directory d={d[0]}', 'elab', 'start', 11))
         fr.append(frame(svg(340, H, ''.join(out)), cap))
     for n, key in enumerate(BKEYS[:14]):
         ev = []
@@ -533,16 +535,21 @@ def extendible_fig():
 def isam_fig():
     out = [DEFS]
     idx = ['001', '207', '434', '641']
-    out.append(rect(130, 10, 4 * 40, 26, 'cell hi2', 3))
-    for i, k in enumerate(idx): out.append(text(150 + i * 40, 28, k, 'tc', 'middle', 11))
     pages = [['001', '017', '061', '107'], ['207', '275', '277', '373'], ['434', '513', '524', '601'], ['641', '706', '742', '773']]
+    pw = label_width(' '.join(pages[0])) + 12; gap = 12
+    total = 4 * pw + 3 * gap
+    ix = 10 + (total - 4 * 40) / 2
+    out.append(rect(ix, 10, 4 * 40, KEY_H, 'cell hi2', 0))
+    for i, k in enumerate(idx): out.append(text(ix + 20 + i * 40, 10 + KEY_H * 0.68, k, 'tc', 'middle', VALUE_SIZE))
     for i, pg in enumerate(pages):
-        x = 10 + i * 105
-        out.append(line(150 + i * 40, 36, x + 48, 80, 'edge'))
-        out.append(rect(x, 80, 96, 26, 'cell', 3)); out.append(text(x + 48, 98, ' '.join(pg), 'tc', 'middle', 10))
-    out.append(rect(220, 130, 96, 26, 'cell bad', 3)); out.append(text(268, 148, '526 562 574', 'tc', 'middle', 10)); out.append(arrow(268, 106, 268, 128))
-    out.append(text(330, 148, 'overflow', 'lab', 'start', 10))
-    F['isam'] = ('fig', fig(svg(440, 170, ''.join(out)), 'ISAM: index ثابت فوق (أول مفتاح في كل صفحة) وصفحات بيانات مترتبة. البحث: صفحة index + صفحة بيانات = probes قليلة وثابتة. بس لما نضيف 526 و562 و574 والصفحة بتاعتهم مليانة، بيروحوا لصفحة <b>overflow</b> (الأحمر). ومع كتر الإضافات الـ overflow chains بتطول والبحث بيتقل — ودي بالظبط المشكلة اللي الـ B tree اتعمل يحلّها.'))
+        x = 10 + i * (pw + gap)
+        out.append(line(ix + 20 + i * 40, 10 + KEY_H, x + pw / 2, 80, 'edge'))
+        out.append(rect(x, 80, pw, KEY_H, 'cell', 0)); out.append(text(x + pw / 2, 80 + KEY_H * 0.68, ' '.join(pg), 'tc', 'middle', VALUE_SIZE))
+    ow = label_width('526 562 574') + 12; ox = 10 + 2 * (pw + gap) + (pw - ow) / 2
+    out.append(rect(ox, 130, ow, KEY_H, 'cell bad', 0)); out.append(text(ox + ow / 2, 130 + KEY_H * 0.68, '526 562 574', 'tc', 'middle', VALUE_SIZE))
+    out.append(arrow(ox + ow / 2, 80 + KEY_H, ox + ow / 2, 128))
+    out.append(text(ox + ow + 8, 130 + KEY_H * 0.68, 'overflow', 'lab', 'start', LABEL_SIZE))
+    F['isam'] = ('fig', fig(svg(20 + total, 170, ''.join(out)), 'ISAM: index ثابت فوق (أول مفتاح في كل صفحة) وصفحات بيانات مترتبة. البحث: صفحة index + صفحة بيانات = probes قليلة وثابتة. بس لما نضيف 526 و562 و574 والصفحة بتاعتهم مليانة، بيروحوا لصفحة <b>overflow</b> (الأحمر). ومع كتر الإضافات الـ overflow chains بتطول والبحث بيتقل — ودي بالظبط المشكلة اللي الـ B tree اتعمل يحلّها.'))
 
 for f in (bst_insert_steps, rotation_fig, root_insert_steps, delete_steps, splay_fig, t234_steps, rb_cases, skiplist_fig,
           chaining_fig, lambda: probe_steps(False), lambda: probe_steps(True), dst_fig, trie_steps, patricia_fig, tst_fig,

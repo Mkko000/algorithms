@@ -1,11 +1,19 @@
-<main id="main" class="wrap">
-<section class="title-page">
-<h1>{{site_name}}</h1>
-<p class="sub">{{tagline}}</p>
-<p class="intro">{{intro}}</p>
-<p><a class="start-link" href="{{first_href}}" data-start="{{start_tpl}}" data-continue="{{continue_tpl}}">{{start_text}}</a></p>
-</section>
-<nav class="contents" aria-label="{{contents}}">
-{{parts}}
-</nav>
+<main id="main" class="wrap home">
+  <section class="title-page">
+    <h1>{{site_name}}</h1>
+    <p class="sub">{{tagline}}</p>
+    <p class="intro">{{intro}}</p>
+    <p class="start">
+      <a
+        class="start-link"
+        href="{{first_href}}"
+        data-start="{{start_tpl}}"
+        data-continue="{{continue_tpl}}"
+      >
+        {{start_text}}
+      </a>
+    </p>
+    {{stats}}
+  </section>
+  <nav class="contents" aria-label="{{contents}}">{{parts}}</nav>
 </main>

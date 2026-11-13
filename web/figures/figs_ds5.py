@@ -27,9 +27,9 @@ def a_to_N(a, hi=(), i=1):
     return N(str(a[i - 1]), a_to_N(a, hi, 2 * i), a_to_N(a, hi, 2 * i + 1), cls='node hi' if i in hi else 'node')
 def a_row(a, hi=()):
     cl = {i: 'cell hi' for i in range(len(a)) if (i + 1) in hi}
-    return array_rows([('', [str(x) for x in a], cl)], cell=28)
+    return array_rows([('', [str(x) for x in a], cl)])
 def heap_view(a, hi=(), title=''):
-    return row(tree(a_to_N(a, hi), 30, 44, 13, title), a_row(a, hi), gap=24)
+    return row(tree(a_to_N(a, hi), 30, 44, title), a_row(a, hi), gap=24)
 def ints(s): return [int(x) for x in s.split()]
 
 def pq_up(a, mx=True):
@@ -67,8 +67,8 @@ def binheap():
     b = list(e); n = len(b)
     for i in range(n // 2, 0, -1): b = pq_down(b, i)[-1]
     assert b == fl, (b, fl)
-    F['ds23-build2'] = ('fig', row(lab('بالإدخال واحد واحد: ' + ' '.join(map(str, ins)), tree(a_to_N(ins), 28, 42, 13)),
-                                  lab('بطريقة Floyd (ننزّل من n/2 لـ 1): ' + ' '.join(map(str, fl)), tree(a_to_N(fl), 28, 42, 13)), gap=40)
+    F['ds23-build2'] = ('fig', row(lab('بالإدخال واحد واحد: ' + ' '.join(map(str, ins)), tree(a_to_N(ins), 28, 42)),
+                                  lab('بطريقة Floyd (ننزّل من n/2 لـ 1): ' + ' '.join(map(str, fl)), tree(a_to_N(fl), 28, 42)), gap=40)
                         + '<figcaption>نفس المدخلات 45 36 54 27 63 72 61 18 (Thareja Ex 12.2). الطريقتين يدّوا heap صح بس مش نفس الـ heap.</figcaption>')
 
 # ---------------------------------------------------------------- notation key(left,right), empty right omitted
@@ -86,7 +86,7 @@ def pt(s):
     t = node(); assert pos[0] == len(s), s
     return t
 def lt(s, title='', dx=22):
-    return tree(pt(s), dx, 44, 12, title)
+    return tree(pt(s), dx, 44, title)
 def leftist():
     g = lambda p: line_of('leftist', p)
     h1 = g('H1 ='); h2 = g('H2 ='); m = g('Fig 6.22 merge(H2, right of H1) ='); b = g('Fig 6.23 before the swap       ='); a = g('Fig 6.24 after the swap        =')
@@ -119,15 +119,15 @@ def pf(s):
     return out
 def to_M(t, hi=()):
     return M([t[0]], [to_M(k, hi) for k in t[1]], 'mnode hi' if t[0] in hi else 'mnode')
-def forest(s, hi=(), kw=22):
-    return row(*[mtree(to_M(t, hi), kw=kw, gap=8, dy=40) for t in pf(s)], gap=22)
+def forest(s, hi=()):
+    return row(*[mtree(to_M(t, hi), gap=8, dy=40) for t in pf(s)], gap=22)
 def binomial():
     def bt(k, start):
         key = str(start[0]); start[0] += 1
         return (key, [bt(j, start) for j in range(k)])
     cap = ['B0: عقدة واحدة.', 'B1 = شجرتين B0 (واحدة تحت التانية).', 'B2 = شجرتين B1.', 'B3 = شجرتين B2: 8 عقد، والجذر له 3 أبناء (B0 وB1 وB2).',
            'B4: 16 عقدة (2^4)، الجذر له 4 أبناء، وعلى العمق d فيه C(4,d) عقدة: 1، 4، 6، 4، 1.']
-    F['ds23-btrees'] = steps([(cap[k], row(mtree(to_M(bt(k, [1])), kw=22, gap=8, dy=40))) for k in range(5)])
+    F['ds23-btrees'] = steps([(cap[k], row(mtree(to_M(bt(k, [1])), gap=8, dy=40))) for k in range(5)])
     f = line_of('binomial', 'Fig 12.13:')
     F['ds23-fig1213'] = ('fig', forest(f) + '<figcaption>Fig 12.13: الشجرة الأولى 7(11(16),27) فيها 4 عقد = B2، والتانية 9(…) فيها 8 عقد = B3. إجمالي 12 عقدة = 1100 بالثنائي (bits 2 و3 مشغولين).</figcaption>')
     ins = re.findall(r'^insert (\d+): (.*)$', c_out('binomial'), re.M); assert len(ins) == 7
@@ -138,10 +138,10 @@ def binomial():
 
 def fib():
     b = line_of('fibheap', 'Fig 12.29 (before) :'); a = line_of('fibheap', 'Example 12.8 after :')
-    F['ds23-fib-insert'] = ('fig', row(lab('Fig 12.29', forest(b, (), 18)), lab('بعد insert 16 (Ex 12.8): جذر جديد في قائمة الجذور من غير أي دمج', forest(a, ('16',), 18)), gap=30)
+    F['ds23-fib-insert'] = ('fig', row(lab('Fig 12.29', forest(b, ())), lab('بعد insert 16 (Ex 12.8): جذر جديد في قائمة الجذور من غير أي دمج', forest(a, ('16',))), gap=30)
                             + '<figcaption>الإدخال في Fibonacci heap = O(1): بنضيف عقدة لقايمة الجذور وبس. الشغل بيتأجّل لأول extract-min.</figcaption>')
     e = line_of('fibheap', 'Example 12.10 after :').split('   (')[0]
-    F['ds23-fib-dec'] = ('fig', row(lab('بعد decrease-key (Ex 12.10): 3 cuts متسلسلة', forest(e, (), 18))) + '<figcaption>الـ cascading cut: لو عقدة فقدت ابن تاني (اتعلّمت من قبل) تتقطع هي كمان وتتحط في قايمة الجذور.</figcaption>')
+    F['ds23-fib-dec'] = ('fig', row(lab('بعد decrease-key (Ex 12.10): 3 cuts متسلسلة', forest(e, ()))) + '<figcaption>الـ cascading cut: لو عقدة فقدت ابن تاني (اتعلّمت من قبل) تتقطع هي كمان وتتحط في قايمة الجذور.</figcaption>')
 
 def mm():
     arr = ints(line_of('minmax', 'insert 1..15      :'))
@@ -151,7 +151,7 @@ def mm():
         n.cls = 'node hi' if lev % 2 == 0 else 'node'
         mark(n.l, lev + 1); mark(n.r, lev + 1)
     mark(t, 0)
-    F['ds23-minmax'] = ('fig', row(tree(t, 24, 44, 12, 'min-max heap'), gap=20)
+    F['ds23-minmax'] = ('fig', row(tree(t, 24, 44, 'min-max heap'), gap=20)
                         + '<figcaption>الشكل بعد إدخال 1..15 بالترتيب. المستويات المضاءة (0، 2، …) هي <b>min levels</b>: كل عقدة هناك أصغر من كل ولادها وأحفادها؛ المستويات التانية <b>max levels</b>: كل عقدة أكبر من كل أحفادها.</figcaption>')
 
 binheap(); leftist(); binomial(); fib(); mm()

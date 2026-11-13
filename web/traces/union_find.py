@@ -1,5 +1,5 @@
 from web.lib.csource import run_output
-from web.lib.render import line, row_parts, svg, text
+from web.lib.render import CELL, NODE_R, line, node, row_parts, svg, text
 from web.lib.trace import Frame, Trace, span
 from web.traces.common import line_with
 
@@ -8,7 +8,7 @@ BOOK = [(3, 4), (4, 9), (8, 0), (2, 3), (5, 6), (5, 9), (7, 3), (4, 8), (5, 6), 
 PRESETS = {"book": BOOK, "chain": [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]}
 
 
-CELL, NODE_R, DY, COL, PAD = 40, 14, 46, 36, 8
+DY, COL, PAD = 46, 36, 8
 
 
 def depth_of(ids):
@@ -25,7 +25,7 @@ def depth_of(ids):
 def forest_svg(ids, states, ptr, max_depth):
     n = len(ids)
     width = n * CELL
-    parts, _, row_h = row_parts([str(v) for v in ids], states, ptr, PAD, PAD, CELL, True, 0)
+    parts, _, row_h = row_parts([str(v) for v in ids], states, ptr, PAD, PAD, True, 0)
     parts = list(parts)
     kids = {k: [c for c in range(n) if ids[c] == k and c != k] for k in range(n)}
     roots = [k for k in range(n) if ids[k] == k]
@@ -55,8 +55,7 @@ def forest_svg(ids, states, ptr, max_depth):
             parts.append(line(x0 + x * col, top + d * DY, x0 + px * col, top + pd * DY, "e"))
     for k, (x, d) in pos.items():
         cx, cy = x0 + x * col, top + d * DY
-        parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{NODE_R}" class="{states.get(k, "s-idle")}"/>')
-        parts.append(text(cx, cy + 4.5, k, "t-val", "middle", 12))
+        parts.append(node(cx, cy, k, states.get(k, "s-idle")))
     height = top + max_depth * DY + NODE_R + PAD
     return svg(width + 2 * PAD, height, "".join(parts), cls="fsvg scene")
 

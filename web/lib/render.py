@@ -8,6 +8,17 @@ TEXTS = {"t-val", "t-idx", "t-ptr", "t-lab"}
 EDGES = {"e", "e-active", "e-strong", "e-null", "a", "a-head"}
 VOCABULARY = STATES | TEXTS | EDGES | {"fsvg", "scene", "dot"}
 
+NODE_R = 15
+CELL = 34
+KEY_H = 26
+VALUE_SIZE = 13
+LABEL_SIZE = 13
+
+
+def label_width(s, size=VALUE_SIZE) -> float:
+    return 0.6 * size * len(str(s))
+
+
 MARK_BASE = {"cell", "node", "mnode"}
 STATE_OF = {"hi": "s-focus", "piv": "s-focus", "hi2": "s-look", "bad": "s-look",
             "ok": "s-done", "dim": "s-faded"}
@@ -90,7 +101,7 @@ def map_svg_classes(html: str) -> str:
 
 def svg(w, h, body, label="", cls="fsvg"):
     return (f'<svg class="{cls}" direction="ltr" viewBox="0 0 {w:g} {h:g}" width="{w:g}" height="{h:g}" '
-            f'role="img" aria-label="{escape(label)}" xmlns="http://www.w3.org/2000/svg">{_map_body(body)}</svg>')
+            f'style="min-width:{round(0.7 * w)}px" role="img" aria-label="{escape(label)}" xmlns="http://www.w3.org/2000/svg">{_map_body(body)}</svg>')
 
 
 def text(x, y, s, cls="t", anchor="middle", size=None):
@@ -100,6 +111,20 @@ def text(x, y, s, cls="t", anchor="middle", size=None):
 
 def rect(x, y, w, h, cls="cell", rx=6):
     return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="{rx}" class="{cls}"/>'
+
+
+def node_width(label) -> float:
+    lw = label_width(label)
+    return lw + 12 if lw > 2 * NODE_R - 8 else 2 * NODE_R
+
+
+def node(x, y, label, cls="s-idle"):
+    w = node_width(label)
+    if w > 2 * NODE_R:
+        shape = rect(x - w / 2, y - NODE_R, w, 2 * NODE_R, cls, NODE_R)
+    else:
+        shape = f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{NODE_R}" class="{cls}"/>'
+    return shape + text(x, y + 4.5, label, "tn", "middle", VALUE_SIZE)
 
 
 def line(x1, y1, x2, y2, cls="edge"):
@@ -114,22 +139,25 @@ DEFS = ('<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth
         'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahead"/></marker></defs>')
 
 
-def array_rows(rows, cell=26, label_w=0, title=""):
+def array_rows(rows, label_w=0, title=""):
+    longest = max((len(str(v)) for r in rows for v in r[1] if v is not None), default=1)
+    cell = max(KEY_H, label_width("0" * longest) + 12)
+    ch = KEY_H
     n = max(len(r[1]) for r in rows)
     W = label_w + n * cell + 10
-    H = len(rows) * (cell + 6) + 10
+    H = len(rows) * (ch + 6) + 10
     out = [DEFS]
     for ri, (lab, items, cls) in enumerate(rows):
-        y = 5 + ri * (cell + 6)
+        y = 5 + ri * (ch + 6)
         if label_w and lab != "":
-            out.append(text(label_w - 6, y + cell * 0.68, lab, "lab", "end", 12))
+            out.append(text(label_w - 6, y + ch * 0.68, lab, "lab", "end", LABEL_SIZE))
         for i, v in enumerate(items):
             c = cls.get(i, "cell") if isinstance(cls, dict) else (cls[i] if i < len(cls) else "cell")
             if v is None or v == "":
                 continue
             x = label_w + i * cell
-            out.append(rect(x + 1, y, cell - 2, cell, c, 0))
-            out.append(text(x + cell / 2, y + cell * 0.68, v, "tc", "middle", 13))
+            out.append(rect(x + 1, y, cell - 2, ch, c, 0))
+            out.append(text(x + cell / 2, y + ch * 0.68, v, "tc", "middle", VALUE_SIZE))
     return svg(W, H, "".join(out), title)
 
 
@@ -147,7 +175,8 @@ def _layout(t, depth, pos, out):
     _layout(t.r, depth + 1, pos, out)
 
 
-def tree(t, dx=34, dy=50, r=15, title="", show_null=False):
+def tree(t, dx=34, dy=50, title="", show_null=False):
+    r = NODE_R
     P = {}
     _layout(t, 0, [0], P)
     if not P:
@@ -163,22 +192,27 @@ def tree(t, dx=34, dy=50, r=15, title="", show_null=False):
 
     edges, nodes = [], []
 
-    def walk(n):
+    def walk(n, side=None):
         if n is None:
             return
         x, y = xy(n)
-        for side, c in enumerate((n.l, n.r)):
+        for s, c in enumerate((n.l, n.r)):
             if c is not None:
                 cx, cy = xy(c)
                 edges.append(line(x, y, cx, cy, "edge red" if c.red else "edge"))
-                walk(c)
+                walk(c, s)
             elif show_null:
-                cx = x + (-dx / 3 if side == 0 else dx / 3)
-                edges.append(line(x, y, cx, y + dy * 0.55, "edge null"))
-        nodes.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{n.cls}{" rn" if n.red else ""}"/>')
-        nodes.append(text(x, y + 5, n.key, "tn", "middle", 13))
+                ux, uy = (-dx * 0.3 if s == 0 else dx * 0.3), dy * 0.75
+                k = (r + 24) / math.hypot(ux, uy)
+                edges.append(line(x, y, x + ux * k, y + uy * k, "edge null"))
+        nodes.append(node(x, y, n.key, f'{n.cls}{" rn" if n.red else ""}'))
         if n.note:
-            nodes.append(text(x, y - r - 4, n.note, "note", "middle", 11))
+            if side is None:
+                nodes.append(text(x, y - r - 4, n.note, "note", "middle", LABEL_SIZE))
+            elif side == 0:
+                nodes.append(text(x - r - 2, y - r + 2, n.note, "note", "end", LABEL_SIZE))
+            else:
+                nodes.append(text(x + r + 2, y - r + 2, n.note, "note", "start", LABEL_SIZE))
 
     walk(t)
     return svg(W, H + 10, "".join(edges + nodes), title)
@@ -216,14 +250,15 @@ class M:
         self.keys, self.kids, self.cls, self.label = list(keys), list(kids or []), cls, label
 
 
-def mtree(t, kw=22, gap=14, dy=58, title="", edge_labels=False):
+def mtree(t, gap=14, dy=58, title="", edge_labels=False):
+    kw = KEY_H
     widths = {}
 
     def bw_of(n):
         if hasattr(n, "bw"):
             return n.bw
         longest = max((len(str(k)) for k in n.keys), default=1)
-        return max(kw, 7.4 * longest + 10)
+        return max(kw, label_width("0" * longest) + 12)
 
     def width(n):
         w_self = max(1, len(n.keys)) * bw_of(n) + 6
@@ -254,6 +289,18 @@ def mtree(t, kw=22, gap=14, dy=58, title="", edge_labels=False):
                 cxs.append((xx, cw))
                 xx += cw + gap
             k = len(n.kids)
+            ang = []
+            for i, (xx, cw) in enumerate(cxs):
+                px = nx + (nw * i / (k - 1) if k > 1 else nw / 2)
+                if len(n.keys) + 1 == k:
+                    px = nx + i * bw
+                ang.append(math.atan2(dy - kw, xx + cw / 2 - px))
+            gaps = [math.inf] + [a - b for a, b in zip(ang, ang[1:])] + [math.inf]
+            left, taken = [], set()
+            for i in range(k):
+                use_left = i not in taken and gaps[i] > gaps[i + 1]
+                taken.add(i if use_left else i + 1)
+                left.append(use_left)
             for i, (c, (xx, cw)) in enumerate(zip(n.kids, cxs)):
                 px = nx + (nw * i / (k - 1) if k > 1 else nw / 2)
                 if len(n.keys) + 1 == k:
@@ -261,14 +308,18 @@ def mtree(t, kw=22, gap=14, dy=58, title="", edge_labels=False):
                 if n.cls != "virtual":
                     out.append(line(px, y + kw, xx + cw / 2, y + dy, "edge"))
                 if edge_labels and c.label is not None:
-                    out.append(text((px + xx + cw / 2) / 2 + 6, (y + kw + y + dy) / 2 + 2, c.label, "elab", "middle", 12))
+                    ex, ey = xx + cw / 2 - px, dy - kw
+                    nl = math.hypot(ex, ey)
+                    ox, oy = (-ey / nl, ex / nl) if left[i] else (ey / nl, -ex / nl)
+                    lx, ly = (px + xx + cw / 2) / 2 + ox * 10, (y + kw + y + dy) / 2 + oy * 10
+                    out.append(text(lx, ly + LABEL_SIZE * 0.35, c.label, "elab", "middle", LABEL_SIZE))
                 place(c, xx, d + 1)
         if n.cls == "virtual":
             pass
         elif n.keys:
             for i, k in enumerate(n.keys):
                 out.append(rect(nx + i * bw, y, bw, kw, n.cls, 0))
-                out.append(text(nx + i * bw + bw / 2, y + kw * 0.7, k, "tc", "middle", 12))
+                out.append(text(nx + i * bw + bw / 2, y + kw * 0.68, k, "tc", "middle", VALUE_SIZE))
         else:
             out.append(f'<circle cx="{cx:.1f}" cy="{y + kw / 2:.1f}" r="5" class="dot"/>')
 
@@ -281,28 +332,30 @@ def mtree(t, kw=22, gap=14, dy=58, title="", edge_labels=False):
     return svg(total + 20, 10 + (maxd[0] + 1) * dy - dy + kw + 14, "".join(out), title)
 
 
-def llist(items, cls=None, title="", extra=None, null=True, w=44, h=28, gap=26, extra_h=0):
+def llist(items, cls=None, title="", extra=None, null=True, w=44, gap=26, extra_h=0):
+    h = KEY_H
     cls = cls or {}
     out = [DEFS]
     x = 10
     for i, v in enumerate(items):
         c = cls.get(i, "cell")
         out.append(rect(x, 14, w, h, c, 0))
-        out.append(text(x + w * 0.4, 14 + h * 0.68, v, "tc", "middle", 13))
+        out.append(text(x + w * 0.4, 14 + h * 0.68, v, "tc", "middle", VALUE_SIZE))
         out.append(line(x + w * 0.78, 14, x + w * 0.78, 14 + h, "sep"))
         if i < len(items) - 1 or null:
             out.append(arrow(x + w * 0.89, 14 + h / 2, x + w + gap - 2, 14 + h / 2))
         x += w + gap
     if null:
         label = "NULL" if null is True else null
-        out.append(text(x + 6, 14 + h * 0.68, label, "lab", "start", 11))
+        out.append(text(x + 6, 14 + h * 0.68, label, "lab", "start", LABEL_SIZE))
         x += max(40, 7 * len(str(label)) + 12)
     if extra:
         out.append(extra)
     return svg(x + 10, h + 40 + extra_h, "".join(out), title)
 
 
-def graph(pos, edges, title="", r=14, cls=None, ecls=None, directed=False, W=None, H=None):
+def graph(pos, edges, title="", cls=None, ecls=None, directed=False, W=None, H=None):
+    r = NODE_R
     cls = cls or {}
     ecls = ecls or {}
     W = W or max(p[0] for p in pos.values()) + 30
@@ -317,8 +370,7 @@ def graph(pos, edges, title="", r=14, cls=None, ecls=None, directed=False, W=Non
         else:
             out.append(line(x1, y1, x2, y2, c))
     for k, (x, y) in pos.items():
-        out.append(f'<circle cx="{x}" cy="{y}" r="{r}" class="{cls.get(k, "node")}"/>')
-        out.append(text(x, y + 5, k, "tn", "middle", 13))
+        out.append(node(x, y, k, cls.get(k, "node")))
     return svg(W, H, "".join(out), title)
 
 
@@ -330,7 +382,8 @@ def fig(svg_s, cap):
     return f'{svg_s}<figcaption>{cap}</figcaption>'
 
 
-def row_parts(values, states, pointers, x0, y0, cell=42, index_row=True, index_base=0):
+def row_parts(values, states, pointers, x0, y0, index_row=True, index_base=0):
+    cell = CELL
     states = states or {}
     pointers = pointers or {}
     n = len(values)
@@ -338,7 +391,7 @@ def row_parts(values, states, pointers, x0, y0, cell=42, index_row=True, index_b
     for i, v in enumerate(values):
         x = x0 + i * cell
         out.append(rect(x, y0, cell, cell, states.get(i, "s-idle"), 0))
-        out.append(text(x + cell / 2, y0 + cell * 0.62, v, "t-val", "middle", 15 if cell >= 40 else 13))
+        out.append(text(x + cell / 2, y0 + cell * 0.64, v, "t-val", "middle", VALUE_SIZE))
     y = y0 + cell
     if index_row:
         for i in range(n):
@@ -348,31 +401,39 @@ def row_parts(values, states, pointers, x0, y0, cell=42, index_row=True, index_b
     for name, idx in pointers.items():
         if idx is not None and 0 <= idx < n:
             by_index.setdefault(idx, []).append(name)
-    depth = max((len(v) for v in by_index.values()), default=0)
-    for idx, names in by_index.items():
+    placed, depth = [], 0
+    for idx in sorted(by_index):
         x = x0 + idx * cell + cell / 2
         out.append(text(x, y + 14, "▲", "t-ptr", "middle", 12))
-        for k, name in enumerate(names):
+        k = 0
+        for name in by_index[idx]:
+            half = label_width(name) / 2 + 2
+            while any(r == k and x - half < b1 and a0 < x + half for r, a0, b1 in placed):
+                k += 1
+            placed.append((k, x - half, x + half))
             out.append(text(x, y + 30 + 15 * k, name, "t-ptr", "middle", 13))
+            depth = max(depth, k + 1)
+            k += 1
     y += 18 + 15 * depth if depth else 0
     return out, n * cell, y - y0
 
 
-def cells(values, states=None, pointers=None, index_row=True, cell=42, title="", index_base=0):
+def cells(values, states=None, pointers=None, index_row=True, title="", index_base=0):
     pad = 6
-    out, w, h = row_parts(values, states, pointers, pad, pad, cell, index_row, index_base)
+    out, w, h = row_parts(values, states, pointers, pad, pad, index_row, index_base)
     return svg(w + 2 * pad, h + 2 * pad, "".join(out), title, cls="fsvg scene")
 
 
-def cell_rows(rows, cell=38, label_w=44, index_base=0, gap=10, title=""):
+def cell_rows(rows, label_w=44, index_base=0, gap=10, title=""):
+    cell = CELL
     pad = 6
     out = []
     y = pad
     width = 0
     for label, values, states, pointers in rows:
         if label:
-            out.append(text(pad + label_w - 8, y + cell * 0.62, label, "t-lab", "end", 12))
-        parts, w, h = row_parts(values, states, pointers, pad + label_w, y, cell, True, index_base)
+            out.append(text(pad + label_w - 8, y + cell * 0.64, label, "t-lab", "end", LABEL_SIZE))
+        parts, w, h = row_parts(values, states, pointers, pad + label_w, y, True, index_base)
         out += parts
         width = max(width, w)
         y += h + gap

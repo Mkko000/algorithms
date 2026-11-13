@@ -166,3 +166,17 @@ class ContentTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SidenoteTest(unittest.TestCase):
+    def test_sidenote_marker(self):
+        r = render_page("First^[one **b**] and second^[two].\n", ctx())
+        self.assertIn('<span class="sn"><sup class="m">1</sup><span class="sn-t">one <strong>b</strong></span></span>', r.html)
+        self.assertIn('<span class="sn"><sup class="m">2</sup><span class="sn-t">two</span></span>', r.html)
+        self.assertNotIn("^[", r.html)
+
+    def test_sidenote_not_in_code(self):
+        r = render_page("Inline `a^[x]` here.\n\n```\nb^[y]\n```\n", ctx())
+        self.assertIn("a^[x]", r.html)
+        self.assertIn("b^[y]", r.html)
+        self.assertNotIn('class="sn"', r.html)
